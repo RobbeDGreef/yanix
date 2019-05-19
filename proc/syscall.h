@@ -8,7 +8,7 @@
 #define DECL_SYSCALL2(fn,p1,p2) int syscall_##fn(p1,p2);
 #define DECL_SYSCALL3(fn,p1,p2,p3) int syscall_##fn(p1,p2,p3);
 #define DECL_SYSCALL4(fn,p1,p2,p3,p4) int syscall_##fn(p1,p2,p3,p4);
-#define DECL_SYSCALL5(fn,p1,p2,p3,p4,p5) int syscall_##fn(p1,p2,p3,p4,p5);
+#define DECL_SYSCALL5(fn,p1,p2,p3,p4,p5) int sys_call##fn(p1,p2,p3,p4,p5);
 
 #define DEFN_SYSCALL0(fn, num) \
 int syscall_##fn() \
@@ -34,7 +34,15 @@ int syscall_##fn(P1 p1, P2 p2) \
  return a; \
 }
 
-DECL_SYSCALL1(print, char*)
+#define DEFN_SYSCALL3(fn, num, P1, P2, P3) \
+int syscall_##fn(P1 p1, P2 p2) \
+{ \
+ int a; \
+ asm volatile("int $0x80" : "=a" (a) : "0" (num), "b" ((int)p1), "c" ((int)p2), "d" ((int) p3)); \
+ return a; \
+}
+
+
 
 /**
  * @brief      Initialzes the system calls

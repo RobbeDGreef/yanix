@@ -1,35 +1,10 @@
-#include <limits.h>
-#include <stdbool.h>
-#include <stdarg.h>
-#include <lib/stdio/stdio.h>
-#include <lib/string/string.h>
+#include <proc/syscall.h>
+#include <stdint.h>
 #include <fs/dirent.h>
-#include <fs/filedescriptor.h>
-#include <drivers/vfs/vfs.h>
-#include <drivers/vfs/vfs_node.h>
 
-/*
-static bool print(const char* byte, size_t length) {
-	const unsigned char* bytes = (const unsigned char*) data;
-	for (size_t i = 0; i < length; i++){
-		if (putchar(bytes[i]) == EOF){
-			return false;
-		}
-	}
-	return true;
-}
+// @todo: this should use system calls
 
-int printf(const char* restict format, ...) {
-	va_list parameters;
-	va_start(parameters, format);
-	int writter = 0;
-
-	while (*format != '\0') {
-
-	}
-}
-*/
-
+#if 0
 
 /**
  * @brief      reads from given file descriptor
@@ -42,11 +17,7 @@ int printf(const char* restict format, ...) {
  */
 int read(int fd, void *buf, size_t count)
 {
-	vfs_node_t *node = get_filedescriptor_node(fd);
-	if (node == (vfs_node_t*) -1){
-		return -1;
-	}
-	return vfs_read(node, node->offset, buf, count);
+	return sys_read(fd, buf, count);
 }
 
 /**
@@ -60,11 +31,7 @@ int read(int fd, void *buf, size_t count)
  */
 int write(int fd, const void *buf, size_t count)
 {
-	vfs_node_t *node = get_filedescriptor_node(fd);
-	if (node == (vfs_node_t*) -1){
-		return -1;
-	}
-	return vfs_write(node, node->offset, buf, count);
+	return sys_write(fd, buf, count);
 }
 
 
@@ -77,13 +44,7 @@ int write(int fd, const void *buf, size_t count)
  */
 int close(int fd)
 {
-	vfs_node_t *node = get_filedescriptor_node(fd);
-	if (node == (vfs_node_t*) -1){
-		return -1;
-	}
-	vfs_close(node);
-	close_filedescriptor(fd);
-	return 0;
+	return sys_close(fd);
 }
 
 
@@ -97,21 +58,9 @@ int close(int fd)
  */
 int open(const char *path, int flags, int mode)
 {
-	vfs_node_t* node = vfs_find_path(path);
-	if (node == 0) {
-		return 0;
-	}
-	if (node->open != 0){
-		int ret = node->open(node, flags, mode);
-		if (ret == -1){
-			return -1;
-		}
-	}
-	return register_filedescriptor(node, mode);
-	
+	return sys_open(path, flags, mode);
 }
 
-#include "../../drivers/video/videoText.h"
 
 /**
  * @brief      opens a directory
@@ -122,12 +71,7 @@ int open(const char *path, int flags, int mode)
  */
 DIR* opendir(const char *path)
 {
-	vfs_node_t *node = vfs_find_path(path);
-	if (node == 0) {
-		return 0;
-	}
-
-	return node->opendir(node);
+	return sys_opendir(path);
 }
 
 
@@ -140,5 +84,7 @@ DIR* opendir(const char *path)
  */
 struct dirent *readdir(DIR *dirp)
 {
-	return dirp->fs_info->dir_read(dirp);
+	return sys_readdir(dirp);
 }
+
+#endif

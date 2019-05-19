@@ -226,3 +226,9 @@ inline void jump_userspace()
     			  iret; \
    				  1: ");
 }
+
+int exit_proc(int status)
+{
+	(void) (status);
+	return 0;
+}

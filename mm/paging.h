@@ -31,28 +31,6 @@ typedef struct page_directory {
 	uint32_t 		physicalAddress;
 } page_directory_t;
 
-#if 0
-int init_paging();
-
-void switch_page_directory(page_directory_t *new);
-
-
-page_t *get_page(uint32_t address, int make, page_directory_t *dir);
-
-//void page_fault(registers_t regs);
-void page_fault(registers_t *regs);
-
-void alloc_frame(page_t *page, int is_kernel, int is_writable);
-void id_alloc(page_t *page, uint32_t address, int is_kernel, int is_writable);
-void map_alloc(page_t* page, uint32_t phys, int is_kernel, int is_writable);
-void free_frame(page_t *page);
-uint32_t VirtualToPhysical(uint32_t virtual);
-void mapvirt(uint32_t virtual, uint32_t physical, page_directory_t* dir);
-page_directory_t* clone_directory(page_directory_t* src);
-
-#endif
-
-
 /**
  * @brief      Alocates a frame from a page struct
  *

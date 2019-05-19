@@ -57,4 +57,6 @@ pid_t fork();
  */
 void jump_userspace();
 
+int exit_proc(int status);
+
 #endif

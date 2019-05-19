@@ -12,6 +12,8 @@ int printf(const char* __restrict, ...);
 int putchar(int);
 int puts(const char*);
 
+#if 0
+
 /**
  * @brief      reads from given file descriptor
  *
@@ -72,5 +74,6 @@ DIR* opendir(const char *path);
  */
 struct dirent *readdir(DIR *dirp);
 
+#endif
 
 #endif
