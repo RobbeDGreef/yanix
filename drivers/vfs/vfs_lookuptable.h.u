@@ -1,0 +1,33 @@
+#ifndef VFS_LOOKUP_TABLE
+#define VFS_LOOKUP_TABLE
+
+#include "vfs.h"
+
+/**
+ * @brief      This function initializes the virtual filesystem lookup table
+ *
+ * @param      root  The root directory inode
+ */
+void init_vfs_lookuptable(vfs_node_t* root);
+
+/**
+ * @brief      Adds an inode to lookup.
+ *
+ * @param      pointer  The pointer of the inode
+ * @param[in]  inode    The inode id number
+ *
+ * @return     returns 0 when succeeds and 1 when an memory error occurs 
+ */
+int add_inode_to_lookup(vfs_node_t* pointer, uint32_t inode);
+
+
+/**
+ * @brief      Finds an inode to the lookup table
+ *
+ * @param[in]  inode  The inode id number
+ *
+ * @return     returns the pointer corresponding to the inode id number (and 0 when an error occurs)
+ */
+vfs_node_t *find_inode_pointer(uint32_t inode);
+
+#endif

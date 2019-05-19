@@ -1,0 +1,796 @@
+#if 0
+#include "../../libc/type.h"
+#include "../../libc/string/string.h"
+#include "../../libc/function.h"
+#include "../functions/kernelFunctions.h"
+#include "../stack/stack.h"
+#include "../../drivers/video/videoText.h"
+#include "../../drivers/video/graphics.h"
+#include "../../cpu/isr.h"
+#include "../../gui/gui.h"
+#include "paging.h"
+#include "heap.h"
+
+page_directory_t *kernel_directory  = 0;
+page_directory_t *current_directory = 0;
+
+uint32_t *frames;
+uint32_t nframes;
+extern uint32_t placement_address;	// defined in kernelFunctions.c 
+
+
+void page_fault(registers_t *regs) {
+	uint32_t faulting_address;
+	asm volatile ("mov %%cr2, %0":"=r"(faulting_address));
+
+	int present = !(regs->err_code & 0x1);	// the page that was not present
+	int rw = regs->err_code & 0x2;
+	int us = regs->err_code & 0x4;
+	int reserved = regs->err_code & 0x8;
+	// int id = regs.err_code & 0x10;
+
+	print("Page fault: ");
+	if (present) print("was not present, ");
+	if (rw) 	 print("read write, ");
+	if (us) 	 print("user-mode, ");
+	if (reserved)print("reserved: ");
+	print(" at ");
+	print_hex(faulting_address);
+	print("\n");
+	print("halting cpu...");
+	for (;;);
+}
+
+
+// macros used for bitset algorithms
+#define INDEX_FROM_BIT(a) (a/(8*4))
+#define OFFSET_FROM_BIT(a) (a%(8*4))
+
+// bitset stuff
+static void set_frame(uint32_t frame_addr){
+	uint32_t frame  = frame_addr/0x1000;
+	uint32_t index   = INDEX_FROM_BIT(frame);
+	uint32_t offset = OFFSET_FROM_BIT(frame);
+	frames[index] |= (0x1 << offset);
+}
+
+static void clear_frame(uint32_t frame_addr) {
+	uint32_t frame  = frame_addr/0x1000;
+	uint32_t index   = INDEX_FROM_BIT(frame);
+	uint32_t offset = OFFSET_FROM_BIT(frame);
+	frames[index] &= ~(0x1 << offset);			// '~' bitwise not
+}
+/*
+static uint32_t test_frame(uint32_t frame_addr) {
+	uint32_t frame  = frame_addr/0x1000;
+	uint32_t index   = INDEX_FROM_BIT(frame);
+	uint32_t offset = OFFSET_FROM_BIT(frame);
+	return (frames[index] & (0x1 << offset));
+}
+*/
+
+
+static uint32_t first_frame() {
+	uint32_t i, j;
+	for (i = 0; i < INDEX_FROM_BIT(nframes); i++) {
+		if (frames[i] != 0xFFFFFFFF){
+			for (j = 0; j < 32; j++) {
+				uint32_t toTest = 0x1 << j;
+				if (!(frames[i]&toTest)){
+					return i*4*8+j;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+void alloc_frame(page_t *page, int is_kernel, int is_writable) {
+	if (page->frame != 0) {
+		return;
+	} else {
+		uint32_t index = first_frame();
+		if (index == (uint32_t)-1){
+			print("NO FREE FRAMES!");
+		}
+		set_frame(index*0x1000);
+		page->present = 1;
+		page->rw = (is_writable)?1:0;
+		page->user = (is_kernel)?0:1;	// just a weird if statement if you're wondering
+		page->frame = index;
+	}
+}
+
+void map_alloc(page_t* page, uint32_t phys, int is_kernel, int is_writable){
+	if (page->frame != 0) {
+		return;
+	} else {
+		uint32_t index = phys/0x1000; // calc location
+		if (index == (uint32_t)-1){
+			print("NO FREE FRAMES!");
+		}
+		set_frame(index*0x1000);
+		page->present = 1;
+		page->rw = (is_writable)?1:0;
+		page->user = (is_kernel)?0:1;	// just a weird if statement if you're wondering
+		page->frame = index;
+	}
+}
+
+void id_alloc(page_t *page, uint32_t address, int is_kernel, int is_writable) {
+	if (page->frame != 0) {
+		return;
+	} else {
+		uint32_t index = address/0x1000; // calc location
+		if (index == (uint32_t)-1){
+			print("NO FREE FRAMES!");
+		}
+		set_frame(index*0x1000);
+		page->present = 1;
+		page->rw = (is_writable)?1:0;
+		page->user = (is_kernel)?0:1;	// just a weird if statement if you're wondering
+		page->frame = index;
+	}
+}
+
+void free_frame(page_t *page) {
+	uint32_t frame;
+	if (!(frame=page->frame)) {
+		return;
+	} else {
+		clear_frame(frame);
+		page->frame = 0x0;
+	}
+}
+
+void switch_page_directory(page_directory_t *dir) {
+	current_directory = dir;
+	asm volatile ("mov %0, %%cr3" : : "r" (dir->physicalAddress));
+	uint32_t cr0;
+	asm volatile ("mov %%cr0, %0":"=r"(cr0));
+	cr0 |= 0x80000000;									// 1000 0000 0000 0000 0000 0000 0001 0001
+	asm volatile("mov %0, %%cr0" : : "r" (cr0));
+}
+
+void mapvirt(uint32_t virtual, uint32_t physical, page_directory_t* dir){
+	dir->tables[(virtual/0x1000)/1024] = (page_table_t*)physical;
+	dir->tablesPhysical[(virtual/0x1000)/1024] = physical | 0x7;
+}
+
+void init_paging() {
+	uint32_t mem_end_page = 0x20000000; // assuming that physical memory is 16mb however i think qemu defaults with 128mb so we should change this (todo.txt)
+	//uint32_t mem_end_page = 0xfe000000;
+	nframes = mem_end_page / 0x1000;
+	frames = (uint32_t*) kmalloc_base(INDEX_FROM_BIT(nframes), 0, 0);
+	memset(frames, 0, INDEX_FROM_BIT(nframes));
+	
+	uint32_t phys;
+	kernel_directory = (page_directory_t*)kmalloc_base(sizeof(page_directory_t), 1, &phys);
+	
+	// added in for heap
+	memset((uint32_t*) kernel_directory, 0, sizeof(page_directory_t));
+	
+	kernel_directory->physicalAddress = (uint32_t) kernel_directory->tablesPhysical;
+
+	current_directory = kernel_directory;
+	uint32_t i = 0;
+	
+	// now map pages for the heap
+	for (i=KHEAP_START; i<KHEAP_START+KHEAP_MAXSIZE; i+=0x1000){
+		get_page(i, 1, kernel_directory);
+	}
+
+	
+	i = 0;
+	while (i < placement_address+PREHEAPSPACE) {
+		alloc_frame(get_page(i, 1, kernel_directory), 0, 0);
+		i += 0x1000;
+	}
+	
+	// allocate the pages we mapped earlyier
+	for (i=KHEAP_START; i<KHEAP_START+KHEAP_MAXSIZE; i += 0x1000){
+		alloc_frame(get_page(i, 1, kernel_directory), 0, 0);
+	}
+	
+	i = PhysicalLFB;
+	while (i < PhysicalLFB+0x1000000){
+		page_t *pg = get_page(i, 1, kernel_directory);
+		id_alloc(pg, i, 0, 0);
+		i+=0x1000;
+	}
+	
+	uint32_t size  = WIDTH*HEIGHT*(BPP/8)*MAXWINDOWS+0x1000;
+	uint32_t start = ZBuffer;
+	while (start < ZBuffer+size){
+		alloc_frame(get_page(start, 1, kernel_directory), 0, 0);
+		start += 0x1000;
+	}
+
+
+
+	kernel_directory->physicalAddress = phys + ((uint32_t)kernel_directory->tablesPhysical - (uint32_t) kernel_directory);
+
+	register_interrupt_handler(14, page_fault);
+	switch_page_directory(clone_directory(kernel_directory));
+}
+
+// don't know if this works
+uint32_t VirtualToPhysical(uint32_t virtual){
+	page_t *page = get_page((uint32_t)virtual, 0, kernel_directory);
+	uint32_t physicaladdress = (uint32_t) (page->frame*0x1000 + ((uint32_t)virtual&0xFFF));
+	return physicaladdress;
+}
+
+
+
+page_t *get_page(uint32_t address, int make, page_directory_t *dir) {
+	address /= 0x1000;
+	uint32_t table_index = address /1024;
+	if (dir->tables[table_index]) {
+		return &dir->tables[table_index]->pages[address%1024];
+	} else if (make) {
+		uint32_t tmp;
+		dir->tables[table_index] = (page_table_t*)kmalloc_base(sizeof(page_table_t), 1, &tmp);
+		memset((uint32_t*)dir->tables[table_index], 0, sizeof(page_table_t));
+		dir->tablesPhysical[table_index] = tmp | 0x7;
+		return &dir->tables[table_index]->pages[address%1024];
+	} else {
+		return 0;
+	}
+}
+
+
+
+page_directory_t* clone_directory(page_directory_t* src){
+
+	uint32_t phys;
+	page_directory_t *dir = (page_directory_t*) kmalloc_base(sizeof(page_directory_t), 1, &phys);
+	memset((uint32_t*) dir, 0, sizeof(page_directory_t));
+	//memcpy((uint32_t*) kernel_directory, (uint32_t*)dir, sizeof(page_directory_t));
+	
+	dir->physicalAddress = phys + ((uint32_t)dir->tablesPhysical - (uint32_t) dir);
+
+	for (uint32_t i = 0; i < 1024; i++){
+		if (src->tables[i] == 0){
+			//print_int(i);print(" ");
+			continue;
+		}
+		if (kernel_directory->tables[i] == src->tables[i]){
+			dir->tables[i] = kernel_directory->tables[i];
+			dir->tablesPhysical[i] = kernel_directory->tablesPhysical[i];
+		} else {
+			print("should actually copy but hey\n");
+			print("table: "); print_int(i);print("\n");
+			
+			/*
+			uint32_t *phys;
+			page_table_t* tbl = (page_table_t*) kmalloc_base(sizeof(page_table_t), phys);
+			memset(tbl, 0, sizeof(page_table_t));
+			for (uint32_t j = 0; j < 1024; j++){
+				if (!src->pages[j].frame){
+					continue; 	// if no frame assigned: skip
+				} else {
+					alloc_frame(tbl->pages[j], 0, 0);
+					tbl->pages[j].present = src->tables[i]->pages[j].present;
+					tbl->pages[j].rw = src->tables[i]->pages[j].rw;
+					tbl->pages[j].user = src->tables[i]->pages[j].user;
+					tbl->pages[j].accessed = src->tables[i]->pages[j].accessed;
+					tbl->pages[j].dirty = src->tables[i]->pages[j].dirty;
+
+					// now we somehow need to copy the physical data 
+					// idea without turning off paging: 
+					// map physical to a burner page and copy this page like regular to the right place in virtual
+
+				}
+			}
+			dir->tables[i] = tbl;
+			dir->tablesPhysical[i] = phys;
+			*/
+		}
+	}
+	return dir;
+}
+
+#endif
+
+/**
+ * kernel/memorymanagement/paging.c
+ * 
+ * Author: Robbe De Greef
+ * Date:   12 may 2019
+ * 
+ * Version 2.0
+ */
+
+// @todo: implement COW (copy on write) for duplicating a page see this page for more info: https://ubuntuforums.org/showthread.php?t=1308167
+
+#include <lib/string/string.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <drivers/video/videoText.h>
+#include <drivers/video/graphics.h>
+#include <cpu/isr.h>
+#include <gui/gui.h>
+#include <kernel/functions/kfunctions.h>
+#include <proc/tasking.h>
+#include <kernel/stack/stack.h>
+#include <mm/paging.h>
+#include <mm/heap.h>
+
+/**
+ * The global directory variables
+ */
+
+page_directory_t *g_kernel_directory  = 0;
+page_directory_t *g_current_directory = 0;
+
+/**
+ * The global frame variables
+ */
+
+offset_t *g_frames;
+size_t   g_nframes;
+
+extern uint32_t placement_address;	// defined in kernelFunctions.c
+
+/**
+ * All the bitset algorithms
+ */
+
+// macros used for bitset algorithms
+#define INDEX_FROM_BIT(a) (a/(8*4))
+#define OFFSET_FROM_BIT(a) (a%(8*4))
+
+// bitset functions
+
+/**
+ * @brief      Sets the frame.
+ *
+ * @param[in]  frame_addr  The frame address
+ */
+static void set_frame(unsigned int frame_addr)
+{
+	uint32_t frame  = frame_addr/0x1000;
+	uint32_t index   = INDEX_FROM_BIT(frame);
+	uint32_t offset = OFFSET_FROM_BIT(frame);
+	g_frames[index] |= (0x1 << offset);
+}
+
+/**
+ * @brief      Clears a frame.
+ *
+ * @param[in]  frame_addr  The frame address
+ */
+static void clear_frame(unsigned int frame_addr)
+{
+	uint32_t frame  = frame_addr/0x1000;
+	uint32_t index   = INDEX_FROM_BIT(frame);
+	uint32_t offset = OFFSET_FROM_BIT(frame);
+	g_frames[index] &= ~(0x1 << offset);			// '~' bitwise not
+}
+
+
+/**
+ * @brief      Finds the first free frame
+ *
+ * @return     returns the frame index 
+ */
+static ssize_t first_frame()
+{
+	size_t i, j;
+	for (i = 0; i < INDEX_FROM_BIT(g_nframes); i++) {
+		if (g_frames[i] != 0xFFFFFFFF){
+			for (j = 0; j < 32; j++) {
+				unsigned int toTest = 0x1 << j;
+				if (!(g_frames[i]&toTest)){
+					return (ssize_t) i*4*8+j;
+				}
+			}
+		}
+	}
+	return -1;
+}
+
+
+
+/**
+ * @brief      Alocates a frame from a page struct
+ *
+ * @param      page                        The page struct
+ * @param[in]  is_kernel                   Indicates if kernel
+ * @param[in]  is_writable_from_userspace  Indicates if writable from userspace
+ * @param[in]  is_writable  Indicates if writable
+ *
+ * @return     successcode 
+ */
+int alloc_frame(page_t *page, int is_kernel, int is_writable_from_userspace)
+{
+	if (page->frame != 0) {
+		return -1;
+	} else {
+		ssize_t index = first_frame();
+		if (index == -1){
+			print("NO FREE FRAMES!");
+			return -2;
+		}
+		set_frame(index*0x1000);
+		page->present = 1;
+		page->rw = (is_writable_from_userspace)?1:0;
+		page->user = (is_kernel)?0:1;	// just a weird if statement if you're wondering
+		page->frame = index;
+		return 0;
+	}
+}
+
+
+
+/**
+ * @brief      Maps a frame to requested location
+ *
+ * @param      page                        The page
+ * @param[in]  addr                        The address
+ * @param[in]  remap                       Indicates whether it should be remapped if already mapped
+ * @param[in]  is_kernel                   Indicates if kernel
+ * @param[in]  is_writable_from_userspace  Indicates if writable from userspace
+ *
+ * @return     success or failure
+ */
+int map_frame(page_t *page, unsigned int addr, int remap, int is_kernel, int is_writable_from_userspace)
+{
+	if (page->frame != 0 && remap) {
+		return -1;
+	} else {
+		set_frame(addr & 0xFFFFF000);	// just to be certain the right frame is mapped
+		page->present = 1;
+		page->rw = (is_writable_from_userspace)?1:0;
+		page->user = (is_kernel)?0:1;	// just a weird if statement if you're wondering
+		page->frame = addr / 0x1000;
+		return 0;
+	}
+}
+
+void free_frame(page_t *page)
+{
+	uint32_t frame = 0;
+	if (!(frame == page->frame)) {
+		return;
+	} else {
+		clear_frame(frame);
+		page->frame = 0x0;
+	}
+}
+
+/**
+ * @brief      Get the physical address from a virtual one in a page directory
+ *
+ * @param      virtual_address  The virtual address
+ *
+ * @return     The physical address
+ */
+phys_addr_t virt_to_phys_from_dir(void *virtual_address, page_directory_t *dir)
+{
+	uint32_t page_aligned_addr = (uint32_t) virtual_address & 0xFFFFF000;
+	// first get the page
+	page_t *page = (page_t*) &dir->tables[page_aligned_addr / 0x1000 / AMOUNT_OF_PAGES_PER_TABLE] \
+					   			  ->pages[page_aligned_addr / 0x1000 % AMOUNT_OF_PAGES_PER_TABLE];
+	if (page->frame == 0) {
+		return 0;
+	}
+	return page->frame * 0x1000 + ((uint32_t) virtual_address & 0x00000FFF);
+}
+
+
+/**
+ * @brief      The page fault handler
+ *
+ * @param      regs  The regs
+ */
+
+static void page_fault(registers_t *regs)
+{
+	offset_t faulting_address;
+	asm volatile("mov %%cr2, %0":"=r"(faulting_address));
+
+	int present = !(regs->err_code & 0x1);	// the page that was not present
+	int rw = regs->err_code & 0x2;			// whether write operation or not
+	int us = regs->err_code & 0x4;			// processor in ring 3 
+	int reserved = regs->err_code & 0x8;	// Overwritten CPU-reserved bits of a page entry
+
+	print("Page fault: \n");
+	int errcode = -1;
+	if (present)  {print("was not present, ");}
+	if (rw) 	  {print("read write, "); errcode = -EPERM;}
+	if (us) 	  {print("user-mode, ");  errcode = -EACCES;}
+	if (reserved) {print("reserved, ");   errcode = -EACCES;}
+	print(" at ");
+	print_hex(faulting_address);
+	print("\n");
+	(void) (errcode);
+	for(;;);
+}
+
+/**
+ * @brief      Switches page directory
+ *
+ * @param      dir   The directory to switch to
+ */
+void switch_page_directory(page_directory_t *dir)
+{
+	// @bug: so the bug is the stack actually, the stack is completely fcked because we copy it like 5 functions ago we should copy now
+	// @fix: copy stack now and exclude it from the copy systems in duplicate_current_page_directory
+	g_current_directory = dir;
+	print("loc: "); print_hex(dir->physicalAddress);print("\n");
+	asm volatile ("mov %0, %%cr3" : : "r" (dir->physicalAddress));
+
+}
+
+/**
+ * @brief      Initializes paging
+ *
+ * @param      dir   The directory to switch to
+ */
+void init_page_directory(page_directory_t *dir)
+{
+	switch_page_directory(dir);
+	uint32_t cr0;
+	asm volatile ("mov %%cr0, %0":"=r"(cr0));
+	cr0 |= 0x80000000;									// 1000 0000 0000 0000 0000 0000 0001 0001
+	asm volatile("mov %0, %%cr0" : : "r" (cr0));
+}
+
+/**
+ * @brief      Allocates a page table.
+ *
+ * @param[in]  table_index  The table index
+ * @param      dir          The dir
+ */
+static void alloc_page_table(size_t table_index, int flags, page_directory_t *dir)
+{
+	phys_addr_t phys = 0;
+	dir->tables[table_index] = (page_table_t*) kmalloc_base(sizeof(page_table_t), 1, &phys);
+	memset(dir->tables[table_index], 0, sizeof(page_table_t));
+	dir->tablesPhysical[table_index] = (uint32_t) phys | flags;
+}
+
+/**
+ * @brief      Gets the page.
+ *
+ * @param[in]  virtual_address  The virtual address
+ * @param[in]  make_page_table  The make page table
+ * @param      dir              The dir
+ *
+ * @return     The page.
+ */
+page_t *get_page(uint32_t virtual_address, int make_page_table, page_directory_t *dir)
+{
+	virtual_address /= 0x1000;	// make the address an index
+	
+	if (dir->tables[virtual_address/AMOUNT_OF_PAGES_PER_TABLE] == 0 && make_page_table) {
+		// flags are 0x7 binary this is equal to 0111 this means present, read-write, user-mode
+		alloc_page_table(virtual_address/AMOUNT_OF_PAGES_PER_TABLE, 0x7, dir);	
+	} else if (dir->tables[virtual_address/AMOUNT_OF_PAGES_PER_TABLE] == 0 && !make_page_table) {
+		return 0;
+	}
+	return &dir->tables[virtual_address/AMOUNT_OF_PAGES_PER_TABLE]->pages[virtual_address % AMOUNT_OF_PAGES_PER_TABLE]; // return the page
+}
+
+/**
+ * @brief      Copies a page
+ *
+ * @param[in]  addr    The address of the page
+ * @param      newdir  The new directory to copy to
+ */
+static void copy_page(size_t addr, page_directory_t *newdir)
+{
+	page_t *page_to_copy_ref = get_page(addr, 1, g_current_directory);
+	page_t *buffer_page 	 = get_page(PAGE_BUFFER_LOCATION, 1, g_current_directory);
+	page_t *new_page  		 = get_page(addr, 1, newdir);
+	
+	alloc_frame(new_page, page_to_copy_ref->user?0:1, page_to_copy_ref->rw?1:0);
+	buffer_page->frame = new_page->frame;
+	memcpy((void*) PAGE_BUFFER_LOCATION, (void*) addr, 0x1000);
+}
+
+/**
+ * @brief      Copies the stack to the new address space
+ *
+ * @param      newdir  The new address space
+ */
+void copy_stack_to_new_addressspace(page_directory_t *newdir)
+{
+	copy_page(DISIRED_STACK_LOCATION-STACK_SIZE, newdir);
+}
+
+
+/**
+ * @brief      Determines if address in stackrange.
+ *
+ * @param[in]  addr  The address
+ *
+ * @return     True if address in stackrange, False otherwise.
+ */
+static int is_addr_in_stackrange(size_t addr)
+{
+	if (addr >= DISIRED_STACK_LOCATION-STACK_SIZE && addr < DISIRED_STACK_LOCATION) {
+		return 1;
+	}
+	return 0;
+}
+
+/**
+ * @brief      Duplicates the current page directory
+ *
+ * @return     Pointer to the duplicate
+ */
+page_directory_t *duplicate_current_page_directory()
+{
+	phys_addr_t phys = 0;
+	page_directory_t *newdir = (page_directory_t*) kmalloc_base(sizeof(page_directory_t), 1, &phys);
+	memset(newdir, 0, sizeof(page_directory_t));
+
+	newdir->physicalAddress = ((uint32_t) phys) + (((uint32_t)newdir->tablesPhysical) - ((uint32_t) newdir));
+
+
+	// first loop over all the page tables
+	for (size_t tableiter = 0; tableiter < AMOUNT_OF_PAGE_TABLES_PER_DIR; tableiter++) {
+		if (g_current_directory->tablesPhysical[tableiter] != 0) {
+			// if the table is used
+			if (g_current_directory->tables[tableiter] == g_kernel_directory->tables[tableiter]) {
+				// if the page is the same as in the kernel directory, then we should link it
+				newdir->tables[tableiter] = g_current_directory->tables[tableiter];
+				newdir->tablesPhysical[tableiter] = g_current_directory->tablesPhysical[tableiter];
+
+			} else {
+				// copy the page table 
+				newdir->tables[tableiter] = (page_table_t*) kmalloc_base(sizeof(page_table_t), 1, &phys);
+				newdir->tablesPhysical[tableiter] = (uint32_t) phys | (g_current_directory->tablesPhysical[tableiter] & 0xF); // copy the flags over too
+
+				// loop over evey page and copy the contents if it exists
+				for (size_t pageiter = 0; pageiter < AMOUNT_OF_PAGES_PER_TABLE; pageiter++) {
+					if ((uint32_t) g_current_directory->tables[tableiter]->pages[pageiter].frame != 0 && 
+						!is_addr_in_stackrange((tableiter*AMOUNT_OF_PAGES_PER_TABLE+pageiter)*0x1000)) {
+						copy_page((tableiter*AMOUNT_OF_PAGES_PER_TABLE+pageiter)*0x1000, newdir);
+					}
+				}
+			}
+		}
+	}
+	return newdir;
+}
+
+
+/**
+ * @brief      Maps a physical memory block to the virtual memory
+ *
+ * @param[in]  startaddr                   The startaddr
+ * @param[in]  endaddr                     The endaddr
+ * @param[in]  is_kernel                   Indicates if kernel
+ * @param[in]  is_writable_from_userspace  Indicates if writable from userspace
+ * @param      dir                         The dir
+ *
+ * @return     success code
+ */
+static int map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace, page_directory_t *dir)
+{
+	int ret;
+	// this loop uses startaddr as an iterator
+	while (startaddr <= endaddr) {
+		// alocates a frame for every page that is in this memory block
+		ret = alloc_frame(get_page(startaddr, 1, dir), is_kernel, is_writable_from_userspace);
+		if (ret != 0) {
+			return ret;
+		}
+		startaddr += 0x1000;
+	}
+	return 0;
+}
+
+
+/**
+ * @brief      Identity maps a physical memory block to a virtual memory block
+ *
+ * @param[in]  startaddr                   The startaddr
+ * @param[in]  endaddr                     The endaddr
+ * @param[in]  is_kernel                   Indicates if kernel
+ * @param[in]  is_writable_from_userspace  Indicates if writable from userspace
+ * @param      dir                         The dir
+ *
+ * @return     success code
+ */
+static int identity_map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace,
+									 page_directory_t *dir)
+{
+	int ret;
+	// this loop uses startaddr as an iterator
+	while (startaddr <= endaddr) {
+		// alocates a frame for every page that is in this memory block
+		ret = map_frame(get_page(startaddr, 1, dir), startaddr, 1, is_kernel, is_writable_from_userspace);
+		if (ret != 0) {
+			return ret;
+		}
+		startaddr += 0x1000;
+	}
+	return 0;
+}
+
+/**
+ * @brief      Maps a physical address block to a virtual one
+ *
+ * @param      physical_address            The physical address
+ * @param      virtual_address             The virtual address
+ * @param[in]  size                        The size
+ * @param[in]  is_kernel                   Indicates if kernel
+ * @param[in]  is_writable_from_userspace  Indicates if writable from userspace
+ * @param      dir                         The dir
+ *
+ * @return     successcode
+ */
+int map_physical_to_virtual(phys_addr_t *physical_address, void *virtual_address, size_t size, int is_kernel,
+						    int is_writable_from_userspace, page_directory_t *dir)
+{
+
+	for (size_t i = 0; i < size; i+=0x1000){
+		int ret = map_frame(get_page((unsigned int)virtual_address+i, 1, dir), ((uint32_t)physical_address)+i, 1, is_kernel, is_writable_from_userspace);
+		if (ret){
+			return -1;
+		}
+	}
+	return 0;
+}
+
+/**
+ * @brief      Initializes paging.
+ *
+ * @return     exit code
+ */
+int init_paging()
+{
+	// @todo: get end of memory
+	offset_t end_of_memory = 0x20000000;				// for now we set end at 512 mb (really shouldn't be statically typed)
+	g_nframes 			   = end_of_memory / 0x1000; // each page frame coveres 4kib bytes
+
+	g_frames = (offset_t*) kmalloc_base(g_nframes / 32, 1, 0);
+	memset(g_frames, 0, g_nframes / 32);
+
+	g_kernel_directory = (page_directory_t*) kmalloc_base(sizeof(page_directory_t), 1, 0);
+	memset(g_kernel_directory, 0, sizeof(page_directory_t));
+	
+	g_kernel_directory->physicalAddress = (uint32_t) g_kernel_directory->tablesPhysical;
+
+
+	g_current_directory = g_kernel_directory;
+
+	// we need to create the page tables before the identity paging of the kernel
+	// because if we do it afterward we won't be able to call kmalloc anymore since
+	// it checks if anything is written to the page direcotry and if so it will use
+	// the heap, problem being we haven't initialized our heap yet
+	
+	for (uint32_t i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i+=0x1000) {
+		get_page(i, 1, g_kernel_directory);
+	}
+
+	// identity map the memory from 0 to the end of the kernel and make it unwriteable from user space and kernel only
+	identity_map_memory_block(0, placement_address+0x25000, 1, 0, g_kernel_directory);
+	// @note: the reason that we need to add so much memory after placement address is because of the page allocation systems
+
+	// allocate the heap
+	map_memory_block(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE, 1, 0, g_kernel_directory);
+
+	// allocate the page buffer location for page directory cloning
+	map_memory_block(PAGE_BUFFER_LOCATION, PAGE_BUFFER_LOCATION+0x1000, 0, 0, g_kernel_directory);
+
+
+	// allocate the VESA physical frame buffer bus
+	identity_map_memory_block(PhysicalLFB, PhysicalLFB + MAXBUFFER, 0, 1, g_kernel_directory);
+
+	map_memory_block(ZBuffer, ZBuffer+ (MAXBUFFER * MAXWINDOWS) + 0x1000, 0, 1, g_kernel_directory);
+
+	// register the page interrupt handler
+	register_interrupt_handler(14, page_fault);
+
+	// switch the page directory and by doing this activate paging
+	g_current_directory	= duplicate_current_page_directory();
+	init_page_directory(g_current_directory);
+
+	return 0;
+}
