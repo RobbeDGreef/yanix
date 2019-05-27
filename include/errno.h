@@ -1,6 +1,8 @@
 #ifndef _ERRNO_H
 #define _ERRNO_H
 
+extern volatile int errno;
+
 /**
  * This file contains all the linux error codes 
  */

@@ -1,2 +1,10 @@
-added readme
- fixes
+
+- fixed bug in vfs system (find inode by path) 
+- changed the way to access read/write io (with vfs alone now)
+- @todo: this system should actually use the vfs as a top layer so we should build a layer in between that rests on filedescriptors alone (for syscalls)
+- added elf executable support/driver
+- added execve syscall
+- started using errno's 
+@todo this should be used everywhere
+- fixed bugs here and there
+

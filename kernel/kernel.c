@@ -105,12 +105,22 @@ void bootsequence_paging()
 	//clear_screen();
 }
 
+#include <drivers/vfs/vfs.h>
+#include <kernel/execute/exec.h>
 
 void kernel_main()
 {
 	print("kernel booted\n");
 
 	print("running...\n");
+
+	DIR *dirp = vfs_opendir("/");
+	struct dirent *dir;
+	while ((dir = vfs_readdir(dirp)) != 0) {
+		print("dirname; "); print(dir->d_name); print("\n");
+	}
+
+	execve("/execfile", 0, 0);
 
 	//init_shell();
 	//jump_usermode();

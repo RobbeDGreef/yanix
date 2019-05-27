@@ -1,3 +1,12 @@
+/**
+ * fs/ext2/ext2.c
+ * 
+ * Author: Robbe De Greef
+ * Date:   21 may 2019
+ * 
+ * Version 1.0
+ */
+
 #include <drivers/ramdisk/ramdisk.h>
 #include <drivers/video/videoText.h>
 #include <lib/string/string.h>
@@ -9,6 +18,9 @@
 #include <mm/heap.h>
 
 #include <sys/types.h>
+
+
+// @todo file open function should be created to initialize vfs_nodes
 
 /**
  * @brief      Gets a pointer to the superblock.
@@ -277,9 +289,9 @@ ssize_t ext2_read_from_file(ino_t inode, void *buf, size_t count, filesystem_t *
 		ret += ext2_get_block_size((ext2_superblock_t*) fs_info->superblock);
 	}
 
-	if (ret == 0) {
-		return -1;
-	}
+	//if (ret == 0) {
+	//	return -1;
+	//}
 
 	if (rest == 0){
 		// needs to copy one last full block

@@ -45,4 +45,8 @@ typedef uword_t  id_t;
 
 typedef uword_t phys_addr_t;
 
+typedef long time_t;
+typedef long clock_t;
+
+
 #endif

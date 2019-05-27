@@ -20,6 +20,8 @@ struct task_control_block_s {
 
 	// others
 	pid_t			pid;
+	uint32_t 		ring;
+	uintptr_t 		*tty;
 	uint32_t 		timeused;
 	uint32_t		sliceused;
 	uint32_t		timeslice;

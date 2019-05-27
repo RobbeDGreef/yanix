@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <errno.h>
 
 extern uint32_t end_of_bin;
 volatile uint32_t placement_address = (uint32_t) &end_of_bin; // this should actually point to the end of the kernel in memory but that should be set at linktime
@@ -221,11 +222,14 @@ void *alloc(heap_t *heap, bool aligned, uint32_t size)
     
     } else {
         // return error
+        // @todo: this is all debug info, this should be removed 
         print("we got an error (cannot expand heap)");
         print("heap size would be: "); print_int(heap->size + size);
         print("\nheap maxsize is: "); print_int(heap->maxsize);
         //print("\nadded size is: "); print_hex(size);
         heapstatus(kernelHeap);
+
+        errno = ENOMEM;
         return 0;
     }
 
@@ -238,7 +242,7 @@ void *alloc(heap_t *heap, bool aligned, uint32_t size)
  * @param      heap     The heap
  * @param      address  The address
  *
- * @return     Success code
+ * @return     Success code 
  */
 int free(heap_t *heap, uint32_t *address)
 {
@@ -253,8 +257,11 @@ int free(heap_t *heap, uint32_t *address)
 
     signed int index = findBlockWithStart(heap->array, (uint32_t) address);
     if (index == -1){
+        // @todo this is debug info and should be removed
         print("got error: could not find address in heap\n");
         print("Watch out this results in this block of memory lost and thus we leeked memory!\n");
+        // address was not found in list so ENXIO is returned
+        errno = ENXIO;
         return -1;
     }
 
@@ -319,6 +326,9 @@ void *kmalloc_base(size_t size, int aligned, phys_addr_t *physicaladdress)
 {
     if (kernelHeap != 0) {
         uintptr_t *pointer = alloc(kernelHeap, aligned, size);
+        if (pointer == 0) {
+            return 0;
+        }
         if (physicaladdress != 0 && pointer != 0){
             page_t *page = get_page((off_t)pointer, 0, g_kernel_directory);
             *physicaladdress = page->frame*0x1000 + ((unsigned int)pointer&0xFFF);

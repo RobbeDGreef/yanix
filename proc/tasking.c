@@ -7,7 +7,7 @@
 #include <cpu/timer.h>
 #include <cpu/gdt.h>
 
-#include "tasking.h"
+#include <proc/tasking.h>
 
 #include <stdint.h>
 #include <stddef.h>
@@ -210,6 +210,8 @@ inline void jump_userspace()
 {
 	tss_set_kernel_stack(g_runningtask->kernel_stack + KERNEL_STACK_SIZE);
 	
+	g_runningtask->ring = 3;
+
 	asm volatile("cli; \
      			  mov $0x23, %ax; \
      			  mov %ax, %ds; \
@@ -227,8 +229,31 @@ inline void jump_userspace()
    				  1: ");
 }
 
-int exit_proc(int status)
+/**
+ * @brief      Exits a task
+ *
+ * @param[in]  signal  The signal
+ *
+ * @return     success
+ */
+int exit_proc(int signal)
 {
-	(void) (status);
+	(void) (signal);
+	volatile task_t *tmp = g_starttask;
+	while (tmp->next != g_runningtask && tmp != g_runningtask){
+		if (tmp->next == 0) {
+			return -1;
+		}
+		tmp = tmp->next;
+	}
+	task_t *next = 0;
+	if (g_runningtask->next != 0) {
+		next = g_runningtask->next;
+	} else {
+		next = g_starttask;
+	}
+
+	tmp->next = next;
+	kfree(g_runningtask);
 	return 0;
 }

@@ -120,4 +120,17 @@ int map_physical_to_virtual(phys_addr_t *physical_address, void *virtual_address
  */
 void copy_stack_to_new_addressspace(page_directory_t *newdir);
 
+/**
+ * @brief      Maps a physical memory block to the virtual memory
+ *
+ * @param[in]  startaddr                   The startaddr
+ * @param[in]  endaddr                     The endaddr
+ * @param[in]  is_kernel                   Indicates if kernel
+ * @param[in]  is_writable_from_userspace  Indicates if writable from userspace
+ *
+ * @return     { description_of_the_return_value }
+ */
+int map_mem(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace);
+
+
 #endif

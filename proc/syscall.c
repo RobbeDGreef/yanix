@@ -3,27 +3,26 @@
 
 // all the imports for the syscalls
 #include <proc/tasking.h>
-#include <fs/open.h>
+#include <drivers/vfs/vfs.h>
+#include <kernel/execute/exec.h>
 
 static void syscall_handler(registers_t *regs);
 
 // syscall setup
 
-#include <drivers/video/videoText.h>
-
 static const void *syscalls[] = {
 	0,              // int sys_setup(void)
     &exit_proc,     // int exit_proc(int status)
     &fork,          // int fork()
-    &read,          // ssize_t read(unsigned int fd, char *buf, size_t count)
-    &write,         // ssize_t write(unsigned int fd, const char *buf, size_t count)
-    &open,          // int open(const char *filename, int flags, int mode)
-    &close,         // void close(unsigned int fd)
+    &vfs_read_raw,  // ssize_t read(unsigned int fd, char *buf, size_t count)
+    &vfs_write_raw, // ssize_t write(unsigned int fd, const char *buf, size_t count)
+    &vfs_open_raw,  // int open(const char *filename, int flags, int mode)
+    &vfs_close_raw, // void close(unsigned int fd)
     0,              // int waitpid(pid_t pid, unsigned int *stat_addr, int options)
     0,              // int creat(const char *pathname, int mode)
     0,              // int link(const char *oldname, const char *newname)
     0,              // int unlink(const char *pathname)
-    0               // int execve(struct pt_regs, regs)
+    &execve         // int execve(struct pt_regs, regs)
 };
 
 const uint32_t num_syscalls = sizeof(syscalls) / sizeof(void*);

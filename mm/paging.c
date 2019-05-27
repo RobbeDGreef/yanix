@@ -21,6 +21,7 @@
 #include <kernel/stack/stack.h>
 #include <mm/paging.h>
 #include <mm/heap.h>
+#include <signal.h>
 
 /**
  * The global directory variables
@@ -36,7 +37,8 @@ page_directory_t *g_current_directory = 0;
 offset_t *g_frames;
 size_t   g_nframes;
 
-extern uint32_t placement_address;	// defined in kernelFunctions.c
+extern uint32_t  placement_address;	// defined in kernelFunctions.c
+extern task_t   *g_runningtask;
 
 /**
  * All the bitset algorithms
@@ -201,17 +203,24 @@ static void page_fault(registers_t *regs)
 	int us = regs->err_code & 0x4;			// processor in ring 3 
 	int reserved = regs->err_code & 0x8;	// Overwritten CPU-reserved bits of a page entry
 
-	print("Page fault: \n");
-	int errcode = -1;
-	if (present)  {print("was not present, ");}
-	if (rw) 	  {print("read write, "); errcode = -EPERM;}
-	if (us) 	  {print("user-mode, ");  errcode = -EACCES;}
-	if (reserved) {print("reserved, ");   errcode = -EACCES;}
-	print(" at ");
-	print_hex(faulting_address);
-	print("\n");
-	(void) (errcode);
-	for(;;);
+	if (g_runningtask->ring != 3){		
+		// this is a kernel task
+		print("Page fault: \n");
+		int errcode = -1;
+		if (present)  {print("was not present, ");}
+		if (rw) 	  {print("read write, "); errcode = -EPERM;}
+		if (us) 	  {print("user-mode, ");  errcode = -EACCES;}
+		if (reserved) {print("reserved, ");   errcode = -EACCES;}
+		print(" at ");
+		print_hex(faulting_address);
+		print("\n");
+		(void) (errcode);
+		for(;;);
+	} else {
+		// this is a user task
+		print("Segmentation fault\n");
+		exit_proc(SIGKILL);
+	}
 }
 
 /**
@@ -388,6 +397,21 @@ static int map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel,
 		startaddr += 0x1000;
 	}
 	return 0;
+}
+
+/**
+ * @brief      Maps a physical memory block to the virtual memory
+ *
+ * @param[in]  startaddr                   The startaddr
+ * @param[in]  endaddr                     The endaddr
+ * @param[in]  is_kernel                   Indicates if kernel
+ * @param[in]  is_writable_from_userspace  Indicates if writable from userspace
+ *
+ * @return     { description_of_the_return_value }
+ */
+int map_mem(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace)
+{
+	return map_memory_block(startaddr, endaddr, is_kernel, is_writable_from_userspace, g_current_directory);
 }
 
 

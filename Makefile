@@ -59,7 +59,7 @@ umount_ramdisk:
 	umount /media/iso
 
 clean_ramdisk:
-	rm ramdisk.iso
+	rm ramdisk.iso 
 
 test_ramdisk:
 	echo "Hello world!" > /media/iso/helloworldfile.txt

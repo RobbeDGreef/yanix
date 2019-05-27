@@ -1,11 +1,13 @@
 #include <drivers/vfs/vfs.h>
 #include <drivers/vfs/vfs_node.h>
 #include <drivers/ramdisk/ramdisk.h>
+#include <fs/filedescriptor.h>
 #include <fs/ext2/ext2.h>
 #include <fs/dirent.h>
 #include <fs/fs.h>
 #include <mm/heap.h>
 #include <lib/string/string.h>
+#include <errno.h>
 
 vfs_node_t *g_vfs_root;
 uint32_t g_nodecount;
@@ -14,130 +16,126 @@ uint32_t g_nodecount;
 /**
  * @brief      VFS read file function
  *
- * @param      node    The vfs node
- * @param[in]  offset  The offset (or inode) of the file
- * @param      buffer  The buffer to write to
- * @param[in]  size    The amount of bytes to read
+ * @param      file  The opened file struct to read from
+ * @param      buf   The buffer to write to
+ * @param[in]  size  The amount of bytes to read
  *
  * @return     amount of bytes read
  */
-int vfs_read(vfs_node_t *node, uint32_t offset, uint8_t *buffer, size_t size)
+ssize_t vfs_read(struct file *file, void *buf, size_t size)
 {
-	if (node->read != 0) {
-		return node->read(node, offset, buffer, size);
+	if (file->vfs_node->read != 0) {
+		return file->vfs_node->read(file->vfs_node, file->vfs_node->offset, buf, size);
 	} else {
-		return 0;
+		// read function not attached so -> protcol driver not attached error returned
+		errno = EUNATCH;
+		return -1;
 	}
 }
 
 /**
  * @brief      VFS write file function
  *
- * @param      node    The vfs node
- * @param[in]  offset  The offset (or inode) of the file
- * @param      buffer  The buffer to read from
- * @param[in]  size    The amount of bytes to write
+ * @param      file  The opened file structure
+ * @param      buf   The buffer to read from
+ * @param[in]  size  The amount of bytes to write
  *
  * @return     amount of bytes written
  */
-int vfs_write(vfs_node_t *node, uint32_t offset, const void *buffer, size_t size)
+ssize_t vfs_write(struct file *file, const void *buf, size_t size)
 {
-	if (node->write != 0) {
-		return node->write(node, offset, buffer, size);
+	if (file->vfs_node->write != 0) {
+		return file->vfs_node->write(file->vfs_node, file->vfs_node->offset, buf, size);
 	} else {
-		return 0;
+		// write function not attached so -> protcol driver not attached error returned
+		errno = EUNATCH;
+		return -1;
 	}
 }
 
 /**
  * @brief      Opens a vfs node
  *
- * @param      node   The node to open
- * @param[in]  flags  The flags
- * @param[in]  mode   The mode to open the node in
+ * @param[in]  filepath  The filepath
+ * @param[in]  flags     The flags
+ * @param[in]  mode      The mode to open the node in
  *
- * @return     success or failure (0/-1)
+ * @return     file structure or failture (0)
  */
-int vfs_open(vfs_node_t *node, int flags, int mode)
+struct file *vfs_open(const char *filepath, int flags, int mode)
 {
-	if (node->open != 0) {
-		return node->open(node, flags, mode);
-	} else {
-		return -1;
+	vfs_node_t* node = vfs_find_path(filepath);
+	if (node == 0) {
+		return 0;
 	}
+	int fd = register_filedescriptor(node, mode);
+
+	if (node->open != 0) {
+		node->open(node, flags, mode);
+	}
+	struct file *file = (struct file*) kmalloc(sizeof(file));
+	if (file == 0) {
+		return 0;
+	}
+	file->vfs_node = node;
+	file->filedescriptor = fd;
+	file->length = node->filelength;
+	return file;
 }
 
 /**
  * @brief      Closes a vfs node
  *
- * @param      node  The node to close
+ * @param      file  The file structure of the opened file 
  *
  * @return     success or failure (0/-1)
  */
-int vfs_close(vfs_node_t *node)
+int vfs_close(struct file *file)
 {
-	if (node->close != 0) {
-			return node->close(node);
-		} else {
-			return -1;
-		}
+	close_filedescriptor(file->filedescriptor);
+	int ret = 0;
+	if (file->vfs_node->close != 0) {
+		ret = file->vfs_node->close(file->vfs_node);
+	}
+	if (kfree(file) == -1) {
+		return -1;
+	}
+
+	return ret;
 }
 
 /**
  * @brief      Reads the contents from a directory stream
  *
- * @param      node       The node pointing to the dir
  * @param      dirstream  The directory stream
  *
  * @return     A dirent struct
  */
-struct dirent *vfs_readdir(vfs_node_t *node, DIR *dirstream)
+struct dirent *vfs_readdir(DIR *dirstream)
 {
-	if (node->type == VFS_DIRECTORY && node->readdir != 0) {
-		return (struct dirent*) node->readdir(dirstream);
-	} else {
+	return dirstream->fs_info->dir_read(dirstream);
+}
+
+
+/**
+ * @brief      Opens a directory stream
+ *
+ * @param[in]  filepath  The filepath
+ *
+ * @return     The directory stream or an error
+ */
+DIR *vfs_opendir(const char *filepath)
+{
+	vfs_node_t *node = vfs_find_path(filepath);
+	if (node == 0) {
 		return 0;
 	}
+	return node->opendir(node);
 }
 
 
-#if 0
 /**
- * @brief      Sets up a virtual filesystem node
- *
- * @param[in]  type        The type of file
- * @param[in]  filelength  The filelength
- * @param[in]  offset      The file offset
- * @param[in]  open        The open function pointer
- * @param[in]  close       The close function pointer
- * @param[in]  read        The read function pointer
- * @param[in]  write       The write function pointer
- * @param[in]  readdir     The readdir function pointer
- * @param[in]  finddir     The finddir function pointer
- *
- * @return     { description_of_the_return_value }
- */
-vfs_node_t* vfs_setupnode(uint8_t type, uint32_t filelength, uint32_t offset, open_fpointer open, close_fpointer close, 
-						  read_fpointer read, write_fpointer write, read_dir_fpointer readdir, find_dir_fpointer finddir)
-{
-	vfs_node_t* n = (vfs_node_t*) kmalloc(sizeof(vfs_node_t));
-	n->id = g_nodecount++;
-	n->type = type;
-	n->filelength = filelength;
-	n->offset = offset;
-	n->open = open;
-	n->close = close;
-	n->read = read;
-	n->write = write;
-	n->readdir = readdir;
-	n->finddir = finddir;
-	return n;
-}
-
-#endif
-
-/**
- * @brief      A stupid strcmp function
+ * @brief      A wrong strcmp function
  * 
  * @todo       should create working strcmp function in libc
  * 
@@ -145,7 +143,7 @@ vfs_node_t* vfs_setupnode(uint8_t type, uint32_t filelength, uint32_t offset, op
  * @param      b     
  *
  * @return     0 when equal
- */
+**/
 int _strcmpI(char *a, char *b)
 {
 	if (strlen(a) == strlen(b)) {
@@ -154,7 +152,6 @@ int _strcmpI(char *a, char *b)
 		return -1;
 	}
 }
-
 
 /**
  * @brief      Function to find specific node by name in the vfs system
@@ -201,6 +198,7 @@ vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
 vfs_node_t *vfs_find_path(const char *path)
 {	
 	char *buf = (char*) kmalloc(strlen(path)+1);
+	memset(buf, 0, strlen(path)+1);
 	int i = 1;
 	int last = i;
 	char c = path[i];
@@ -208,7 +206,7 @@ vfs_node_t *vfs_find_path(const char *path)
 	while (1) {
 		if ((c == '\0' || c == '/') && (i-last) != 0) {
 			memcpy(buf, path+last, i-last);
-			buf[i-last+1] = '\0';
+			buf[i-last] = '\0';
 			last = i+1;
 			node = _vfs_path_find(node, buf);
 			if (node == 0) {
@@ -224,6 +222,9 @@ vfs_node_t *vfs_find_path(const char *path)
 		c = path[i];
 	}
 	kfree(buf);
+	if (node == 0) {
+		errno = ENOENT;
+	}
 	return node;
 }
 
@@ -281,4 +282,90 @@ void init_vfs()
 	g_vfs_root = 0;
 	//init_vfs_lookuptable(g_vfs_root);
 	loop_over_filesystem(2, 1, g_vfs_root, g_current_fs);
+}
+
+
+/**
+ * @brief      Reads from filepointer (for syscalls)
+ *
+ * @param[in]  fd      The filedescriptor
+ * @param      buf     The buffer
+ * @param[in]  amount  The amount
+ *
+ * @return     amount of bytes read on success
+ */
+ssize_t vfs_read_raw(int fd, void *buf, size_t amount)
+{
+	vfs_node_t *node = get_filedescriptor_node(fd);
+	if (fd == 0) {
+		return -1;
+	}
+	if (node->read != 0) {
+		return node->read(node, node->offset, buf, amount);
+	} else {
+		errno = ENOSYS;
+		return -1;
+	}
+}
+
+/**
+ * @brief      Writes to filepointer (for syscalls)
+ *
+ * @param[in]  fd      The filedescriptor
+ * @param      buf     The buffer
+ * @param[in]  amount  The amount
+ *
+ * @return     amount of bytes written on success
+ */
+ssize_t vfs_write_raw(int fd, const void *buf, size_t amount)
+{
+	vfs_node_t *node = get_filedescriptor_node(fd);
+	if (fd == 0) {
+		return -1;
+	}
+	if (node->read != 0) {
+		return node->write(node, node->offset, buf, amount);
+	} else {
+		errno = ENOSYS;
+		return -1;
+	}
+}
+
+/**
+ * @brief      Open a file descriptor
+ *
+ * @param[in]  path   The path
+ * @param[in]  flags  The flags
+ * @param[in]  mode   The mode
+ *
+ * @return     Filedescriptor on success
+ */
+int vfs_open_raw(const char* path, int flags, int mode)
+{
+	vfs_node_t *node = vfs_find_path(path);
+	if (node == 0) {
+		return -1;
+	} else if (node->open != 0) {
+		node->open(node, flags, mode);
+	}
+	return register_filedescriptor(node, mode);
+}
+
+/**
+ * @brief      Closes a filedescriptor
+ *
+ * @param[in]  fd    The filedescriptor
+ *
+ * @return     success
+ */
+int vfs_close_raw(int fd)
+{
+	vfs_node_t *node = get_filedescriptor_node(fd);
+	if (node == 0) {
+		errno = ENODEV;
+		return -1;
+	} else if (node->close != 0) {
+		node->close(node);
+	}
+	return close_filedescriptor(fd);
 }

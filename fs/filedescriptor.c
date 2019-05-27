@@ -3,6 +3,7 @@
 #include <drivers/vfs/vfs_node.h>
 #include <fs/filedescriptor.h>
 #include <stdint.h>
+#include <errno.h>
 
 /*
  * this file will house the filedescriptor code 
@@ -29,6 +30,7 @@ int init_filedescriptors()
 	return 0;
 }
 
+
 /**
  * @brief      register a filedescriptor
  *
@@ -46,6 +48,8 @@ int register_filedescriptor(vfs_node_t *node, int mode)
 			return i;
 		}
 	}
+	// too many open files so EMFILE error
+	errno = EMFILE;
 	return -1;
 }
 
@@ -79,5 +83,6 @@ vfs_node_t *get_filedescriptor_node(int fd)
 			return fd_array[fd].node;
 		}
 	} 
-	return (vfs_node_t*) -1;
+	errno = ENXIO;
+	return (vfs_node_t*) 0;
 }
