@@ -38,6 +38,7 @@ long way to go aswell.
 - [X] ramdisk      (memory mapped storage device)
 - [X] ps2 mouse 
 - [X] ps2 keyboard
+- [X] CMOS driver
 - [ ] ata
 - [ ] networking
 
@@ -46,11 +47,11 @@ long way to go aswell.
 - [X] Standard video memory
 
 ### System Features:
-- / nothing yet, still working on executing userspace programs
+- [X] Execve system call (still very much in development)
+- [X] Elf static exec driver
 
 ## Features/stuff comming in next updates:
 - Userspace shell
-- Execve system call
 - Time system
 - Networking
 - ata driver
