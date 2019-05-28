@@ -14,8 +14,8 @@ long way to go aswell.
 ## Currently supported features:
 ### CPU-based Features:
 #### Supported Architechtures:
- - [X] x86
- - [ ] x86-64
+> - [X] x86
+> - [ ] x86-64
 
 - [X] Multitasking
 - [ ] Multithreading
