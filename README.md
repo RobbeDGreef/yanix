@@ -1,4 +1,4 @@
-#os
+# os
 Just a UNIX-like kernel build on caffeine and 
 sleep deprivation. I call it yanix (**Y**et **A**nother u**NIX** clone) The goal is to make it as **POSIX**
 compliant as possible and self sustaining.
