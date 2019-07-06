@@ -56,7 +56,7 @@ from perfect.
 - Documenting all the functions 
 - Redo the ext2 driver because it is very messy and incomplete
 
-## Latest commits include:
+## Latest commit includes:
 - Various bug fixes
 - A better execve system call but the environment variables are still nonexistent and it only executes static elf files.
 - A lot of new system calls (most of them are stubbed for ....)
