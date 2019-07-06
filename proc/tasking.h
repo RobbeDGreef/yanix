@@ -7,6 +7,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef void (*notify_fptr) (int signal);
+
 /**
  * @brief      a task control block 
  */
@@ -19,9 +21,14 @@ struct task_control_block_s {
 	page_directory_t 	*directory;
 
 	// others
+	offset_t 		program_break;
 	pid_t			pid;
-	uint32_t 		ring;
+	int 			ring;
+	int 			lastsignal;
+	int 			state;
+	notify_fptr 	notify;
 	uintptr_t 		*tty;
+
 	uint32_t 		timeused;
 	uint32_t		sliceused;
 	uint32_t		timeslice;
@@ -59,6 +66,37 @@ pid_t fork();
  */
 void jump_userspace();
 
-int exit_proc(int status);
+/**
+ * @brief      Sends a signal to the current task.
+ *
+ * @param[in]  signal  The signal
+ */
+void send_sig(int signal);
+
+/**
+ * @brief      Gets the current PID
+ *
+ * @return     The current PID
+ */
+int getpid();
+
+/**
+ * @brief      Sends a pid a signal.
+ *
+ * @param[in]  pid   The pid
+ * @param[in]  sig   The signal
+ *
+ * @return     success
+ */
+int send_pid_sig(pid_t pid, int sig);
+
+/**
+ * @brief      Typical sbrk that will increase the program break
+ *
+ * @param[in]  incr  The increment value
+ *
+ * @return     On success the old program break, on failure 0
+ */
+void *sbrk(int incr);
 
 #endif

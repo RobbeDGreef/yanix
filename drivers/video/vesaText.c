@@ -64,16 +64,26 @@ void memmove_2(uint8_t* source, uint8_t* dest, uint32_t bytes){
     }
 }
 
+extern unsigned char *videoMem;
 
+static int _check_scrolling()
+{
+	const int size = WIDTH*FONTHEIGHT;
+	for (size_t i = 0; i < VESA_ROWS; i++) {
+		memcpy(videoMem + i * size, videoMem + (i+1) * size, size);
+	}
+	return VESA_COLS-1;
+
+}
 
 void vesa_print_at(char* message, int col, int row, uint32_t color){
 	if (col < 0 && row < 0){
 		col = cursor_offset.col;
 		row = cursor_offset.row;
 	}
-	if ((uint32_t) row == VESA_ROWS-1){
+	if ((uint32_t) row >= VESA_ROWS-1){
 		// todo: move everything up
-		row--;
+		row = _check_scrolling();
 	}
 	
 	//cursor_offset.col = col;
@@ -82,6 +92,10 @@ void vesa_print_at(char* message, int col, int row, uint32_t color){
 	char c = message[0];
 	uint32_t i;
 	for (i = 1; c != 0; i++){
+		if ((uint32_t) row >= VESA_ROWS-1){
+			row = _check_scrolling();
+		}
+
 		if (c == '\n'){
 			col = 0;
 			row++;
@@ -94,6 +108,7 @@ void vesa_print_at(char* message, int col, int row, uint32_t color){
 			if ((uint32_t) col == VESA_COLS){
 				col = 0;
 				row++;
+				
 			}
 
 			cursor_offset.col = col;

@@ -1,3 +1,12 @@
+/**
+ * mm/paging.c
+ * 
+ * Author: Robbe De Greef
+ * Date:   29 may 2019
+ * 
+ * Version 2.2
+ */
+
 #include <sys/types.h>
 #include <mm/paging.h>
 #include <mm/heap.h>
@@ -9,10 +18,17 @@
 
 #include <proc/tasking.h>
 
+#include <errno.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stddef.h>
 
 #include <drivers/video/videoText.h>
+
+#define TASK_RUNNING 	0
+#define TASK_ZOMBIE 	1
+#define TASK_SLEEPING 	2
+#define TASK_PAUSED 	3
 
 task_t *g_starttask = 0;
 task_t *g_runningtask = 0;
@@ -39,6 +55,61 @@ void add_task_to_queue(task_t *task_to_add)
 	}
 	tmp->next = task_to_add;
 }
+
+/**
+ * @brief      Removes a task from the task queue.
+ *
+ * @param      task_to_remove  The task to remove
+ *
+ * @return     Successcode
+ */
+int remove_task_from_queue(task_t *task_to_remove)
+{
+	task_t *tmp = g_starttask;
+	while (tmp->next != task_to_remove) {
+		if (tmp->next == 0) {
+			errno = ESRCH; // no such process
+			return -1;
+		}
+	}
+	// tmp now houses the task before the to remove task
+	tmp->next = task_to_remove->next;
+
+	// snipped task out of queue
+	return 0;
+	
+}
+
+
+/**
+ * @brief      Kills a task
+ *
+ * @param      task  The task to kill
+ */
+static void kill_proc(task_t *task)
+{
+	remove_task_from_queue(task);
+	kfree((void*) task->directory);
+	kfree((void*) task);
+}
+
+/**
+ * @brief      Kills dead processes
+ */
+void schedule_killer()
+{
+	// loops over the processes and kills processes that should die
+	
+	task_t *tmp = g_starttask;
+	while (tmp != 0) {
+		if (tmp->state == TASK_ZOMBIE) {
+				kill_proc(tmp);
+				break;
+		}
+		tmp = tmp->next;
+	}
+}
+
 
 /**
  * @brief      Switches task
@@ -69,27 +140,62 @@ static void switch_task(task_t *nexttask)
 	task_switch(eip, esp, ebp, g_runningtask->directory->physicalAddress);
 }
 
+
+
 /**
  * @brief      yields control of task
  */
 void task_yield()
 {
+	#if 0
+	task_t *next;
 	if (g_runningtask->next != 0){
 		// switch to next task in list
-		//for(;;);
-		//print_hex_dump(g_runningtask->next->regs.esp, 0x100);
 
 		tss_set_kernel_stack(g_runningtask->next->kernel_stack+KERNEL_STACK_SIZE);
-		switch_task(g_runningtask->next);
+		next = g_runningtask->next;
+
 	} else if (g_runningtask != g_starttask){
 		// switch to first task
 
 		tss_set_kernel_stack(g_starttask->kernel_stack+KERNEL_STACK_SIZE);
-		switch_task(g_starttask);
+		next = g_starttask;
 	} else {
 		// no task to switch to continue the current process
 		return;
 	}
+	if ()
+	switch_task(next);
+	#endif
+
+	schedule_killer();
+
+	task_t *tmp = g_runningtask;
+	while (1) {
+		if (tmp->next != 0) {
+			tmp = tmp->next;
+		} else if (tmp != g_starttask) {
+			tmp = g_starttask;
+		} else {
+			// no task
+			return;
+		}
+
+		if (tmp->state != TASK_ZOMBIE && tmp->state != TASK_PAUSED && tmp->state != TASK_SLEEPING) {
+			break;
+		} else {
+			if (tmp->next != 0) {
+				tmp = tmp->next;
+			} else if (tmp != g_starttask) {
+				tmp = g_starttask;
+			} else {
+				// no task
+				return;
+			}
+		}
+	}
+	tss_set_kernel_stack(tmp->kernel_stack+KERNEL_STACK_SIZE);
+	switch_task(tmp);
 }
 
 /**
@@ -112,6 +218,7 @@ static task_t *create_task(page_directory_t *dir)
 	// set pid and new page directory (addr space)
 	new_task->pid = PIDS++;
 	new_task->directory = dir;
+	new_task->state = TASK_RUNNING;
 
 	new_task->timeslice = 100;
 
@@ -161,6 +268,8 @@ pid_t fork()
 
 }
 
+
+
 /**
  * @brief      Initializes tasking
  *
@@ -178,6 +287,82 @@ int init_tasking()
 	g_runningtask = g_starttask;
 
 	return 0;
+}
+
+
+/**
+ * @brief      Sends a signal to a task.
+ *
+ * @param      task    The task
+ * @param[in]  signal  The signal
+ */
+static void send_task_signal(task_t *task, int signal)
+{
+	if (task != 0) {
+		if (task->notify != 0) {
+			task->notify(signal);
+		}
+
+		switch (signal) {
+			case SIGKILL:
+				task->state = TASK_ZOMBIE;
+				break;
+
+			case SIGILL:
+				task->state = TASK_ZOMBIE;
+				break;
+
+			case SIGTERM:
+				task->state = TASK_ZOMBIE;
+				break;
+
+			case SIGSEGV:
+				task->state = TASK_ZOMBIE;
+				break;
+
+			case SIGSTOP:
+				task->state = TASK_PAUSED;
+				break;
+
+			case SIGCONT:
+				task->state = TASK_RUNNING;
+				break;
+		}
+		
+	}
+}
+
+
+/**
+ * @brief      Sends a signal to the current task.
+ *
+ * @param[in]  signal  The signal
+ */
+void send_sig(int signal)
+{
+	send_task_signal(g_runningtask, signal);
+}
+
+/**
+ * @brief      Sends a pid a signal.
+ *
+ * @param[in]  pid   The pid
+ * @param[in]  sig   The signal
+ *
+ * @return     success
+ */
+int send_pid_sig(pid_t pid, int sig)
+{
+	task_t *tmp = g_starttask;
+	while (tmp != 0) {
+		if (tmp->pid == pid) {
+			send_task_signal(tmp, sig);
+			return 0;
+		}
+		tmp = tmp->next;
+	}
+	errno = EINVAL;
+	return -1;
 }
 
 /**
@@ -230,30 +415,37 @@ inline void jump_userspace()
 }
 
 /**
- * @brief      Exits a task
+ * @brief      Gets the current PID
  *
- * @param[in]  signal  The signal
- *
- * @return     success
+ * @return     The current PID
  */
-int exit_proc(int signal)
+int getpid()
 {
-	(void) (signal);
-	volatile task_t *tmp = g_starttask;
-	while (tmp->next != g_runningtask && tmp != g_runningtask){
-		if (tmp->next == 0) {
-			return -1;
-		}
-		tmp = tmp->next;
-	}
-	task_t *next = 0;
-	if (g_runningtask->next != 0) {
-		next = g_runningtask->next;
-	} else {
-		next = g_starttask;
-	}
+	return g_runningtask->pid;
+}
 
-	tmp->next = next;
-	kfree(g_runningtask);
-	return 0;
+/**
+ * @brief      Typical sbrk that will increase the program break
+ *
+ * @param[in]  incr  The increment value
+ *
+ * @return     On success the old program break, on failure 0
+ */
+caddr_t sbrk(int incr)
+{
+	for (uint32_t i = g_runningtask->program_break; i < g_runningtask->program_break + incr ;i += 0x1000) {
+		// this will alocate a frame if the frame has not already been set 
+		int kernel = 1;
+		if (g_runningtask->ring == 3) {
+			kernel = 0;
+		}
+		if (alloc_frame(get_page(i, 1, g_runningtask->directory), kernel, kernel?0:1) == -2) {
+			// TODO: should also deallocate the frame 
+			errno = ENOMEM;
+			return (caddr_t) -1;
+		}
+	}
+	g_runningtask->program_break += incr;
+	
+	return (caddr_t) (g_runningtask->program_break -= incr);
 }

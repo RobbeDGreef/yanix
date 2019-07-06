@@ -76,6 +76,19 @@ typedef struct elf32_phdr_s {
 
 }__attribute__((packed)) elf32_phdr_t;
 
+typedef struct elf32_shdr_s {
+    uint32_t    name;
+    uint32_t    type;
+    uint32_t    flags;
+    uint32_t    addr;
+    uint32_t    offset;
+    uint32_t    size;
+    uint32_t    link;
+    uint32_t    info;
+    uint32_t    addr_align;
+    uint32_t    entry_size;
+}__attribute__((packed)) elf32_shdr_t;
+
 
 /**
  * @brief      Loads an elf into memory.

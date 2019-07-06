@@ -219,7 +219,7 @@ static void page_fault(registers_t *regs)
 	} else {
 		// this is a user task
 		print("Segmentation fault\n");
-		exit_proc(SIGKILL);
+		send_sig(SIGKILL);
 	}
 }
 
@@ -344,7 +344,6 @@ page_directory_t *duplicate_current_page_directory()
 
 	newdir->physicalAddress = ((uint32_t) phys) + (((uint32_t)newdir->tablesPhysical) - ((uint32_t) newdir));
 
-
 	// first loop over all the page tables
 	for (size_t tableiter = 0; tableiter < AMOUNT_OF_PAGE_TABLES_PER_DIR; tableiter++) {
 		if (g_current_directory->tablesPhysical[tableiter] != 0) {
@@ -371,6 +370,17 @@ page_directory_t *duplicate_current_page_directory()
 	}
 	return newdir;
 }
+
+#if 0
+int clear_page_directory(page_directory_t *dir)
+{
+	for (size_t table = 0; table < AMOUNT_OF_PAGE_TABLES_PER_DIR; table++) {
+		if (dir->tables[table] != 0) {
+			if (dir->tables[table] == g_kernel_directory->tables[table])
+		}
+	}
+}
+#endif
 
 
 /**

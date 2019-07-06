@@ -46,4 +46,6 @@ int close_filedescriptor(int fd);
  */
 vfs_node_t *get_filedescriptor_node(int fd);
 
+void init_tty_filedescriptors();
+
 #endif

@@ -10,9 +10,9 @@
  *
  * @return     returns the read byte
  */
-inline int cmos_read(int addr)
+int cmos_read(int addr)
 {
-	port_byte_out(0x80|addr, CMOS_SELECT_PORT);
+	port_byte_out(CMOS_SELECT_PORT, 0x80|addr);
 	return port_byte_in(CMOS_IO_PORT);
 }
 

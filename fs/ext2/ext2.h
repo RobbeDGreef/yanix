@@ -3,6 +3,7 @@
 
 #include <fs/dirent.h>
 #include <stdint.h>
+#include <const.h>
 
 
 #define EXT2_SUPERBLOCK_START_LOCATION 	1024
@@ -158,7 +159,7 @@ typedef struct {
 typedef struct {
 	uint16_t		type_permissions;	// type and permissions
 	uint16_t 		uid;
-	uint32_t 		low_size;			// lower 32 bytes of size
+	uint32_t 		size;				// lower 32 bytes of size
 	uint32_t 		last_access_time; 	// possix time
 	uint32_t 		creation_time; 		// possix time
 	uint32_t 		last_mod_time; 		// possix time
@@ -198,10 +199,10 @@ typedef struct {
 
 typedef struct {
 	uint32_t 		inode;
-	uint16_t		total_size_of_entry; 			// total size of this directory entry
-	uint8_t			name_length;					// max amount of chars will be 256 because of size of name length field (1 byte)
+	uint16_t		total_size_of_entry;	// total size of this directory entry
+	uint8_t			name_length;			// max amount of chars will be 256 because of size of name length field (1 byte)
 	uint8_t 		type_indicator;
-	char* 			name;
+	char 			name;			// start of name
 	// ... name characters
 } __attribute__((packed)) ext2_directory_entry_t;
 
@@ -283,5 +284,16 @@ vfs_node_t *ext2_vfs_entry(ino_t inode_index, id_t id, filesystem_t *fs_info);
  * @return     kfree return
  */
 int ext2_close_dir_stream(DIR* dirp);
+
+/**
+ * @brief      Creates a inode
+ *
+ * @param      node   The node
+ * @param      name   The name
+ * @param[in]  flags  The flags
+ *
+ * @return     Offset (inode index)
+ */
+offset_t ext2_create_node_vfs(vfs_node_t *node, char *name, uint16_t flags);
 
 #endif

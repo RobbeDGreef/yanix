@@ -1,19 +1,16 @@
 #os
-Just a UNIX-like kernel that I am writing
-I have no name for it yet so I just call it OS.
-The goal is to make it fully **POSIX** compliant
-and self sustaining but that is still pretty far off.
+Just a UNIX-like kernel build on caffeine and 
+sleep deprivation. I call it yanix (**Y**et **A**nother u**NIX** clone) The goal is to make it as **POSIX**
+compliant as possible and self sustaining.
 
 This project is the largest I have done so far
-and is completely build by me and I am trying to
-make it self sustaining as fast as possible.
+and is completely build by myself so it's not
+from perfect.
 
-I've come a long way but there is still a 
-long way to go aswell.
 
 ## Currently supported features:
 ### CPU-based Features:
-#### Supported Architechtures:
+#### Supported Architectures:
 > - [X] x86
 > - [ ] x86-64
 
@@ -50,10 +47,17 @@ long way to go aswell.
 - [X] Execve system call (still very much in development)
 - [X] Elf static exec driver
 
-## Features/stuff comming in next updates:
+## Features/stuff coming in next updates:
 - Userspace shell
 - Time system
 - Networking
 - ata driver
 - Code cleaning because it is a mess at some places
 - Documenting all the functions 
+- Redo the ext2 driver because it is very messy and incomplete
+
+## Latest commits include:
+- Various bug fixes
+- A better execve system call but the environment variables are still nonexistent and it only executes static elf files.
+- A lot of new system calls (most of them are stubbed for ....)
+- A libc, I ported newlib to yanix and I'm now working on a os specific toolchain to start userspace development and create a shell afterwards.

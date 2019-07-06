@@ -3,6 +3,8 @@
 
 #include <sys/types.h>
 
+// WARNING: the descriptions don't match
+
 #define SIGHUP		 1   // Hangup (POSIX)
 #define SIGINT		 2   // Terminal interrupt (ANSI)
 #define SIGQUIT		 3   // Terminal quit (POSIX)

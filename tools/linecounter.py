@@ -4,7 +4,7 @@ lines = 0
 v = True
 extensions = [".h", ".c", ".asm", ".py"]
 
-noreaddirs = ["examples"]
+noreaddirs = ["examples", ".git"]
 
 def splitpath(path):
 	p = []

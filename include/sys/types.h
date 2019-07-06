@@ -34,6 +34,7 @@ typedef uword_t  fsfilcnt_t;
 typedef uword_t  fsinocnt_t;
 
 typedef uword_t  ino_t;
+typedef uword_t  dev_t;
 typedef uword_t  pid_t;
 typedef uword_t  uid_t;
 typedef uword_t  gid_t;
@@ -47,6 +48,9 @@ typedef uword_t phys_addr_t;
 
 typedef long time_t;
 typedef long clock_t;
+typedef unsigned char  nlink_t;
+typedef unsigned short mode_t;
+
 
 
 #endif

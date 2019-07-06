@@ -1,10 +1,5 @@
-
-- fixed bug in vfs system (find inode by path) 
-- changed the way to access read/write io (with vfs alone now)
-- @todo: this system should actually use the vfs as a top layer so we should build a layer in between that rests on filedescriptors alone (for syscalls)
-- added elf executable support/driver
-- added execve syscall
-- started using errno's 
-@todo this should be used everywhere
-- fixed bugs here and there
+- Fixed a lot of bugs in ext2 driver and vfs driver
+- Added creation of files support
+- Fixed a lot of other bugs
+- Gave the OS a name, yanix (Yet Another uNIX clone)
 

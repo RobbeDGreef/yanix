@@ -43,7 +43,6 @@ void bootsequence(uint32_t stack, uint32_t code_gdt, uint32_t data_gdt){
 	clear_screen();
 	init_vesatext();
 	message("Vesatext mode initialized", 1);
-	print("initial stack: "); print_hex(stack);
 
 	message("Booting sequence started", 1);
 	init_descriptor_tables();
@@ -52,7 +51,7 @@ void bootsequence(uint32_t stack, uint32_t code_gdt, uint32_t data_gdt){
 	message("Interrupt service routines set", 1);
 	asm volatile ("sti");
 	message("Interrupt flag set, now listening for interrupts", 1);
-	init_timer(1000); // hz
+	init_timer(250); // hz
 	message("Timer initialized", 1);
 	init_keyboard();
 	message("Keyboard initialized", 1);
@@ -88,7 +87,10 @@ void bootsequence_paging()
 
 	// initialize the file descriptor system
 	ret = init_filedescriptors();
-	message("File descriptors initialized", ret);
+	message("File descriptors initialized", !ret);
+
+	init_tty_filedescriptors();
+	message("TTY initialized", 1);
 
 	// initalize the mouse driver
 	init_mouse();
@@ -102,11 +104,20 @@ void bootsequence_paging()
 	sleep(TIMEAFTERBOOT);
 
 	// cleanup
-	//clear_screen();
+	clear_screen();
 }
 
 #include <drivers/vfs/vfs.h>
 #include <kernel/execute/exec.h>
+#include <drivers/pci/pci.h>
+#include <signal.h>
+#include <drivers/time/time.h>
+
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#include <drivers/vfs/vfs_node.h>
+#include <errno.h>
 
 void kernel_main()
 {
@@ -114,13 +125,28 @@ void kernel_main()
 
 	print("running...\n");
 
+	/*
+
 	DIR *dirp = vfs_opendir("/");
 	struct dirent *dir;
 	while ((dir = vfs_readdir(dirp)) != 0) {
 		print("dirname; "); print(dir->d_name); print("\n");
 	}
 
-	execve("/execfile", 0, 0);
+	*/
+
+	DIR *dirp = vfs_opendir("/");
+	struct dirent *dir;
+	while ((dir = vfs_readdir(dirp)) != 0) {
+		print("entry: "); print(dir->d_name); print("\n");
+	}
+
+	print("ret: "); print_int(execve("/execfile", 0, 0));
+	print("errorno: "); print_int(errno);
+	
+
+
+	//pci_find();
 
 	//init_shell();
 	//jump_usermode();

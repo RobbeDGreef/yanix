@@ -54,6 +54,7 @@ run: os-image.bin
 
 mount_ramdisk: ramdisk.iso
 	mount -o loop ./ramdisk.iso /media/iso
+	gnome-terminal --working-directory=/media/iso 	# starts a shell in the ramdisk (for convenience)
 
 umount_ramdisk:
 	umount /media/iso

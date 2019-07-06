@@ -1,9 +1,11 @@
 #include <mm/heap.h>
 #include <lib/string/string.h>
 #include <drivers/vfs/vfs_node.h>
+#include <drivers/vfs/vfs.h>
 #include <fs/filedescriptor.h>
 #include <stdint.h>
 #include <errno.h>
+#include <drivers/video/videoText.h>
 
 /*
  * this file will house the filedescriptor code 
@@ -14,6 +16,35 @@
 */
 
 file_descriptor_entry_t *fd_array;
+
+static ssize_t stdoutwrite(vfs_node_t *node, uint32_t offset, const void *buffer, size_t size)
+{
+	(void) (node);
+	(void) (offset);
+	print((char*) buffer);
+	return size;
+}
+
+static ssize_t stdoutwriteerror(vfs_node_t *node, uint32_t offset, const void *buffer, size_t size)
+{
+	(void) (node);
+	(void) (offset);
+	print_color((char*) buffer, 4);
+	return size;
+}
+
+
+void init_tty_filedescriptors()
+{
+	// @todo: create a system to read from the inputted data
+	vfs_node_t *stdin = vfs_setupnode(VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	register_filedescriptor(stdin, 0);
+	vfs_node_t *stdout = vfs_setupnode(VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, &stdoutwrite, 0, 0, 0);
+	register_filedescriptor(stdout, 0);
+	vfs_node_t *stderr = vfs_setupnode(VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, &stdoutwriteerror, 0, 0, 0);
+	register_filedescriptor(stderr, 0);
+
+}
 
 /**
  * @brief      initializes the filedescriptor table
@@ -84,5 +115,5 @@ vfs_node_t *get_filedescriptor_node(int fd)
 		}
 	} 
 	errno = ENXIO;
-	return (vfs_node_t*) 0;
+	return 0;
 }

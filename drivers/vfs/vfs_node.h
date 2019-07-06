@@ -33,7 +33,8 @@ typedef struct vfs_node_s vfs_node_t;
 typedef ssize_t  (*read_fpointer)  (vfs_node_t*, uint32_t offset, void *buffer, size_t size);
 typedef ssize_t  (*write_fpointer) (vfs_node_t*, uint32_t offset, const void *buffer, size_t size);
 typedef int 	 (*close_fpointer) (vfs_node_t*);
-typedef int  	 (*open_fpointer)  (vfs_node_t*, int flags, int mode);
+typedef int 	 (*open_fpointer)  (vfs_node_t*, int already_exists, int flags, int mode);
+typedef offset_t (*creat_fpointer) (vfs_node_t*, char *name, uint16_t flags);
 
 typedef struct dirent     *(*read_dir_fpointer) (DIR *dirstream);
 typedef DIR 			  *(*open_dir_fpointer) (vfs_node_t*);
@@ -49,24 +50,25 @@ struct vfs_node_s {
 	uid_t				uid;			// user id
 	gid_t				gid;			// group id
 	id_t				id; 			// node id
-	off_t				filelength;		// length of file in bytes
+	size_t 				filelength;		// length of file in bytes
 	filesystem_t 		*fs_info;		// the information of the filesystem this inode points to
 	offset_t 			offset;			// this points to the offset of the file (this can also be something like an inode 
 										// depending on implementation) basically any way to refrence a file
 	
-	open_fpointer		open;			// open filedescriptor
-	close_fpointer		close;			// close filedescriptor
+	open_fpointer		open;			// open file descriptor
+	close_fpointer		close;			// close file descriptor
 
 	read_fpointer 		read;			// read from file
 	write_fpointer 		write;			// write to file
+	creat_fpointer 		creat;			// create a file
 
 	open_dir_fpointer 	opendir;
 	close_dir_fpointer 	closedir;
 	read_dir_fpointer	readdir;		// returns amount of files
 	vfs_node_t			*ptr;			// for mountpoints and symlinks
-	vfs_node_t 			*nextnode;		
+	vfs_node_t 			*nextnode;		// linked list next node
 	vfs_node_t 			*dirlist; 		// if this is a directory this will point to a linked list of vfs_node_t contents of this dir
-
+	vfs_node_t 			*parent;		// pointer to parent
 };
 
 
