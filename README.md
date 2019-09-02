@@ -78,6 +78,26 @@ on that wiki. For more helpfull links check the bottom of this page
 
 ## Getting it to work on your machine:
 
+In order to boot the kernel you will need qemu and a copy of our os-image.bin:
+
+#### to install qemu for ubuntu/debian users:
+
+run the following commands to install qemu
+- apt-get update
+- apt-get install qemu-system-i386
+
+#### running yanix:
+
+to just run yanix you could use this command
+- qemu-system-i386 -m 512M -fda os-image.bin
+
+to run it with a ethernet card:
+- qemu-system-i386 -m 512M -device rtl8139 -fda os-image.bin
+
+#### Building yanix
+to build yanix you will need a crosscompiler
+a way to easily build one will show here soon.
+
 
 ## Links
 
