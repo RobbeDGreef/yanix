@@ -1,2 +1,11 @@
 # Compiled Object files
 *.o
+
+# Unused files
+*.u
+*.c_unused
+*.h_unused
+
+# Sysroot
+sysroot*
+.testing
