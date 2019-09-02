@@ -1,9 +1,10 @@
-#include <drivers/video/videoText.h>		// text driver (vga & vesa automatically selected), (init)
-#include <drivers/video/vesaText.h>  		// vesa text mode 				(init)
 #include <drivers/keyboard/ps2.h>			// ps2 keyboard 				(init)
 #include <drivers/mouse/ps2.h>				// ps2 mouse (for gui)			(init)
 #include <drivers/vfs/vfs.h>				// virtual file system			(init)
+#include <drivers/pci/pci.h>				// PCI device driver 			(init)
 #include <fs/filedescriptor.h>		 		// file descriptor system 		(init)
+#include <drivers/video/video.h>			// general video system 		(init)
+#include <drivers/video/vesa.h>				// vesa driver 					(init)
 #include <cpu/timer.h>						// cpu timer 					(init)
 #include <cpu/isr.h>						// interrupt service routines 	(init)
 #include <cpu/gdt.h>						// global descriptor table		(init)
@@ -13,177 +14,161 @@
 #include <mm/heap.h>						// kernel heap 					(init)
 #include <proc/syscall.h>					// the system calls 			(init)
 #include <kernel/stack/stack.h>				// stack functions 				(kernel init)
+#include <kernel/tty/tty_dev.h>				// TTY functionality 			(kernel init)
 
-#include <fs/fs.h>							// the filesystem api
+#include <fs/fs.h>							// the file system api
 
 #include <config/kconfig.h>					// kernel configuration file
 #include <kernel/functions/kfunctions.h>	// kernel functions
 
+#include <libk/function.h>
+#include <libk/string/string.h>
+
 #include <stdint.h>
+#include <kernel.h>
 
-#include <lib/function.h>
-#include <lib/string/string.h>
 
-#include <gui/gui.h>
-#include <fs/ext2/ext2.h>
-#include <kernel/shell/shell.h>				// to start a shell on TTY1
-
+#define RAMDISK_LOCATION 	0x10000
+#define RAMDISK_SIZE 		64*0x200
 
 extern task_t *g_starttask;
 extern task_t *g_runningtask;
-extern uint32_t get_eip();
 
-
-void bootsequence(uint32_t stack, uint32_t code_gdt, uint32_t data_gdt){
-	// initalize the stack
+/**
+ * @brief      Start of the two stage boot sequence
+ *
+ * @param[in]  stack     The stack
+ * @param[in]  code_gdt  The code gdt
+ * @param[in]  data_gdt  The data gdt
+ */
+void bootsequence(uint32_t stack, uint32_t code_gdt, uint32_t data_gdt)
+{
+	/* initialize the kernel stack */
 	init_stack(stack);
 
-	UNUSED(code_gdt);UNUSED(data_gdt);
+	/* Unused variables */
+	UNUSED(code_gdt); UNUSED(data_gdt);
 
-	clear_screen();
-	init_vesatext();
-	message("Vesatext mode initialized", 1);
-
-	message("Booting sequence started", 1);
+	/* Initialize the video driver and clearing the screen */
+	video_clear_screen();
+	init_vesa((void*) 0xfd000000, 1024, 768, 3);
+	init_video(VIDEO_MODE_VESA);
+	
+	/* Installing the interrupt service routines and enabling interrupts */
 	init_descriptor_tables();
-	message("Global descriptor table initialized", 1);
 	isr_install();
-	message("Interrupt service routines set", 1);
 	asm volatile ("sti");
-	message("Interrupt flag set, now listening for interrupts", 1);
-	init_timer(250); // hz
-	message("Timer initialized", 1);
-	init_keyboard();
-	message("Keyboard initialized", 1);
+
+	/* Enable the kernel timer */
+	init_timer(250);
+
+	/* Enable paging */
 	init_paging();
-	message("Paging intialized", 1);
 }
 
-void bootsequence_paging()
+/**
+ * @brief      The second part of the boot sequence
+ */
+void bootsequence_after_paging()
 {
-	int ret = 1;
-	message("bootsequence paging started", 1);
 
-	// initialize the kernel heap
+	/* Initialize the kernel heap allocation systems */
 	init_kheap();
 	message("Heap initialized", 1);
 
-	// initialize the tasking module
+	/* Initialize the tasking module */
 	init_tasking();
-	g_starttask = g_runningtask;		// i don't know why i need to do this here but if i don't it won't work
+	g_starttask = g_runningtask;	/* Because of stack stuff this needs to happen here */
 	message("Tasking initialized", 1);
 	
-	// initialize the cursor (NEEDS FIX)
-	//init_vesa_cursor();
-	//message("Cursor initialized", 1);
-	
-	// initialize ramdisk 
-	init_ramdisk(0x10000, 64*1024);
+	/* Installing ramdisk */
+	init_ramdisk(RAMDISK_LOCATION, RAMDISK_SIZE);
 	message("Ramdisk initialized", 1);
 	
-	// initialize the virtual filesystem
+	/* Initialize the virtual file system switch */
 	init_vfs();
 	message("VFS initialized", 1);
 
-	// initialize the file descriptor system
-	ret = init_filedescriptors();
-	message("File descriptors initialized", !ret);
-
+	/* Initialize the file descriptors and terminal system */
+	init_filedescriptors();
+	message("File descriptors initialized", 1);
+	init_tty_devices();
+	message("TTY devices initialized", 1);
 	init_tty_filedescriptors();
 	message("TTY initialized", 1);
 
-	// initalize the mouse driver
+
+	/* Initialize the mouse and keyboard drivers */
 	init_mouse();
 	message("Mouse initialized", 1);
+
+	init_keyboard();
+	message("Keyboard initialized", 1);
 	
 	// initialize the system calls
 	init_syscalls();
 	message("Syscalls initialized", 1);
 	
+	// initialize pci devices
+	init_pci();
+	message("PCI driver initialized", 1);
+
+	// initialize all the pci devices with a driver
+	init_pci_devices();
+	message("PCI devices initialized", 1);
+	
 	// sleep to read the messages
 	sleep(TIMEAFTERBOOT);
 
 	// cleanup
-	clear_screen();
+	//clear_screenk();
 }
 
-#include <drivers/vfs/vfs.h>
-#include <kernel/execute/exec.h>
-#include <drivers/pci/pci.h>
-#include <signal.h>
-#include <drivers/time/time.h>
 
-#include <sys/stat.h>
-#include <fcntl.h>
-
-#include <drivers/vfs/vfs_node.h>
-#include <errno.h>
-
+/**
+ * @brief      Kernel main loop
+ */
 void kernel_main()
 {
-	print("kernel booted\n");
-
-	print("running...\n");
-
-	/*
-
-	DIR *dirp = vfs_opendir("/");
-	struct dirent *dir;
-	while ((dir = vfs_readdir(dirp)) != 0) {
-		print("dirname; "); print(dir->d_name); print("\n");
-	}
-
-	*/
-
-	DIR *dirp = vfs_opendir("/");
-	struct dirent *dir;
-	while ((dir = vfs_readdir(dirp)) != 0) {
-		print("entry: "); print(dir->d_name); print("\n");
-	}
-
-	print("ret: "); print_int(execve("/execfile", 0, 0));
-	print("errorno: "); print_int(errno);
-	
-
-
-	//pci_find();
-
-	//init_shell();
-	//jump_usermode();
-	
-	//sleep(5000);
-	//syscall_print("hello world!");
-
+	printk("kernel booted\n");
 }
 
+/**
+ * @brief      Just a halting cpu loop forever 
+ */
 void enter_foreverloop()
 {
 	// execute halt instruction forever
-	print("\nEnd of main kernel loop, exiting...\n");
+	
+	printk("\nEnd of main kernel loop, exiting...\n");
 	while (1) {
 		asm volatile ("hlt");
 	}
 }
 
+/**
+ * @brief      The enter function of the kernel
+ *
+ * @param[in]  stack     The stack
+ * @param[in]  code_gdt  The code gdt
+ * @param[in]  data_gdt  The data gdt
+ */
 void _enter(uint32_t stack, uint32_t code_gdt, uint32_t data_gdt)
 {
 	// enter function for kernel
-	// starts bootsequence
+	// starts boot sequence
 	bootsequence(stack, code_gdt, data_gdt);
 	
 	// maps the stack to the wanted location
 	init_paging_stack();
-	message("Successfully remapped kernel stack to disired location", 1);
+	message("Successfully remapped kernel stack to desired location", 1);
 
-	// paging part of bootsequence
-	bootsequence_paging();
+	// paging part of boot sequence
+	bootsequence_after_paging();
 	
 	// jump to main kernel code
 	kernel_main();
 
-	// after main kernel code enter a forever loop of halt instuctions
+	// after main kernel code enter a forever loop of halt instructions
 	enter_foreverloop();
 }
-
-// todo:	create TTY system so that multiple workspaces become possible 
-//			this will change nothing about the print()'s we would just bind a process to a tty 

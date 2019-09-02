@@ -10,7 +10,7 @@
 #include <kernel/execute/elf.h>
 #include <mm/paging.h>
 #include <proc/tasking.h>
-#include <lib/string/string.h>
+#include  <libk/string/string.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <errno.h>

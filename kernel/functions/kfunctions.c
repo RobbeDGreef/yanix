@@ -1,7 +1,7 @@
-#include <drivers/video/videoText.h>
 #include <drivers/io/io.h>
 #include <cpu/timer.h>
 #include <proc/tasking.h>
+#include <kernel.h>
 
 #include <config/kconfig.h>
 
@@ -16,13 +16,13 @@ extern task_t *g_runningtask;
 void message(char *message, char code)
 {
 	if (code){
-		print_color("[   OK   ] ", LGREEN_ON_BLACK);
+		printk(KERN_INFO "[   OK   ] ");
 	} else if (code == 1) {
-		print_color("[ FAILED ] ", LRED_ON_BLACK);
+		printk(KERN_WARNING "[ FAILED ] ");
 	} else if (code == 2) {
-		print_color("[ ERROR  ] ", LRED_ON_BLACK);
+		printk(KERN_ERR "[ ERROR  ] ");
 	}
-	print(message); print("\n");
+	printk("%s\n", message);
 }
 
 /**
@@ -53,7 +53,7 @@ void sleep(unsigned int milliseconds)
 	    unsigned int amount = milliseconds/(1000/g_timer_frequency);
 	    _tick_sleep(amount);
 
-    /*
+    /*7
     } else {
     	sleeptask(runningtask, milliseconds);
     }
@@ -67,8 +67,7 @@ void sleep(unsigned int milliseconds)
  */
 void shutdown(int errorcode)
 {
-    clear_screen();
-    print("Shutting down... ");
-    print_int(errorcode);
+    clear_screenk();
+    printk("Shutting down...\n%i", errorcode);
     port_byte_out(0xf4, 0x00);
 }

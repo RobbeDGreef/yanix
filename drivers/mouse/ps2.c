@@ -1,10 +1,9 @@
 #include <cpu/isr.h>
-#include <lib/function.h>
-#include <drivers/video/videoText.h>
-#include <drivers/video/graphics.h>
+#include  <libk/function.h>
+#include <drivers/video/video.h>
 #include <drivers/io/io.h>
-#include <lib/bit/bit.h>
-#include <lib/string/string.h>
+#include  <libk/bit/bit.h>
+#include  <libk/string/string.h>
 #include <kernel/functions/kfunctions.h>
 #include <drivers/mouse/ps2.h>
 #include <stdint.h>
@@ -106,10 +105,10 @@ void mouse_poll(){
         
         // todo: check that we do not go out of bounds
         
-        if ((mouse_xloc+mouse_xrel) > 0 && (mouse_xloc + mouse_xrel) < WIDTH){
+        if ((mouse_xloc+mouse_xrel) > 0 && (mouse_xloc + mouse_xrel) < video_get_screen_width()){
             mouse_xloc += mouse_xrel;
         }
-        if ((mouse_yloc-mouse_yrel) > 0 && (mouse_yloc - mouse_yrel) < HEIGHT){
+        if ((mouse_yloc-mouse_yrel) > 0 && (mouse_yloc - mouse_yrel) < video_get_screen_height()){
             mouse_yloc -= mouse_yrel;
         }
         

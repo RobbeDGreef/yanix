@@ -1,8 +1,8 @@
 #include <config/kconfig.h>
 #include <drivers/io/io.h>
 #include <cpu/isr.h>
-#include <lib/string/string.h>
-#include <lib/function.h>
+#include  <libk/string/string.h>
+#include  <libk/function.h>
 
 #include <drivers/keyboard/ps2.h>
 

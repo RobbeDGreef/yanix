@@ -27,7 +27,7 @@ struct task_control_block_s {
 	int 			lastsignal;
 	int 			state;
 	notify_fptr 	notify;
-	uintptr_t 		*tty;
+	unsigned int 	tty;
 
 	uint32_t 		timeused;
 	uint32_t		sliceused;
@@ -59,7 +59,7 @@ int init_tasking();
  *
  * @return     returns the process pid (0 if this process is the child)
  */
-pid_t fork();
+pid_t fork(void);
 
 /**
  * @brief      Jump to userspace
@@ -98,5 +98,13 @@ int send_pid_sig(pid_t pid, int sig);
  * @return     On success the old program break, on failure 0
  */
 void *sbrk(int incr);
+
+
+/**
+ * @brief      Kills a task
+ *
+ * @param      task  The task to kill
+ */
+void kill_proc(task_t *task);
 
 #endif

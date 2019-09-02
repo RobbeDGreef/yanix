@@ -1,9 +1,8 @@
 #include <cpu/isr.h>
 #include <cpu/idt.h>
 
-#include <drivers/video/videoText.h>
 #include <drivers/io/io.h>
-
+#include <kernel.h>
 #include <stdint.h>
 
 isr_t interrupt_handlers[256];
@@ -118,18 +117,15 @@ char *exception_messages[] = {
 void isr_handler(registers_t *r){
     unsigned int num = r->int_no & 0xFF;
     if (interrupt_handlers[num] == 0) {
-        switchToLFB();
-        print(":(\n");
-        print("Received unhandled interrupt: ");
-        print_int(num);print("(");print_hex(num);
-        print(") and code: "); print_int(r->err_code);
-        print("\n");
+        
+        printk(":(\nReceived unhandled interrupt: %i (%x) and with error code: %i\n", num, num, r->err_code);
+
         if (num > (sizeof(exception_messages) / sizeof(exception_messages[0]))){
-            print("No exception message");
+            printk("No exception message");
         } else {
-            print(exception_messages[num]);
+            printk(exception_messages[num]);
         }
-        print("\nProcessor halted...");
+        printk("\nProcessor halted...");
         for (;;);
     } else {
         interrupt_handlers[num](r);

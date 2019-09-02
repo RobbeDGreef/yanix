@@ -133,4 +133,25 @@ void copy_stack_to_new_addressspace(page_directory_t *newdir);
 int map_mem(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace);
 
 
+/**
+ * @brief      Clears all the frames and page tables in a page directory that are not in use.
+ *
+ * @param      dir   The page directory
+ */
+void clear_page_directory(page_directory_t *dir);
+
+/**
+ * @brief      Identity maps a physical memory block to a virtual memory block
+ *
+ * @param[in]  startaddr                   The startaddr
+ * @param[in]  endaddr                     The endaddr
+ * @param[in]  is_kernel                   Indicates if kernel
+ * @param[in]  is_writable_from_userspace  Indicates if writable from userspace
+ * @param      dir                         The dir
+ *
+ * @return     success code
+ */
+int identity_map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace,
+									 page_directory_t *dir);
+
 #endif

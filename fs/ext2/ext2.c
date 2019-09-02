@@ -8,9 +8,9 @@
  */
 
 #include <drivers/ramdisk/ramdisk.h>
-#include <drivers/video/videoText.h>
-#include <lib/string/string.h>
-#include <lib/math/math.h>
+#include <libk/string/string.h>
+
+#include <libk/math/math.h>
 #include <drivers/vfs/vfs.h>
 #include <fs/ext2/ext2.h>
 #include <fs/dirent.h>
@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <sys/types.h>
 
+#include <debug.h>
 
 // @todo file open function should be created to initialize vfs_nodes
 
@@ -154,8 +155,6 @@ ext2_block_group_descriptor_t *_ext2_get_block_group_descriptor(blkcnt_t blockgr
  */
 offset_t _ext2_get_inode_offset(ino_t inode, filesystem_t *fs_info)
 {
-	//print("fs info loc: "); print_hex((uint32_t) fs_info);
-	//print("\nblocksize: "); print_hex(ext2_get_block_size((ext2_superblock_t*) fs_info->superblock));
 	int blockgroup = (inode - 1) / ((ext2_superblock_t*) fs_info->superblock)->inodes_in_blockgroup;
 	int index = (inode-1) % ((ext2_superblock_t*) fs_info->superblock)->inodes_in_blockgroup;
 	blkcnt_t containingblock = (index * _ext2_get_inode_size(fs_info)) / ext2_get_block_size((ext2_superblock_t*)fs_info->superblock);
@@ -504,7 +503,7 @@ int ext2_add_dir(uint32_t parent_inode_index, uint32_t inode, char *name, uint16
 		}
 		
 	}
-	print("creating new block");
+
 	// it doesn't, we need to create new block
 	// @todo: create new block
 	blkcnt_t newblockindex = _ext2_alloc_block(fs_info);
@@ -690,9 +689,8 @@ DIR *ext2_open_dir_stream(ino_t inode, filesystem_t *fs_info)
 	ret->fs_info = fs_info;
 	ret->inode = inode;
 	ret->filebuffer = (void*) kmalloc(ext2_get_block_size((ext2_superblock_t*)fs_info->superblock));
-	//print("filebuffer: " ); print_hex((uint32_t) ret->filebuffer);
+
 	_ext2_read_file_block(inode, ret->blockpointerindex, ret->filebuffer, fs_info);
-	//print_hex_dump(ret->filebuffer, 0x100);
 	return ret;
 }
 
@@ -836,83 +834,3 @@ filesystem_t *ext2_initialize_filesystem(char* name, fs_read_fpointer read, fs_w
 	ret->fs_makenode = &ext2_vfs_entry;
 	return ret;
 }
-
-
-#if 0		// unnecessary testing function
-void testing(){
-	#if 0
-	ext2_superblock_t *superblock = _getSuperblock();
-	ext2_superblock_extended_t* superblockExtended = _getSuperBlockExtended();
-	ext2_block_group_descriptor_t *bgd = (ext2_block_group_descriptor_t*) ramdisk_get(EXT2_SUPERBLOCK_START_LOCATION+1024);
-	print("filesystem major version: "); print_int(superblock->major_version);
-	print("filesystem minor version: "); print_int(superblock->minor_version);
-	print("total inodes: "); print_int(superblock->total_inodes);print("\n");
-	print("total blocks: "); print_int(superblock->total_blocks);print("\n");
-	print("inode size:"); print_int(superblockExtended->inode_size);print("\n");
-	print("block bitmap: "); print_hex(bgd->block_bitmap);print("\n");
-	print("inode bitmap: "); print_hex(bgd->inode_bitmap);print("\n");
-	print("start inode table: "); print_hex(bgd->start_inode_table); print("\n");
-	//print_hex_dump((uint32_t*) ramdisk_get(0x400*bgd->start_inode_table), 0x200);
-	//print_binary_char(*((uint8_t*) ramdisk_get(0x400*5)+9));
-	print("\nblock size: "); print_int(1024 << superblock->block_size_UNCALC);
-	ext2_inode_t *root = (ext2_inode_t*) ramdisk_get(bgd->start_inode_table*0x400+superblockExtended->inode_size);
-	print("\nroot low size: "); print_int(root->low_size);
-	print("\nroot type: "); print_hex(root->type_permissions & 0xF000);
-	print("\nroot block pointer 1: "); print_hex(root->direct_block_pointer[0]);print("\n");
-	//print_hex_dump((uint32_t*) ramdisk_get(0x400*root->direct_block_pointer[0]), 0x200);
-	print("---------------------------------------------------------------\n");
-
-	//_loop_over_directory(root);
-	
-	print("---------------------------------------------------------------\n");
-
-
-	
-	uint32_t addr = kmalloc(1024);
-	
-	memset((uint32_t*) addr, 0, 1024);
-	
-	ramdisk_read(root->direct_block_pointer[0]*0x400, (uint32_t*) addr, 1024);
-
-
-
-	DIR *dirp = ext2_open_dir_stream(2, fs_info);
-	if (dirp == 0){
-		print("error");
-		return;
-	}
-	struct dirent *dir = 0;
-	while ((dir = ext2_read_dir(dirp)) != 0){
-		print("the direntry inode: "); print_int(dir->d_ino); print(" the direntry name: '");print(dir->d_name);print("'\n");
-	}
-	print("ret");
-	//#endif
-	#endif
-
-	filesystem_t *fs_info = initialize_filesystem("EXT2FS", ramdisk_read, ramdisk_write);
-
-	print("reading from file (inode: 12) \n");
-
-	char *buf = (char*) kmalloc(0x401);
-	if (ext2_read_from_file(12, buf, 0x401, fs_info) == -1){
-		print("error");
-	}
-	print("buffer content: \n");print(buf);
-	
-}
-
-#endif
-
-
-/*
-
-functions that should be created:
-	- loop over directory
-	- read from file descriptor
-	- write to file descriptor
-	- open file descriptor
-	- close file descriptor
-
-*/
-
-

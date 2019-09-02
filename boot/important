@@ -136,3 +136,52 @@ load_loop_done:
     ;al = 0x80
 
     ret
+
+
+
+
+
+
+    
+    mov     bx, 0x1000
+    mov     es, bx
+    mov     bx, 0x0000 
+    
+    mov     ah, 0x02    ; instruction
+
+    mov     al, 0x80    ; number of sectors to read must be nonzero (0x01 - 0x80) 128
+    mov     cl, 0x02    ; sector number 1-63 bits (0-5) 
+    mov     ch, 0x00    ; cylinder (0x0 - 0x3ff) 1023
+    mov     dh, 0x00    ; head number (0x00 - 0x0f) (side i think)
+    int     0x13
+
+    jc disk_error
+    cmp al, 128
+    jne sectors_error
+
+    mov     bx, loadedSuccessfull
+    call    print
+
+    mov     bx, 0x2000
+    mov     es, bx
+    mov     bx, 0x0000 
+    
+    mov     ah, 0x02    ; instruction
+
+    mov     al, 0x80    ; number of sectors to read must be nonzero (0x01 - 0x80) 128
+    mov     cl, 0x16    ; sector number 1-63 bits (0-5) 
+    mov     ch, 0x01    ; cylinder (0x0 - 0x3ff) 1023
+    mov     dh, 0x01    ; head number (0x00 - 0x0f) (side i think)
+    int     0x13
+
+    jc disk_error
+    cmp al, 128
+    jne sectors_error
+
+    mov     bx, loadedSuccessfull
+    call    print
+
+    ret
+
+[bits 32]
+pm_begin:

@@ -9,19 +9,18 @@
 
 // @todo: implement COW (copy on write) for duplicating a page see this page for more info: https://ubuntuforums.org/showthread.php?t=1308167
 
-#include <lib/string/string.h>
+#include <libk/string/string.h>
 #include <sys/types.h>
 #include <errno.h>
-#include <drivers/video/videoText.h>
-#include <drivers/video/graphics.h>
 #include <cpu/isr.h>
-#include <gui/gui.h>
 #include <kernel/functions/kfunctions.h>
 #include <proc/tasking.h>
 #include <kernel/stack/stack.h>
 #include <mm/paging.h>
 #include <mm/heap.h>
 #include <signal.h>
+#include <kernel.h>
+#include <drivers/video/video.h>
 
 /**
  * The global directory variables
@@ -117,7 +116,7 @@ int alloc_frame(page_t *page, int is_kernel, int is_writable_from_userspace)
 	} else {
 		ssize_t index = first_frame();
 		if (index == -1){
-			print("NO FREE FRAMES!");
+			errno = ENOMEM;
 			return -2;
 		}
 		set_frame(index*0x1000);
@@ -205,20 +204,18 @@ static void page_fault(registers_t *regs)
 
 	if (g_runningtask->ring != 3){		
 		// this is a kernel task
-		print("Page fault: \n");
+		printk("Page fault: \n");
 		int errcode = -1;
-		if (present)  {print("was not present, ");}
-		if (rw) 	  {print("read write, "); errcode = -EPERM;}
-		if (us) 	  {print("user-mode, ");  errcode = -EACCES;}
-		if (reserved) {print("reserved, ");   errcode = -EACCES;}
-		print(" at ");
-		print_hex(faulting_address);
-		print("\n");
+		if (present)  {printk("was not present, ");}
+		if (rw) 	  {printk("read write, "); errcode = -EPERM;}
+		if (us) 	  {printk("user-mode, ");  errcode = -EACCES;}
+		if (reserved) {printk("reserved, ");   errcode = -EACCES;}
+		printk(" at %x\n", faulting_address);
 		(void) (errcode);
 		for(;;);
 	} else {
 		// this is a user task
-		print("Segmentation fault\n");
+		printk("Segmentation fault\n");
 		send_sig(SIGKILL);
 	}
 }
@@ -233,7 +230,6 @@ void switch_page_directory(page_directory_t *dir)
 	// @bug: so the bug is the stack actually, the stack is completely fcked because we copy it like 5 functions ago we should copy now
 	// @fix: copy stack now and exclude it from the copy systems in duplicate_current_page_directory
 	g_current_directory = dir;
-	print("loc: "); print_hex(dir->physicalAddress);print("\n");
 	asm volatile ("mov %0, %%cr3" : : "r" (dir->physicalAddress));
 
 }
@@ -371,16 +367,27 @@ page_directory_t *duplicate_current_page_directory()
 	return newdir;
 }
 
-#if 0
-int clear_page_directory(page_directory_t *dir)
+
+/**
+ * @brief      Clears all the frames and page tables in a page directory that are not in use.
+ *
+ * @param      dir   The page directory
+ */
+void clear_page_directory(page_directory_t *dir)
 {
 	for (size_t table = 0; table < AMOUNT_OF_PAGE_TABLES_PER_DIR; table++) {
-		if (dir->tables[table] != 0) {
-			if (dir->tables[table] == g_kernel_directory->tables[table])
+		// if the page table does not pop up in the kernel page directory, we should remove all of its frames
+		if (dir->tables[table] != g_kernel_directory->tables[table]) {
+			// free all the frames
+			for (size_t page = 0; page < AMOUNT_OF_PAGES_PER_TABLE; page++) {
+				if (dir->tables[table]->pages[page].frame != 0) {
+					clear_frame((table * AMOUNT_OF_PAGES_PER_TABLE + page)*0x1000);
+				}
+			}
+			kfree(dir->tables[table]);
 		}
 	}
 }
-#endif
 
 
 /**
@@ -436,7 +443,7 @@ int map_mem(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable
  *
  * @return     success code
  */
-static int identity_map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace,
+int identity_map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace,
 									 page_directory_t *dir)
 {
 	int ret;
@@ -518,11 +525,12 @@ int init_paging()
 	// allocate the page buffer location for page directory cloning
 	map_memory_block(PAGE_BUFFER_LOCATION, PAGE_BUFFER_LOCATION+0x1000, 0, 0, g_kernel_directory);
 
+	//map_memory_block(ZBuffer, ZBuffer+ (MAXBUFFER * MAXWINDOWS) + 0x1000, 0, 1, g_kernel_directory);
+
+	unsigned int buffer_size = video_get_screen_width() * video_get_screen_height() * video_get_screen_bpp();
 
 	// allocate the VESA physical frame buffer bus
-	identity_map_memory_block(PhysicalLFB, PhysicalLFB + MAXBUFFER, 0, 1, g_kernel_directory);
-
-	map_memory_block(ZBuffer, ZBuffer+ (MAXBUFFER * MAXWINDOWS) + 0x1000, 0, 1, g_kernel_directory);
+	identity_map_memory_block((unsigned int) video_get_screen_fb(), (unsigned int)video_get_screen_fb() + buffer_size, 0, 1, g_kernel_directory);
 
 	// register the page interrupt handler
 	register_interrupt_handler(14, page_fault);

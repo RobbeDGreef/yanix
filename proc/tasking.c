@@ -1,5 +1,5 @@
 /**
- * mm/paging.c
+ * mm/tasking.c
  * 
  * Author: Robbe De Greef
  * Date:   29 may 2019
@@ -12,7 +12,7 @@
 #include <mm/heap.h>
 #include <kernel/stack/stack.h>
 #include <drivers/mouse/ps2.h>
-#include <lib/string/string.h>
+#include  <libk/string/string.h>
 #include <cpu/timer.h>
 #include <cpu/gdt.h>
 
@@ -22,8 +22,6 @@
 #include <signal.h>
 #include <stdint.h>
 #include <stddef.h>
-
-#include <drivers/video/videoText.h>
 
 #define TASK_RUNNING 	0
 #define TASK_ZOMBIE 	1
@@ -76,19 +74,18 @@ int remove_task_from_queue(task_t *task_to_remove)
 	tmp->next = task_to_remove->next;
 
 	// snipped task out of queue
-	return 0;
-	
+	return 0;	
 }
-
 
 /**
  * @brief      Kills a task
  *
  * @param      task  The task to kill
  */
-static void kill_proc(task_t *task)
+void kill_proc(task_t *task)
 {
 	remove_task_from_queue(task);
+	clear_page_directory(task->directory);
 	kfree((void*) task->directory);
 	kfree((void*) task);
 }
@@ -195,6 +192,7 @@ void task_yield()
 		}
 	}
 	tss_set_kernel_stack(tmp->kernel_stack+KERNEL_STACK_SIZE);
+	
 	switch_task(tmp);
 }
 
@@ -205,12 +203,8 @@ void task_yield()
  *
  * @return     Pointer to the task
  */
-static task_t *create_task(page_directory_t *dir)
+static task_t *create_task(task_t *new_task, page_directory_t *dir)
 {
-	// create new task struct
-	task_t *new_task = (task_t*) kmalloc(sizeof(task_t));
-	memset(new_task, 0, sizeof(task_t));
-
 	// create fresh kernel stack
 	new_task->kernel_stack = (uint32_t) kmalloc_base(KERNEL_STACK_SIZE, 1, 0);
 	memset((void*) new_task->kernel_stack, 0, KERNEL_STACK_SIZE);
@@ -224,13 +218,12 @@ static task_t *create_task(page_directory_t *dir)
 
 	return new_task;
 }
-
 /**
  * @brief      Forks a process 
  *
  * @return     returns the process pid (0 if this process is the child)
  */
-pid_t fork()
+pid_t fork(void)
 {
 	// disable interrupts
 	asm volatile ("cli");
@@ -241,8 +234,12 @@ pid_t fork()
 	// duplicate page directory
 	page_directory_t *copied_dir = duplicate_current_page_directory();
 
-	// create a new task with new address space
-	task_t *new_task = create_task(copied_dir);
+	// create new task struct from parent
+	task_t *new_task = (task_t*) kmalloc(sizeof(task_t));
+	memcpy(new_task, parent_task, sizeof(task_t));
+
+	// create a new task with the new address space and task structure
+	new_task = create_task(new_task, copied_dir);
 
 	// copy the stack to the new addr space
 	copy_stack_to_new_addressspace(copied_dir);
@@ -431,7 +428,7 @@ int getpid()
  *
  * @return     On success the old program break, on failure 0
  */
-caddr_t sbrk(int incr)
+void* sbrk(int incr)
 {
 	for (uint32_t i = g_runningtask->program_break; i < g_runningtask->program_break + incr ;i += 0x1000) {
 		// this will alocate a frame if the frame has not already been set 
@@ -442,10 +439,10 @@ caddr_t sbrk(int incr)
 		if (alloc_frame(get_page(i, 1, g_runningtask->directory), kernel, kernel?0:1) == -2) {
 			// TODO: should also deallocate the frame 
 			errno = ENOMEM;
-			return (caddr_t) -1;
+			return (void*) -1;
 		}
 	}
 	g_runningtask->program_break += incr;
 	
-	return (caddr_t) (g_runningtask->program_break -= incr);
-}
+	return (void*) (g_runningtask->program_break -= incr);
+} 

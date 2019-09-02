@@ -1916,22 +1916,24 @@ static const font_bitmap_data MonospaceFont_16_data[] =
 };
 
 
-uint8_t FONTHEIGHT = 16;
-uint8_t FONTWIDTH  = 10;
-
-
 font_bitmap_data getdata(char character){
     return MonospaceFont_16_data[character-32];
 }
 
-uint8_t getchar_width(char character) {
+uint8_t font_getchar_width(char character) {
     return MonospaceFont_16_data[character-32].width;
 }
 
-uint32_t getchar_index(char character) {
+uint32_t font_getchar_index(char character) {
     return MonospaceFont_16_data[character-32].index;
 }
 
-uint8_t* getchar(char character) {
-    return (uint8_t*) &MonospaceFont_16_bitmap[getchar_index(character)];
+uint8_t* font_getchar(unsigned char character) {
+    /**
+     * This check will make sure the requisted character is printable
+     */
+    if ((character < 32) | (character > 127)) {
+        return 0;
+    }
+    return (uint8_t*) &MonospaceFont_16_bitmap[font_getchar_index(character)];
 }

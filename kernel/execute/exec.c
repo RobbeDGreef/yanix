@@ -5,8 +5,6 @@
 #include <mm/heap.h>
 #include <errno.h>
 
-#include <drivers/video/videoText.h>
-
 int execve(const char *filename, char *const argv[], char *const envp[])
 {
 	(void) (envp);

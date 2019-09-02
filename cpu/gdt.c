@@ -1,5 +1,5 @@
 #include <cpu/gdt.h>
-#include <lib/string/string.h>
+#include <libk/string/string.h>
 #include <stdint.h>
 
 #if 0 // not sure if strill needed

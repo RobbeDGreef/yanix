@@ -1,7 +1,6 @@
 [org 0x7c00]
 ;RAMDISK_SIZE    equ 0x19000 ; this is 100 kb
 RAMDISK_SIZE    equ 0x10000 ; 0x14000
-
     mov     [BOOT_DRIVE], dl
     mov     bp, 0x8000
     mov     sp, bp

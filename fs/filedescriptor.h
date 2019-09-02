@@ -46,6 +46,12 @@ int close_filedescriptor(int fd);
  */
 vfs_node_t *get_filedescriptor_node(int fd);
 
+
+/**
+ * @brief      Switches the filedescriptors to tty mode
+ */
+void switch_filedescriptors_to_tty();
+
 void init_tty_filedescriptors();
 
 #endif

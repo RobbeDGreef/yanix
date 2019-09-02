@@ -30,7 +30,6 @@ time_t time(time_t *second)
 	}
 }
 
-#include <drivers/video/videoText.h>
 
 #define BCD_TO_BIN(val) ((val)=((val)&15) + ((val)>>4)*10)
 

@@ -2,8 +2,10 @@
 #include <mm/heap.h>
 #include <mm/paging.h>
 
-#include <lib/function.h>
-#include <drivers/video/videoText.h>
+#include <libk/function.h>
+#include <libk/string/string.h>
+
+#include <kernel.h>
 
 #include <stdint.h>
 #include <stddef.h>
@@ -17,6 +19,7 @@ extern page_directory_t *g_kernel_directory;
 #define True  1
 #define False 0
 
+#if 0   /* Debug function */
 /**
  * @brief      Debug function to see the heap status
  *
@@ -28,6 +31,8 @@ static void heapstatus(heap_t *heap){
     print("\n    start:  ");print_hex(heap->start);
     print("\n    end:    ");print_hex(heap->start+heap->maxsize);
 }
+
+#endif
 
 
 
@@ -222,12 +227,7 @@ void *alloc(heap_t *heap, bool aligned, uint32_t size)
     
     } else {
         // return error
-        // @todo: this is all debug info, this should be removed 
-        print("we got an error (cannot expand heap)");
-        print("heap size would be: "); print_int(heap->size + size);
-        print("\nheap maxsize is: "); print_int(heap->maxsize);
-        //print("\nadded size is: "); print_hex(size);
-        heapstatus(kernelHeap);
+        printk(KERN_CRIT "Kernel heap cannot be expaned, not enough memory");
 
         errno = ENOMEM;
         return 0;
@@ -257,9 +257,6 @@ int free(heap_t *heap, uint32_t *address)
 
     signed int index = findBlockWithStart(heap->array, (uint32_t) address);
     if (index == -1){
-        // @todo this is debug info and should be removed
-        print("got error: could not find address in heap\n");
-        print("Watch out this results in this block of memory lost and thus we leeked memory!\n");
         // address was not found in list so ENXIO is returned
         errno = ENXIO;
         return -1;
@@ -359,6 +356,21 @@ void *kmalloc_base(size_t size, int aligned, phys_addr_t *physicaladdress)
 void *kmalloc(size_t size)
 {
     return kmalloc_base(size, 0, 0);
+}
+
+/**
+ * @brief      Simple kernel kcalloc function
+ *
+ * @param[in]  size   The size
+ * @param[in]  value  The value
+ *
+ * @return     Pointer to initialised memory
+ */
+void *kcalloc(size_t size, int value)
+{
+    void *tmp = kmalloc_base(size, 0, 0);
+    memset(tmp, value, size);
+    return tmp;
 }
 
 /**

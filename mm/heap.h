@@ -33,6 +33,17 @@ typedef struct {
  */
 void *kmalloc_base(size_t size, int aligned, phys_addr_t *physicaladdress);
 
+
+/**
+ * @brief      Simple kernel kcalloc function
+ *
+ * @param[in]  size   The size
+ * @param[in]  value  The value
+ *
+ * @return     Pointer to initialised memory
+ */
+void *kcalloc(size_t size, int value);
+
 /**
  * @brief      Simple kernel kmalloc function
  *

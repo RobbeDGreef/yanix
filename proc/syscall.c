@@ -10,16 +10,18 @@
 
 static void syscall_handler(registers_t *regs);
 
+extern task_t *g_runningtask;
+
 // syscalls
 
 // environment variable (@todo: )
 char *__env[1] = { 0 };
 char **environ = __env;
 
-
 void _exit() 
 {
     send_sig(SIGKILL);
+    kill_proc(g_runningtask);
 }
 
 int sys_kill(pid_t pid, int sig)
@@ -44,6 +46,7 @@ int unlink(char *name)
 
 int wait(int *status)
 {
+    (void) (status);
     errno = ECHILD;
     return -1;
 }
@@ -121,10 +124,9 @@ void init_syscalls()
  * @param      regs  The pushed registers
  */
 static void syscall_handler(registers_t *regs){
-	
     if (regs->eax >= num_syscalls)
 		return;
-	
+
     void *location = (void*) syscalls[regs->eax];
     if (location == 0) {
         return;

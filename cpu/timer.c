@@ -1,10 +1,8 @@
 #include <cpu/timer.h>
 #include <cpu/isr.h>
-
-#include <drivers/video/videoText.h>
 #include <drivers/io/io.h>
 
-#include <lib/function.h>
+#include  <libk/function.h>
 #include <proc/tasking.h>
 
 volatile unsigned long g_timer_tick;

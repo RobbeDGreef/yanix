@@ -15,12 +15,11 @@
 #include <fs/dirent.h>
 #include <fs/fs.h>
 #include <mm/heap.h>
-#include <lib/string/string.h>
+#include  <libk/string/string.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <drivers/video/videoText.h>
 
 vfs_node_t *g_vfs_root;
 uint32_t g_nodecount;
@@ -56,7 +55,7 @@ static ssize_t _vfs_read(vfs_node_t* node, void *buf, size_t amount)
 ssize_t vfs_read_fd(int fd, void *buf, size_t amount)
 {
 	vfs_node_t *node = get_filedescriptor_node(fd);
-	if (fd == 0) {
+	if (node == 0) {
 		return -1;
 	}
 	return _vfs_read(node, buf, amount);
@@ -108,9 +107,10 @@ static ssize_t _vfs_write(vfs_node_t *node, const void *buf, size_t amount)
 ssize_t vfs_write_fd(int fd, const void *buf, size_t amount)
 {
 	vfs_node_t *node = get_filedescriptor_node(fd);
-	if (fd == 0) {
+	if (node == 0) {
 		return -1;
 	}
+
 	return _vfs_write(node, buf, amount);
 }
 
@@ -185,7 +185,7 @@ static vfs_node_t *_create_node(const char *nodepath, int flags, int mode)
 
 	// if directory doesn't exist return with error
 	if (dir == 0) {
-		print("the dir doesn't exist");
+		errno = ENOENT;
 		return 0;
 	}
 

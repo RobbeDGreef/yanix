@@ -1,10 +1,8 @@
-#include <lib/string/string.h>
-
+#include <libk/string/string.h>
+#include <kernel.h>
 #include <mm/blockArray.h>
 #include <mm/heap.h>
 
-
-#include <drivers/video/videoText.h>
 
 
 blockArray *createEmptyBlockArray(uint32_t maxsize){
@@ -44,7 +42,7 @@ void insertNewBlock(blockArray *array, block b) {
 		array->array[array->size] = b;
 		array->size = array->size+1;
 	} else {
-		print("\nmax size of array reached cannot append");
+		printk(KERN_CRIT "\nmax size of array reached cannot append");
 	}
 }
 

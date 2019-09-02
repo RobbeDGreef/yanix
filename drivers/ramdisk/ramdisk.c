@@ -1,5 +1,5 @@
 #include <mm/heap.h>
-#include <lib/string/string.h>
+#include  <libk/string/string.h>
 #include <sys/types.h>
 
 uint32_t g_ramdisk_location = 0;

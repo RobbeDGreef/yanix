@@ -2,9 +2,9 @@ import os
 
 lines = 0
 v = True
-extensions = [".h", ".c", ".asm", ".py"]
+extensions = [".h", ".c", ".asm", ".py", ".ld", ".md"]
 
-noreaddirs = ["examples", ".git"]
+noreaddirs = ["examples", ".git", "sysroot", "sysroot2", "sysroot3", ".testing"]
 
 def splitpath(path):
 	p = []
