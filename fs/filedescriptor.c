@@ -74,7 +74,7 @@ void switch_filedescriptors_to_tty()
 	get_filedescriptor_node(2)->write = &tty_stderrwrite; 
 }
 
-
+/* @TODO: a per task filedescriptor list should be created */
 
 /**
  * @brief      initializes the filedescriptor table
@@ -90,7 +90,6 @@ int init_filedescriptors()
 	memset(fd_array, 0, sizeof(file_descriptor_entry_t) * MAX_FILEDESCRIPTORS);
 	return 0;
 }
-
 
 /**
  * @brief      register a filedescriptor
@@ -123,7 +122,11 @@ int register_filedescriptor(vfs_node_t *node, int mode)
  */
 int close_filedescriptor(int fd)
 {
-	if (fd >= 0 && fd <= MAX_FILEDESCRIPTORS) {
+	/**
+	 * We start from 3 because the first 3 are IO registers and yes they
+	 * should be defined per task i know 
+	 */
+	if (fd >= 3 && fd <= MAX_FILEDESCRIPTORS) {
 		memset(&fd_array[fd], 0, sizeof(file_descriptor_entry_t));
 		return 0;
 	} 

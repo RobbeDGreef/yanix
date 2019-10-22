@@ -3,7 +3,7 @@
 
 #include <drivers/vfs/vfs_node.h>
 
-#define MAX_FILEDESCRIPTORS 	128
+#define MAX_FILEDESCRIPTORS 	32	/* This number should probably be higher */
 
 typedef struct {
 	int 			mode;
