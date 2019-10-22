@@ -2,7 +2,7 @@
 [extern irq_handler]
 
 isr_common_stub:
-    pusha
+    pusha           ; pushes edi, esi, ebp, esp, ebx, edx, ecx, eax
     mov     ax, ds
     push    eax
     mov     ax, 0x10
@@ -35,8 +35,10 @@ irq_common_stub:
     mov     fs, ax
     mov     gs, ax
     push    esp
+
     cld
     call    irq_handler
+    
     pop     ebx
     pop     ebx
     mov     ds, bx

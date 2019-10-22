@@ -28,8 +28,8 @@
 #define TASK_SLEEPING 	2
 #define TASK_PAUSED 	3
 
-task_t *g_starttask = 0;
-task_t *g_runningtask = 0;
+volatile task_t *g_starttask = 0;
+volatile task_t *g_runningtask = 0;
 pid_t PIDS = 1;
 
 // extern page directory refrences
@@ -39,6 +39,7 @@ extern page_directory_t *g_kernel_directory;
 // extern assebmly functions
 extern uint32_t get_eip();
 extern void task_switch(uint32_t eip, uint32_t esp, uint32_t ebp, uint32_t cr3);
+extern void jmp_userspace(uint32_t eip);
 
 /**
  * @brief      Adds a task to the task queue.
@@ -47,7 +48,7 @@ extern void task_switch(uint32_t eip, uint32_t esp, uint32_t ebp, uint32_t cr3);
  */
 void add_task_to_queue(task_t *task_to_add)
 {
-	task_t *tmp = g_runningtask;
+	task_t *tmp = (task_t*) g_runningtask;
 	while (tmp->next != 0){
 		tmp = tmp->next;
 	}
@@ -63,12 +64,17 @@ void add_task_to_queue(task_t *task_to_add)
  */
 int remove_task_from_queue(task_t *task_to_remove)
 {
-	task_t *tmp = g_starttask;
+	task_t *tmp = (task_t*) g_starttask;
+	if (tmp == 0) {
+		errno = ESRCH; // no such process
+		return -1;
+	}
 	while (tmp->next != task_to_remove) {
 		if (tmp->next == 0) {
 			errno = ESRCH; // no such process
 			return -1;
 		}
+		tmp = tmp->next;
 	}
 	// tmp now houses the task before the to remove task
 	tmp->next = task_to_remove->next;
@@ -76,7 +82,6 @@ int remove_task_from_queue(task_t *task_to_remove)
 	// snipped task out of queue
 	return 0;	
 }
-
 /**
  * @brief      Kills a task
  *
@@ -97,7 +102,7 @@ void schedule_killer()
 {
 	// loops over the processes and kills processes that should die
 	
-	task_t *tmp = g_starttask;
+	task_t *tmp = (task_t*) g_starttask;
 	while (tmp != 0) {
 		if (tmp->state == TASK_ZOMBIE) {
 				kill_proc(tmp);
@@ -109,15 +114,16 @@ void schedule_killer()
 
 
 /**
- * @brief      Switches task
+ * @brief      Switches task to the next task
  *
  * @param      nexttask  The next task
  */
-static void switch_task(task_t *nexttask)
+static void switch_task(task_t *nexttask, registers_t *regs)
 {
+	(void) (regs);
 	uint32_t eip, esp, ebp;
-	asm volatile("mov %%esp, %0" : "=r"(esp));
-	asm volatile("mov %%ebp, %0" : "=r"(ebp)); 
+	asm volatile ("mov %%esp, %0" : "=r"(esp));
+	asm volatile ("mov %%ebp, %0" : "=r"(ebp));
 
 	eip = get_eip();
 
@@ -134,15 +140,18 @@ static void switch_task(task_t *nexttask)
 	esp = g_runningtask->esp;
 	ebp = g_runningtask->ebp;
 
+	g_current_directory = g_runningtask->directory;
+
 	task_switch(eip, esp, ebp, g_runningtask->directory->physicalAddress);
 }
 
+#include <debug.h>
 
 
 /**
  * @brief      yields control of task
  */
-void task_yield()
+void task_yield(registers_t *regs)
 {
 	#if 0
 	task_t *next;
@@ -167,12 +176,12 @@ void task_yield()
 
 	schedule_killer();
 
-	task_t *tmp = g_runningtask;
+	task_t *tmp = (task_t*) g_runningtask;
 	while (1) {
 		if (tmp->next != 0) {
 			tmp = tmp->next;
 		} else if (tmp != g_starttask) {
-			tmp = g_starttask;
+			tmp = (task_t*) g_starttask;
 		} else {
 			// no task
 			return;
@@ -184,7 +193,7 @@ void task_yield()
 			if (tmp->next != 0) {
 				tmp = tmp->next;
 			} else if (tmp != g_starttask) {
-				tmp = g_starttask;
+				tmp = (task_t*) g_starttask;
 			} else {
 				// no task
 				return;
@@ -192,8 +201,8 @@ void task_yield()
 		}
 	}
 	tss_set_kernel_stack(tmp->kernel_stack+KERNEL_STACK_SIZE);
-	
-	switch_task(tmp);
+
+	switch_task(tmp, regs);
 }
 
 /**
@@ -203,13 +212,25 @@ void task_yield()
  *
  * @return     Pointer to the task
  */
-static task_t *create_task(task_t *new_task, page_directory_t *dir)
+static task_t *create_task(task_t *new_task, int kernel_task, page_directory_t *dir)
 {
 	// create fresh kernel stack
 	new_task->kernel_stack = (uint32_t) kmalloc_base(KERNEL_STACK_SIZE, 1, 0);
 	memset((void*) new_task->kernel_stack, 0, KERNEL_STACK_SIZE);
 
-	// set pid and new page directory (addr space)
+	/* create fresh normal stack */
+	if (!kernel_task)
+	{
+		new_task->stacktop = ((uint32_t) kmalloc_user_base(USER_STACK_SIZE, 1, 0) ) + USER_STACK_SIZE;
+		new_task->stack_size = USER_STACK_SIZE;
+	}
+	else 
+	{
+		new_task->stacktop = DISIRED_STACK_LOCATION;
+		new_task->stack_size = STACK_SIZE;
+	}
+
+	/* set pid and new page directory (addr space) */
 	new_task->pid = PIDS++;
 	new_task->directory = dir;
 	new_task->state = TASK_RUNNING;
@@ -218,28 +239,29 @@ static task_t *create_task(task_t *new_task, page_directory_t *dir)
 
 	return new_task;
 }
+
 /**
  * @brief      Forks a process 
  *
  * @return     returns the process pid (0 if this process is the child)
  */
-pid_t fork(void)
+pid_t fork()
 {
 	// disable interrupts
 	asm volatile ("cli");
 
 	// save for later refrence
-	task_t *parent_task = g_runningtask;
+	volatile task_t *parent_task = g_runningtask;
 
 	// duplicate page directory
 	page_directory_t *copied_dir = duplicate_current_page_directory();
 
 	// create new task struct from parent
 	task_t *new_task = (task_t*) kmalloc(sizeof(task_t));
-	memcpy(new_task, parent_task, sizeof(task_t));
+	memcpy(new_task, (task_t*) parent_task, sizeof(task_t));
 
 	// create a new task with the new address space and task structure
-	new_task = create_task(new_task, copied_dir);
+	new_task = create_task(new_task, 1, copied_dir);
 
 	// copy the stack to the new addr space
 	copy_stack_to_new_addressspace(copied_dir);
@@ -248,6 +270,9 @@ pid_t fork(void)
 	uint32_t eip = get_eip();
 
 	if (g_runningtask == parent_task) {
+
+		add_task_to_queue(new_task);
+
 		uint32_t esp, ebp;
 		asm volatile("mov %%esp, %0" : "=r"(esp));
 		asm volatile("mov %%ebp, %0" : "=r"(ebp));
@@ -255,9 +280,8 @@ pid_t fork(void)
 		new_task->ebp = ebp;
 		new_task->eip = eip;
 
-		add_task_to_queue(new_task);
-
 		asm volatile("sti");
+
 		return new_task->pid;
 	} else {
 		return 0;
@@ -276,10 +300,16 @@ int init_tasking()
 {
 	// create new task struct
 	g_starttask = (task_t*) kmalloc(sizeof(task_t));
-	memset(g_starttask, 0, sizeof(task_t));
+	memset((task_t*) g_starttask, 0, sizeof(task_t));
 
 	g_starttask->pid = PIDS++;
 	g_starttask->directory = g_current_directory;
+	g_starttask->state = TASK_RUNNING;
+	g_starttask->timeslice = 100;
+	
+	g_starttask->kernel_stack = (uint32_t) kmalloc_base(STACK_SIZE, 1, 0) + STACK_SIZE;
+	g_starttask->stacktop = DISIRED_STACK_LOCATION;
+	g_starttask->stack_size = STACK_SIZE;
 
 	g_runningtask = g_starttask;
 
@@ -337,7 +367,7 @@ static void send_task_signal(task_t *task, int signal)
  */
 void send_sig(int signal)
 {
-	send_task_signal(g_runningtask, signal);
+	send_task_signal((task_t*) g_runningtask, signal);
 }
 
 /**
@@ -350,7 +380,7 @@ void send_sig(int signal)
  */
 int send_pid_sig(pid_t pid, int sig)
 {
-	task_t *tmp = g_starttask;
+	task_t *tmp = (task_t*) g_starttask;
 	while (tmp != 0) {
 		if (tmp->pid == pid) {
 			send_task_signal(tmp, sig);
@@ -366,7 +396,7 @@ int send_pid_sig(pid_t pid, int sig)
  * @brief      Schedule function (simple round robin)
  * 
  */
-void schedule()
+void schedule(registers_t *regs)
 {
 	// every schedule call update the mouse poll driver
 	mouse_poll();
@@ -378,7 +408,7 @@ void schedule()
 		} else {
 			// switch
 			g_runningtask->sliceused = 0;
-			task_yield();
+			task_yield(regs);
 		}
 	} else {
 		// exit gracefully because no tasking initialised
@@ -387,13 +417,16 @@ void schedule()
 
 /**
  * @brief      Jump to userspace
+ *
+ * @param[in]  eip   Start in usermode at this location
  */
-inline void jump_userspace()
+inline void jump_userspace(uint32_t eip)
 {
 	tss_set_kernel_stack(g_runningtask->kernel_stack + KERNEL_STACK_SIZE);
 	
 	g_runningtask->ring = 3;
 
+	#if 0
 	asm volatile("cli; \
      			  mov $0x23, %ax; \
      			  mov %ax, %ds; \
@@ -405,10 +438,15 @@ inline void jump_userspace()
      			  pushl $0x23; \
      			  pushl %eax; \
      			  pushf; \
+     			  pop %eax; \
+     			  or %eax, $0x200; \
+     			  push %eax; \
      			  pushl $0x1B; \
-     			  push $1f; \
+     			  push %0; \
     			  iret; \
-   				  1: ");
+   				  " : : "r" (eip));
+   	#endif
+   	jmp_userspace(eip);
 }
 
 /**

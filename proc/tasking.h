@@ -7,39 +7,53 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef void (*notify_fptr) (int signal);
+/* Function pointer template for a notify function to notify the task of changes in it's signal */
+typedef void (*notify_fpointer) (int signal);
 
 /**
- * @brief      a task control block 
+ * @brief 		A task control structure. 
  */
-struct task_control_block_s {
-	// registers
+typedef struct task_control_block_s
+{
+	/* Registers used for switching */
 	uint32_t 			eip;
 	uint32_t 			esp;
 	uint32_t 			ebp;
 	uint32_t			eflags;
 	page_directory_t 	*directory;
 
-	// others
-	offset_t 		program_break;
-	pid_t			pid;
-	int 			ring;
-	int 			lastsignal;
-	int 			state;
-	notify_fptr 	notify;
-	unsigned int 	tty;
+	/* Program information */
+	uint32_t 			program_break;
+	uint32_t	 		stacktop;
+	uint32_t			stack_size;
 
-	uint32_t 		timeused;
-	uint32_t		sliceused;
-	uint32_t		timeslice;
-	char 			*name;
-	uint32_t 		kernel_stack;
+	/* Kernel stack (same as stacktop if this is a kernel task) */
+	uint32_t 			kernel_stack;
 
-	// next
+	/* Task information */
+	char 				*name;
+	pid_t 				pid;
+	int 				ring;
+	int 				lastsignal;
+	int 				state;
+	unsigned int 		tty;
+	notify_fpointer 	notify;
+
+	/* Scheduler information */
+	unsigned long 		timeslice;
+	unsigned long 		timeused;
+	unsigned long 		sliceused;
+	int 				priority;
+	int 				spawned;
+
+	/* Linked list next identifier */
 	struct task_control_block_s *next;
-}__attribute__((packed));
+} __attribute__((packed))task_t;
 
-typedef struct task_control_block_s task_t;
+/**
+ * @brief      yields control of task
+ */
+void task_yield();
 
 /**
  * @brief      Schedule function (simple round robin)
