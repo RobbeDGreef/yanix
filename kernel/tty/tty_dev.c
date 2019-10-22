@@ -141,6 +141,8 @@ void tty_update_display(tty_dev_t *tty_dev, int startcol, int startrow, int endc
 
 	}
 
+	video_update_cursor(tty_dev->c_col, tty_dev->c_row);
+
 
 }
 
@@ -338,8 +340,15 @@ void tty_set_cursor_row(tty_dev_t *tty_dev, int newrow)
  */
 void tty_clear_buf(tty_dev_t *tty_dev)
 {
-	/* First let's just clear out the buffer */
-	memset(tty_dev->buffer, 0, tty_control_struct->col_max * (tty_control_struct->colorbit_size + tty_control_struct->char_size) * tty_control_struct->row_max);
+	/* First overwrite the buffer with ' ' character */
+	for (size_t i = 0; i < tty_control_struct->col_max; i++)
+	{
+		for (size_t j = 0; j < tty_control_struct->row_max; j++)
+		{
+			/* The - 1 at the end is because indexes start at 0 */
+			tty_dev->buffer[(j*tty_control_struct->row_max + i) * 2 - 1] = ' ';
+		}
+	}
 
 	/* Now reset cursor */
 	tty_dev->c_col = 0;
@@ -347,4 +356,4 @@ void tty_clear_buf(tty_dev_t *tty_dev)
 
 	/* Finally update the display */
 	tty_update_display(tty_dev, 0, 0, tty_control_struct->col_max - 1, tty_control_struct->row_max - 1);
-} 
+}

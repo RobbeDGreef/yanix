@@ -29,6 +29,7 @@ void putchark(char character)
  */
 int printk(const char* __restrict fmt, ...)
 {
+
 	va_list args;
 	va_start(args, fmt);
 	
@@ -47,8 +48,18 @@ int printk(const char* __restrict fmt, ...)
 		i = 3;
 	}
 	
-	(void) (loglevel); 
-
+	/* @todo: loglevel should be used properly in this code*/
+	
+	if (loglevel == 7)
+	{
+		/* Debug loglevel */
+		printk("[ DEBUG ] ");
+	} 
+	else if (loglevel == 6)
+	{
+		printk("[ INFO ]  ");
+	}
+	
 	while ((character = fmt[i]) != '\0') {
 		
 		if (character == '%') {
@@ -94,6 +105,8 @@ int printk(const char* __restrict fmt, ...)
 				if (isneg) 
 					putchark('-');
 				
+				/* @todo: 0's aren't printed, quick hack */ 
+				if (reversed_int == 0) { putchark('0'); }
 
 				/* This piece of code prints every character in the integer */
 				while (reversed_int > 0) {
@@ -112,18 +125,115 @@ int printk(const char* __restrict fmt, ...)
 				
 				/* This piece of code reverses the integer */
 				unsigned int reversed_int = 0;
+				unsigned int zeros_before = 0;
 				while (tmp_int > 0) {
 					reversed_int = reversed_int * 10 + tmp_int % 10;
+					if ((reversed_int == 0) && ((tmp_int % 10) == 0)) 
+						zeros_before++;
 					tmp_int /= 10;
 				}
+
+
+				/* @todo: 0's aren't printed, quick hack */ 
+				if (reversed_int == 0) { putchark('0'); }
 
 				/* This piece of code prints every character in the integer */
 				while (reversed_int > 0) {
 					putchark('0' + (reversed_int % 10));
 					reversed_int /= 10;
 				}
-			} 
-			//@todo: hexadecimal print
+
+				/* If there were any zero's before the integer print them now */
+				for (size_t i = 0; i < zeros_before; i++) {
+					putchark('0');
+				} 
+
+			} else if (fmt[i+1] == 'x') {
+				/* Print hexadecimal numbers */
+				unsigned int tmp_int = va_arg(args, unsigned int);
+
+				/* This piece of code reverses the integer */
+				unsigned int reversed_int = 0;
+				unsigned int zeros_before = 0;
+				while (tmp_int > 0) {
+					reversed_int = reversed_int * 0x10 + tmp_int % 0x10;
+					if ((reversed_int == 0) && ((tmp_int % 0x10) == 0)) 
+						zeros_before++;
+					tmp_int /= 0x10;
+				}
+
+
+				/* @todo: 0's aren't printed, quick hack */ 
+				if (reversed_int == 0) { putchark('0'); }
+
+				/* This piece of code prints every character in the integer */
+				while (reversed_int > 0) {
+					if ((reversed_int % 0x10) >= 0xA) {
+						putchark('A' + ((reversed_int % 0x10) - 10));
+					} else {
+						putchark('0' + (reversed_int % 0x10));
+					}
+
+					reversed_int /= 0x10;
+				}
+
+				/* If there were any zero's before the integer print them now */
+				for (size_t i = 0; i < zeros_before; i++) {
+					putchark('0');
+				}
+
+			} else if (fmt[i+3] == 'x') {
+				/* Note: this is definitely not a perfect / bugproof system but it works */ 
+				/* Print hexadecimal with specific string length (given by fmt[i+1], fmt[i+2]) */
+				unsigned int tmp_int = va_arg(args, unsigned int);
+				int wanted_bits = (fmt[i+1] - '0') * 10 + fmt[i+2] - '0';
+				
+				/* Calculate the size of the integer */
+				int intsize = 0;
+				unsigned int tmp = tmp_int;
+				while (1) {
+					if (tmp == 0) {
+						break;
+					}
+					tmp /= 0x10;
+					intsize++;
+				}
+
+				/* This piece of code reverses the integer */
+				unsigned int reversed_int = 0;
+				unsigned int zeros_before = 0;
+				while (tmp_int > 0) {
+					reversed_int = reversed_int * 0x10 + tmp_int % 0x10;
+					if ((reversed_int == 0) && ((tmp_int % 0x10) == 0)) 
+						zeros_before++;
+					tmp_int /= 0x10;
+				}
+
+				/* Print amount of starting zero's */
+				for (int i = 0; i < (wanted_bits - intsize); i++) {
+					putchark('0');
+				}
+
+				/* This piece of code prints every character in the integer */
+				while (reversed_int > 0) {
+					if ((reversed_int % 0x10) >= 0xA) {
+						putchark('A' + ((reversed_int % 0x10) - 10));
+					} else {
+						putchark('0' + (reversed_int % 0x10));
+					}
+
+					reversed_int /= 0x10;
+				
+				}
+
+				/* If there were any zero's before the integer print them now */
+				for (size_t i = 0; i < zeros_before; i++) {
+					putchark('0');
+				}
+				i += 2;
+			}
+			
+
 
 			/* Skip over next character */
 			i++;
@@ -150,7 +260,14 @@ void clear_screenk()
 
 void printk_hd(void *ptr, size_t size)
 {
-	(void) (ptr);
-	(void) (size);
-	printk("This function is not implemented yet");
+
+	for (size_t i = 0; i <= size; i += 0x10)
+	{
+		unsigned char *tmp = (unsigned char *) (((unsigned int) ptr) + i);
+		printk("%08x:  %02x %02x %02x %02x %02x %02x %02x %02x   %02x %02x %02x %02x %02x %02x %02x %02x\n", (unsigned int) ptr + i,
+			   (unsigned char) *(tmp), (unsigned char) *(tmp+1), (unsigned char) *(tmp+2), (unsigned char) *(tmp+3), 
+			   (unsigned char) *(tmp+4), (unsigned char) *(tmp+5), (unsigned char) *(tmp+6), (unsigned char) *(tmp+7),
+			   (unsigned char) *(tmp+8), (unsigned char) *(tmp+9), (unsigned char) *(tmp+10), (unsigned char) *(tmp+11),
+			   (unsigned char) *(tmp+12), (unsigned char) *(tmp+13), (unsigned char) *(tmp+14), (unsigned char) *(tmp+15));
+	}
 }

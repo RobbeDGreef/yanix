@@ -10,6 +10,7 @@ typedef void (*draw_pixel_fpointer)	(int x, int y, int color);
 typedef void (*draw_rect_fpointer)	(int x, int y, int width, int height, int color);
 typedef void (*draw_line_fpointer)	(int x, int y, int x2, int y2, int color);
 typedef void (*clear_fpointer)		();
+typedef void (*updt_cusror_fpointer)(int x, int y);
 
 // Extra function pointers 
 typedef int  (*vga_to_full_fpointer)(int color);
@@ -21,6 +22,7 @@ typedef struct video_driver_s {
 	draw_rect_fpointer		draw_rect;
 	draw_line_fpointer 		draw_line;
 	clear_fpointer			clear;
+	updt_cusror_fpointer	update_cursor;
 
 	vga_to_full_fpointer	vga_to_full;
 
@@ -111,6 +113,13 @@ int video_get_screen_bpp();
  */
 void video_draw_char(char c, int x, int y, int frontgroundcolor, int backgroundcolor);
 
+/**
+ * @brief      Updates the cursor location on the screen
+ *
+ * @param[in]  x     New cursor x location 
+ * @param[in]  y     New cursor y location
+ */
+void video_update_cursor(int x, int y);
 
 /**
  * @brief      Clears the screen

@@ -1,5 +1,6 @@
 #include <stdint.h>
-#include <drivers/video/vesa.h>
+#include <drivers/video/vesa/vesa.h>
+#include <drivers/video/vga/vga.h>
 #include <drivers/video/video.h>
 #include <mm/heap.h>
 
@@ -20,7 +21,7 @@ int set_video_mode(int mode)
 	// @todo: This is a bad system, this system should find the appropriate driver dynamically instead of hardcoded like this 
 	if (mode == VIDEO_MODE_TERM) {
 		// initialise vga driver
-		// @todo: Build vga driver
+		hook_vga_to_video(g_video_driver);
 
 	} else if (mode == VIDEO_MODE_VESA) {
 		hook_vesa_to_video(g_video_driver);
@@ -137,5 +138,18 @@ void video_clear_screen()
 {
 	if (g_video_driver != 0 && g_video_driver->clear != 0){
 		g_video_driver->clear();
+	}
+}
+
+/**
+ * @brief      Updates the cursor location on the screen
+ *
+ * @param[in]  x     New cursor x location 
+ * @param[in]  y     New cursor y location
+ */
+void video_update_cursor(int x, int y)
+{
+	if (g_video_driver != 0 && g_video_driver->update_cursor != 0) {
+		g_video_driver->update_cursor(x, y);
 	}
 }
