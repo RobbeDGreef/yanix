@@ -16,10 +16,9 @@ unsigned long g_timer_frequency;
 static void timer_callback(registers_t *regs)
 {
     g_timer_tick++;
-    UNUSED(regs);
-
-    // call scheduler
-    schedule();
+    
+    /* call scheduler */
+    schedule(regs);
 }
 
 /**

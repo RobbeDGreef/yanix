@@ -146,4 +146,11 @@ vfs_node_t *vfs_setupnode(uint8_t type, uint16_t permissions, uid_t uid, gid_t g
 						  open_fpointer open, close_fpointer close, creat_fpointer creat, read_fpointer read, write_fpointer write,
 						  open_dir_fpointer opendir, read_dir_fpointer readdir, filesystem_t *fs_info);
 
+/**
+ * @brief      Check wheter the VFS is initialsed
+ *
+ * @return     True if vfs initialised
+ */
+int vfs_check_if_initialised();
+
 #endif

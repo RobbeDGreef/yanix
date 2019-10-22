@@ -118,7 +118,7 @@ void isr_handler(registers_t *r){
     unsigned int num = r->int_no & 0xFF;
     if (interrupt_handlers[num] == 0) {
         
-        printk(":(\nReceived unhandled interrupt: %i (%x) and with error code: %i\n", num, num, r->err_code);
+        printk(":(\nReceived unhandled interrupt: %i (%x) and with error code: %x\n", num, num, r->err_code);
 
         if (num > (sizeof(exception_messages) / sizeof(exception_messages[0]))){
             printk("No exception message");

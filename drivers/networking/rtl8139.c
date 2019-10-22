@@ -135,6 +135,7 @@ int init_rtl8139(pci_device_t *pci_dev)
 	// getting the bar0 type and calculating io and mem addresses
  	uint32_t bar0 = pci_get_bar_by_index(rtl_dev->pci_dev, 0);
 	rtl_dev->bar_type = bar0 & 0x1;  // first bit of bar0 holds type
+	                                 // 
 	// get the io and mem addresses by extracting the highest 28/30 bits
 	rtl_dev->io_base  = bar0 & ~0x3;
 	rtl_dev->mem_base = bar0 & ~0xf;

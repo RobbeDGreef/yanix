@@ -28,9 +28,9 @@ void init_ramdisk(offset_t location, size_t size)
  *
  * @return     Pointer to buffer location
  */
-ssize_t ramdisk_read(offset_t offset, void *destination, size_t size) 
+ssize_t ramdisk_read(uint32_t offset, void *destination, size_t size) 
 {
-	return (ssize_t) memcpy((uint32_t*) destination, (uint32_t*) (g_ramdisk_location + offset), size);
+	return (ssize_t) memcpy((void*) destination, (void*) (g_ramdisk_location + offset), size);
 }
 
 

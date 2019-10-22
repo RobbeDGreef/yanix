@@ -44,6 +44,19 @@ static ssize_t _vfs_read(vfs_node_t* node, void *buf, size_t amount)
 }
 
 /**
+ * @brief      Check wheter the VFS is initialsed
+ *
+ * @return     True if vfs initialised
+ */
+int vfs_check_if_initialised()
+{
+	if (g_vfs_root == 0) {
+		return 0;
+	}
+	return 1;
+}
+
+/**
  * @brief      Reads from filedescriptor
  *
  * @param[in]  fd      The filedescriptor
@@ -584,7 +597,7 @@ void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, f
 void init_vfs()
 {
 	g_nodecount = 0;
-	g_current_fs = ext2_initialize_filesystem("EXT2FS", &ramdisk_read, &ramdisk_write);
+	g_current_fs = init_ext2_filesystem("EXT2FS", &ramdisk_read, &ramdisk_write);
 	g_vfs_root = 0;
 	//init_vfs_lookuptable(g_vfs_root);
 	loop_over_filesystem(2, 1, g_vfs_root, g_current_fs);
