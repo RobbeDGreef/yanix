@@ -35,6 +35,7 @@ typedef vfs_node_t 	*(*fs_make_node) (offset_t offset, id_t id, filesystem_t *fs
 struct filesystem_s {
 	char 				*name;
 	uint32_t 			type;					// type of filesystem (ext2, fat12, NTFS, ...)
+	unsigned int 		block_size;
 	offset_t 			*superblock;
 	offset_t 			*blockgroup_list; 		// linked list
 	offset_t 			start;					// depending on implementation this could be an inode, a directory ...

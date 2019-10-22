@@ -9,7 +9,6 @@
  * interface
 */
 
-// @todo       some or all of these functions should aqtually be placed in stdio.h
 // @todo       register filesystem should not register to one global var
 
 filesystem_t *g_current_fs;
