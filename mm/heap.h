@@ -10,7 +10,12 @@
 #define KHEAP_START			0xC0000000
 #define KHEAP_MAXSIZE		0x100000
 #define KHEAP_MAXINDEX		0x1000
-#define KHEAP_INITIAL_SIZE	0x10000
+#define KHEAP_INITIAL_SIZE	0x10000			/* Depricated */
+
+#define UHEAP_START 		0xD0000000
+#define UHEAP_MAXSIZE		0x100000
+#define UHEAP_MAXINDEX		0x500
+#define UHEAP_INITIAL_SIZE 	0x10000
 
 #define PREHEAPSPACE 	0x85000
 
@@ -59,6 +64,12 @@ void *kmalloc(size_t size);
 void init_kheap();
 
 /**
+ * @brief      Initialises the user heap
+ */
+void init_uheap();
+
+
+/**
  * @brief      Frees a block of memory
  *
  * @param      addr  The address of the memory block
@@ -66,4 +77,35 @@ void init_kheap();
  * @return     success of failure
  */
 int kfree(void *addr);
+
+/**
+ * @brief      Frees up a previously allocated block of memory on the heap
+ *
+ * @param      addr  The startaddress of the block
+ *
+ * @return     success of failure (0/-1)
+ */
+int kfree_user(void *addr);
+
+/**
+ * @brief      Allocates a block of memory on the stack (simple)
+ *
+ * @param[in]  size  The size of the block
+ *
+ * @return     A pointer to the block of memory
+ */
+void *kmalloc_user(size_t size);
+
+/**
+ * @brief      Allocates a block of memory on the user heap
+ *
+ * @param[in]  size             The size
+ * @param[in]  aligned          The aligned
+ * @param      physicaladdress  The physicaladdress
+ *
+ * @return     Pointer to the allocated block
+ */
+void *kmalloc_user_base(size_t size, int aligned, phys_addr_t *physicaladdress);
+
+
 #endif

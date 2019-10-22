@@ -11,13 +11,13 @@
 #include <stddef.h>
 #include <errno.h>
 
-extern uint32_t end_of_bin;
-volatile uint32_t placement_address = (uint32_t) &end_of_bin; // this should actually point to the end of the kernel in memory but that should be set at linktime
-heap_t *kernelHeap = 0;
-extern page_directory_t *g_kernel_directory;
+extern uint32_t end_of_bin; /* Defined in linker.ld, just a pointer to the end of memory */
+volatile uint32_t placement_address = (uint32_t) &end_of_bin;
 
-#define True  1
-#define False 0
+heap_t *kernelHeap = 0;
+heap_t *userHeap = 0;
+
+extern page_directory_t *g_kernel_directory;
 
 #if 0   /* Debug function */
 /**
@@ -49,7 +49,7 @@ static void heapstatus(heap_t *heap){
  */
 heap_t *createHeap(uint32_t start, uint32_t maxsize, uint32_t maxindex, bool user)
 {
-    heap_t *heap    = (heap_t*) kmalloc_base(sizeof(heap_t), 1, 0);
+    heap_t *heap    = (heap_t*) kmalloc_base(sizeof(heap_t), 0, 0);
     heap->array     = (blockArray *) createEmptyBlockArray(maxindex);
     heap->start     = start;
     heap->maxsize   = maxsize;
@@ -62,7 +62,15 @@ heap_t *createHeap(uint32_t start, uint32_t maxsize, uint32_t maxindex, bool use
  */
 void init_kheap()
 {
-    kernelHeap = createHeap(KHEAP_START, KHEAP_MAXSIZE, KHEAP_MAXINDEX, False);
+    kernelHeap = createHeap(KHEAP_START, KHEAP_MAXSIZE, KHEAP_MAXINDEX, 0);
+}
+
+/**
+ * @brief      Initialises the user heap
+ */
+void init_uheap()
+{
+    userHeap = createHeap(UHEAP_START, UHEAP_MAXSIZE, UHEAP_MAXINDEX, 1);
 }
 
 /**
@@ -73,13 +81,14 @@ void init_kheap()
  */
 static void expand(heap_t *heap, size_t size)
 {
-    uint32_t iter = 0;
-    // paging stuff
-    for (;iter < size; iter+=1000){
-        // todo: we should never only use writeable block we should implement readonly into our heap
-        alloc_frame(get_page(heap->start+heap->size+iter, 1, (page_directory_t*) g_kernel_directory), (heap->user)?0:1, True); // readonly now always false
-    }
-    heap->size = heap->size + size;
+    size_t iter = 0;
+    
+    do {
+        alloc_frame(get_page(heap->start+heap->size+iter, 1, (page_directory_t*) g_kernel_directory), (heap->user)?0:1, 1); // readonly now always false        
+        iter += 0x1000;
+    } while (iter < size);
+
+    heap->size += iter;
 }
 
 /**
@@ -96,11 +105,11 @@ void *alloc(heap_t *heap, bool aligned, uint32_t size)
     blockArray *array = heap->array;
     if (array->size != 0){
         for (uint32_t i = 0; i < array->size; i++){
-            if (array->array[i].ishole == True){
-                if (aligned == False){
+            if (array->array[i].ishole == 1){
+                if (aligned == 0){
                     if (array->array[i].size == size) {
                         // fits perfectly
-                        array->array[i].ishole = False;
+                        array->array[i].ishole = 0;
                         return (void*)array->array[i].start;
                     } else if (size < array->array[i].size) {
                         block tmp, tmp2;
@@ -108,12 +117,12 @@ void *alloc(heap_t *heap, bool aligned, uint32_t size)
                         tmp.start  = array->array[i].start;
                         tmp.end    = array->array[i].start + size;
                         tmp.size   = size;
-                        tmp.ishole = False;
+                        tmp.ishole = 0;
 
                         tmp2.start  = array->array[i].start + size;
                         tmp2.end    = array->array[i].end;
                         tmp2.size   = array->array[i].size - size;
-                        tmp2.ishole = True;
+                        tmp2.ishole = 1;
                         
                         removeBlock(array, i);
                         
@@ -125,7 +134,7 @@ void *alloc(heap_t *heap, bool aligned, uint32_t size)
                 } else {
                     if (array->array[i].size == size && (array->array[i].start && 0xFFFFF000)) {
                         // fits perfectly and is page aligned
-                        array->array[i].ishole = False;
+                        array->array[i].ishole = 0;
                         return (void*)array->array[i].start;
                     } else if (size < array->array[i].size) {
                         uint32_t a = alignedAddressInBlock(array->array[i]);
@@ -142,12 +151,12 @@ void *alloc(heap_t *heap, bool aligned, uint32_t size)
                             tmp.start  = array->array[i].start;
                             tmp.end    = array->array[i].start + size;
                             tmp.size   = size;
-                            tmp.ishole = False;
+                            tmp.ishole = 0;
 
                             tmp2.start  = array->array[i].start + size;
                             tmp2.end    = array->array[i].end;
                             tmp2.size   = array->array[i].size - size;
-                            tmp2.ishole = True;
+                            tmp2.ishole = 1;
                             
                             removeBlock(array, i);
                             
@@ -162,18 +171,18 @@ void *alloc(heap_t *heap, bool aligned, uint32_t size)
                             tmp.start  = array->array[i].start;
                             tmp.end    = a;
                             tmp.size   = a - array->array[i].start;
-                            tmp.ishole = True;
+                            tmp.ishole = 1;
 
                             tmp2.start  = a;
                             tmp2.end    = a+size;
                             tmp2.size   = size;
-                            tmp2.ishole = False;
+                            tmp2.ishole = 0;
                             if (size+a < array->array[i].end){
                                 block tmp3;
                                 tmp3.start  = a+size;
                                 tmp3.end    = array->array[i].end;
                                 tmp3.size   = array->array[i].end - (a+size);
-                                tmp3.ishole = True;
+                                tmp3.ishole = 1;
                                 insertNewBlock(array, tmp3);
                             }
                             removeBlock(array, i);
@@ -187,32 +196,32 @@ void *alloc(heap_t *heap, bool aligned, uint32_t size)
         }
     }
     // can we expand the heap?
-    if (size + heap->size <= heap->maxsize && aligned == False){
+    if (size + heap->size <= heap->maxsize && aligned == 0){
         // expand heap
         // now add a new block
         block b;
         b.start     = heap->start + heap->size; // this will become the biggest block in the heap so it should be appended at the end
         b.size      = size;
-        b.ishole    = False;
+        b.ishole    = 0;
         b.end       = b.start + size;
         expand(heap, size);
         insertNewBlock(array, b);
         return (void*) b.start;
     
-    } else if (aligned == True && ((heap->size & 0xFFFFF000) + 0x1000 + size) <= heap->maxsize) {
+    } else if (aligned == 1 && ((heap->size & 0xFFFFF000) + 0x1000 + size) <= heap->maxsize) {
         block b, tmp;
         tmp.start = 0; // just a flag
         
         b.start     = ((heap->start + heap->size) & 0xFFFFF000) + 0x1000;
         b.size      = size;
-        b.ishole    = False;
+        b.ishole    = 0;
         b.end       = b.start + b.size;
         
         if (heap->start + heap->size != (((heap->start+heap->size) & 0xFFFFF000)+0x1000)){
             tmp.start   = heap->start + heap->size;
             tmp.size    = b.start - (heap->start + heap->size);
             tmp.end     = b.start;
-            tmp.ishole  = True;
+            tmp.ishole  = 1;
 
         }
         if (tmp.start != 0){
@@ -227,7 +236,7 @@ void *alloc(heap_t *heap, bool aligned, uint32_t size)
     
     } else {
         // return error
-        printk(KERN_CRIT "Kernel heap cannot be expaned, not enough memory");
+        printk(KERN_CRIT "Heap cannot be expaned, not enough memory");
 
         errno = ENOMEM;
         return 0;
@@ -262,45 +271,45 @@ int free(heap_t *heap, uint32_t *address)
         return -1;
     }
 
-    heap->array->array[index].ishole = True;
+    heap->array->array[index].ishole = 1;
 
     signed int lind = findBlockWithEnd(heap->array, heap->array->array[index].start);
     signed int rind = findBlockWithStart(heap->array, heap->array->array[index].end);
 
 
-    if (heap->array->array[lind].ishole == True && heap->array->array[rind].ishole && lind != -1 && rind != -1) {
+    if (heap->array->array[lind].ishole == 1 && heap->array->array[rind].ishole && lind != -1 && rind != -1) {
         // both appendable 
         
         block newblock;
         newblock.start  = heap->array->array[lind].start;
         newblock.size   = heap->array->array[lind].size + heap->array->array[index].size + heap->array->array[rind].size;
         newblock.end    = heap->array->array[rind].end;
-        newblock.ishole = True;
+        newblock.ishole = 1;
         removeBlock(heap->array, lind);
         removeBlock(heap->array, index);
         removeBlock(heap->array, rind);
         insertNewBlock(heap->array, newblock);
 
-    } else if (heap->array->array[lind].ishole == True && lind != -1){
+    } else if (heap->array->array[lind].ishole == 1 && lind != -1){
         // only the left is appendable
         
         block newblock;
         newblock.start  = heap->array->array[lind].start;
         newblock.size   = heap->array->array[lind].size + heap->array->array[index].size;
         newblock.end    = heap->array->array[index].end;
-        newblock.ishole = True;
+        newblock.ishole = 1;
         removeBlock(heap->array, lind);
         removeBlock(heap->array, index);
         insertNewBlock(heap->array, newblock);
 
-    } else if (heap->array->array[rind].ishole == True && lind != -1){
+    } else if (heap->array->array[rind].ishole == 1 && lind != -1){
         // only the right is appendable
         
         block newblock;
         newblock.start  = heap->array->array[rind].start;
         newblock.size   = heap->array->array[rind].size + heap->array->array[index].size;
         newblock.end    = heap->array->array[index].end;
-        newblock.ishole = True;
+        newblock.ishole = 1;
         removeBlock(heap->array, rind);
         removeBlock(heap->array, index);
         insertNewBlock(heap->array, newblock);
@@ -324,11 +333,12 @@ void *kmalloc_base(size_t size, int aligned, phys_addr_t *physicaladdress)
     if (kernelHeap != 0) {
         uintptr_t *pointer = alloc(kernelHeap, aligned, size);
         if (pointer == 0) {
+            printk("<ERROR> COULDN'T ALLOCATE MEMORY\n");
             return 0;
         }
         if (physicaladdress != 0 && pointer != 0){
-            page_t *page = get_page((off_t)pointer, 0, g_kernel_directory);
-            *physicaladdress = page->frame*0x1000 + ((unsigned int)pointer&0xFFF);
+            page_t *page = get_page((unsigned int)pointer, 0, g_kernel_directory);
+            *physicaladdress = page->frame*0x1000 + ((unsigned int)pointer & 0xFFF);
         }
 
         return (void*) pointer;
@@ -383,4 +393,56 @@ void *kcalloc(size_t size, int value)
 int kfree(void *addr)
 {
     return free(kernelHeap, addr);
+}
+
+/**
+ * @brief      Allocates a block of memory on the user heap
+ *
+ * @param[in]  size             The size
+ * @param[in]  aligned          The aligned
+ * @param      physicaladdress  The physicaladdress
+ *
+ * @return     Pointer to the allocated block
+ */
+void *kmalloc_user_base(size_t size, int aligned, phys_addr_t *physicaladdress)
+{
+    if (userHeap != 0) {
+        uintptr_t *pointer = alloc(userHeap, aligned, size);
+        if (pointer == 0) {
+            return 0;
+        }
+        if (physicaladdress != 0 && pointer != 0){
+            page_t *page = get_page((off_t)pointer, 1, g_kernel_directory);
+            *physicaladdress = page->frame*0x1000 + ((unsigned int)pointer & 0xFFF);
+        }
+
+        return (void*) pointer;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief      Allocates a block of memory on the stack (simple)
+ *
+ * @param[in]  size  The size of the block
+ *
+ * @return     A pointer to the block of memory
+ */
+void *kmalloc_user(size_t size)
+{
+    return kmalloc_user_base(size, 0, 0);
+}
+
+
+/**
+ * @brief      Frees up a previously allocated block of memory on the heap
+ *
+ * @param      addr  The startaddress of the block
+ *
+ * @return     success of failure (0/-1)
+ */
+int kfree_user(void *addr)
+{
+    return free(userHeap, addr);
 }

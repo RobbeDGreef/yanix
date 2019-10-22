@@ -38,9 +38,9 @@ void insertNewBlock(blockArray *array, block b) {
 		}
 	}
 	// append to the end i guess??
-	if (array->size+1 < array->maxsize){
+	if (array->size+1 <= array->maxsize){
 		array->array[array->size] = b;
-		array->size = array->size+1;
+		array->size++;
 	} else {
 		printk(KERN_CRIT "\nmax size of array reached cannot append");
 	}

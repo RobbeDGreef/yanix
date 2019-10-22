@@ -9,7 +9,7 @@
 #define AMOUNT_OF_PAGES_PER_TABLE 		1024
 #define AMOUNT_OF_PAGE_TABLES_PER_DIR 	1024
 
-#define PAGE_BUFFER_LOCATION 0xa00000
+#define PAGE_BUFFER_LOCATION 0x1100000
 
 typedef struct page {
 	uint32_t present	:1;		// page present in memory

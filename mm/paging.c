@@ -36,8 +36,15 @@ page_directory_t *g_current_directory = 0;
 offset_t *g_frames;
 size_t   g_nframes;
 
-extern uint32_t  placement_address;	// defined in kernelFunctions.c
+extern uint32_t  placement_address;	// defined in heap.c
 extern task_t   *g_runningtask;
+
+/**
+ * @brief      Basic kernel debug handler
+ *
+ * @param      Registers
+ */
+extern void debug_handler(registers_t *);
 
 /**
  * All the bitset algorithms
@@ -122,7 +129,7 @@ int alloc_frame(page_t *page, int is_kernel, int is_writable_from_userspace)
 		set_frame(index*0x1000);
 		page->present = 1;
 		page->rw = (is_writable_from_userspace)?1:0;
-		page->user = (is_kernel)?0:1;	// just a weird if statement if you're wondering
+		page->user = (is_kernel)?0:1;
 		page->frame = index;
 		return 0;
 	}
@@ -143,13 +150,13 @@ int alloc_frame(page_t *page, int is_kernel, int is_writable_from_userspace)
  */
 int map_frame(page_t *page, unsigned int addr, int remap, int is_kernel, int is_writable_from_userspace)
 {
-	if (page->frame != 0 && remap) {
+	if (page->frame != 0 && remap == 0) {
 		return -1;
 	} else {
 		set_frame(addr & 0xFFFFF000);	// just to be certain the right frame is mapped
 		page->present = 1;
 		page->rw = (is_writable_from_userspace)?1:0;
-		page->user = (is_kernel)?0:1;	// just a weird if statement if you're wondering
+		page->user = (is_kernel)?0:1;
 		page->frame = addr / 0x1000;
 		return 0;
 	}
@@ -210,13 +217,21 @@ static void page_fault(registers_t *regs)
 		if (rw) 	  {printk("read write, "); errcode = -EPERM;}
 		if (us) 	  {printk("user-mode, ");  errcode = -EACCES;}
 		if (reserved) {printk("reserved, ");   errcode = -EACCES;}
-		printk(" at %x\n", faulting_address);
+		printk(" at 0x%x\n", faulting_address);
 		(void) (errcode);
+		debug_handler(regs);
 		for(;;);
 	} else {
 		// this is a user task
-		printk("Segmentation fault\n");
+		printk("Segmentation fault, faulting address: 0x%08x\n", faulting_address);
+		if (present)  printk("was not present, ");
+		if (rw) 	  printk("read write, ");
+		if (us) 	  printk("user-mode, ");
+		if (reserved) printk("reserved, ");
+		printk("\n");
+		debug_handler(regs);
 		send_sig(SIGKILL);
+		for(;;);
 	}
 }
 
@@ -297,8 +312,10 @@ static void copy_page(size_t addr, page_directory_t *newdir)
 	page_t *new_page  		 = get_page(addr, 1, newdir);
 	
 	alloc_frame(new_page, page_to_copy_ref->user?0:1, page_to_copy_ref->rw?1:0);
+	
 	buffer_page->frame = new_page->frame;
 	memcpy((void*) PAGE_BUFFER_LOCATION, (void*) addr, 0x1000);
+
 }
 
 /**
@@ -404,9 +421,9 @@ void clear_page_directory(page_directory_t *dir)
 static int map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace, page_directory_t *dir)
 {
 	int ret;
-	// this loop uses startaddr as an iterator
+	/* this loop uses startaddr as an iterator */
 	while (startaddr <= endaddr) {
-		// alocates a frame for every page that is in this memory block
+		/* alocates a frame for every page that is in this memory block */
 		ret = alloc_frame(get_page(startaddr, 1, dir), is_kernel, is_writable_from_userspace);
 		if (ret != 0) {
 			return ret;
@@ -449,7 +466,7 @@ int identity_map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kerne
 	int ret;
 	// this loop uses startaddr as an iterator
 	while (startaddr <= endaddr) {
-		// alocates a frame for every page that is in this memory block
+		/* alocates a frame for every page that is in this memory block */
 		ret = map_frame(get_page(startaddr, 1, dir), startaddr, 1, is_kernel, is_writable_from_userspace);
 		if (ret != 0) {
 			return ret;
@@ -503,7 +520,6 @@ int init_paging()
 	
 	g_kernel_directory->physicalAddress = (uint32_t) g_kernel_directory->tablesPhysical;
 
-
 	g_current_directory = g_kernel_directory;
 
 	// we need to create the page tables before the identity paging of the kernel
@@ -516,11 +532,12 @@ int init_paging()
 	}
 
 	// identity map the memory from 0 to the end of the kernel and make it unwriteable from user space and kernel only
-	identity_map_memory_block(0, placement_address+0x25000, 1, 0, g_kernel_directory);
+	identity_map_memory_block(0, placement_address+0x85000, 1, 0, g_kernel_directory);
 	// @note: the reason that we need to add so much memory after placement address is because of the page allocation systems
 
-	// allocate the heap
+	// allocate the heaps
 	map_memory_block(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE, 1, 0, g_kernel_directory);
+	map_memory_block(UHEAP_START, UHEAP_START+UHEAP_INITIAL_SIZE, 0, 1, g_kernel_directory);
 
 	// allocate the page buffer location for page directory cloning
 	map_memory_block(PAGE_BUFFER_LOCATION, PAGE_BUFFER_LOCATION+0x1000, 0, 0, g_kernel_directory);
