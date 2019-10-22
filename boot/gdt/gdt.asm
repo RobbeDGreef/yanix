@@ -27,5 +27,5 @@ gdt_descriptor:
 global CODE_SEG
 global DATA_SEG
 
-CODE_SEG   equ gdt_code - gdt_start
-DATA_SEG   equ gdt_data - gdt_start
+CODE_SEG:   equ gdt_code - gdt_start
+DATA_SEG:   equ gdt_data - gdt_start

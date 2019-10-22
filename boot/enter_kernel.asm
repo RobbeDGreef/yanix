@@ -7,7 +7,6 @@ _start:
 	[extern _enter]
 	;pop		eax		; data
 	;pop		ebx		; code
-
 	push 	esp
 	call	_enter
 	jmp		$
