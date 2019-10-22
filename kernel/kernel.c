@@ -1,10 +1,10 @@
 #include <drivers/keyboard/ps2.h>			// ps2 keyboard 				(init)
-#include <drivers/mouse/ps2.h>				// ps2 mouse (for gui)			(init)
+#include <drivers/mouse/ps2.h>				// ps2 mouse 					(init)
 #include <drivers/vfs/vfs.h>				// virtual file system			(init)
 #include <drivers/pci/pci.h>				// PCI device driver 			(init)
 #include <fs/filedescriptor.h>		 		// file descriptor system 		(init)
 #include <drivers/video/video.h>			// general video system 		(init)
-#include <drivers/video/vesa.h>				// vesa driver 					(init)
+#include <drivers/video/vesa/vesa.h>		// vesa driver 					(init)
 #include <cpu/timer.h>						// cpu timer 					(init)
 #include <cpu/isr.h>						// interrupt service routines 	(init)
 #include <cpu/gdt.h>						// global descriptor table		(init)
@@ -29,10 +29,12 @@
 
 
 #define RAMDISK_LOCATION 	0x10000
-#define RAMDISK_SIZE 		64*0x200
+#define RAMDISK_SIZE 		0x60000
 
 extern task_t *g_starttask;
 extern task_t *g_runningtask;
+
+extern void kernel_handle_debug(void);
 
 /**
  * @brief      Start of the two stage boot sequence
@@ -53,17 +55,21 @@ void bootsequence(uint32_t stack, uint32_t code_gdt, uint32_t data_gdt)
 	video_clear_screen();
 	init_vesa((void*) 0xfd000000, 1024, 768, 3);
 	init_video(VIDEO_MODE_VESA);
-	
+
 	/* Installing the interrupt service routines and enabling interrupts */
 	init_descriptor_tables();
 	isr_install();
-	asm volatile ("sti");
+	asm volatile ("sti");	/* sti enables the interrupt flag */
+
+	/* Hook kernel debug handler */
+	kernel_handle_debug();
 
 	/* Enable the kernel timer */
 	init_timer(250);
 
 	/* Enable paging */
 	init_paging();
+
 }
 
 /**
@@ -74,7 +80,11 @@ void bootsequence_after_paging()
 
 	/* Initialize the kernel heap allocation systems */
 	init_kheap();
-	message("Heap initialized", 1);
+	message("Kernel heap initialized", 1);
+
+	/* Initialize the user heap allocation systems */
+	init_uheap();
+	message("User heap initialized", 1);
 
 	/* Initialize the tasking module */
 	init_tasking();
@@ -121,16 +131,30 @@ void bootsequence_after_paging()
 	sleep(TIMEAFTERBOOT);
 
 	// cleanup
-	//clear_screenk();
+	clear_screenk();
 }
 
-
+#include <errno.h>
+#include <debug.h>
+#include <kernel/execute/exec.h>
+#include <proc/tasking.h>
 /**
  * @brief      Kernel main loop
  */
 void kernel_main()
 {
-	printk("kernel booted\n");
+	printk(KERN_INFO "kernel booted\n");
+	
+	if (fork() == 0){
+		if (fork() == 0) {
+			execve_user("/hello", 0, 0);
+		} else {
+			execve_user("/hello", 0, 0);
+		}
+	} else {
+		printk("Mainloop is still running\n");
+	}
+	
 }
 
 /**
