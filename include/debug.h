@@ -3,12 +3,10 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <kernel.h>
 
+#define DEBUG() {asm volatile ("int $0x3");}
 
-
-int printk(const char *, ...);
-
-void printk_hd(void *ptr, size_t size);
 void printk_hd(void *ptr, size_t size);
 
 #endif
