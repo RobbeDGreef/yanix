@@ -7,6 +7,9 @@
 #include <kernel/execute/exec.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/times.h>
+#include <debug.h>
 
 static void syscall_handler(registers_t *regs);
 
@@ -22,6 +25,29 @@ void _exit()
 {
     send_sig(SIGKILL);
     kill_proc(g_runningtask);
+    task_yield();
+}
+
+int fstat(int file, struct stat *st)
+{
+    (void) (file);
+    (void) (st);
+    st->st_mode = S_IFCHR;
+    return 0;
+}
+
+int stat (char *file, struct stat *st)
+{
+    (void) (file);
+    (void) (st); 
+    st->st_mode = S_IFCHR;
+    return 0;
+}
+
+int times(struct tms *buf)
+{
+    (void) (buf);
+    return -1;
 }
 
 int sys_kill(pid_t pid, int sig)
@@ -59,6 +85,21 @@ int lseek(const char* name, int flags, int mode)
     return -1;
 }
 
+int isatty(int file)
+{
+    (void) (file);
+    return 1;
+}
+
+typedef void (*sighandler_t) (int);
+
+sighandler_t signal(int signum, sighandler_t handler)
+{
+    (void) (signum);
+    (void) (handler);
+    return 0;
+}
+
 
 // @todo: ok so im done with placing the syscalls in the right order FIX SYSCALL ORDER (linux)
 // @TODO: sbrk should be a lib func and not a syscall (should use a brk)
@@ -80,10 +121,10 @@ static const void *syscalls[] = {
     &link,          // 13 should be 86
     &lseek,         // 14 should be 8
     &sbrk,          // 15
-    0,              // 16
-    0,              // 17
-    0,              // 18
-    0,              // 19
+    &times,         // 16
+    &isatty,        // 17
+    &stat,          // 18
+    &signal,        // 19
     0,              // 20
     0,              // 21
     0,              // 22
@@ -92,7 +133,7 @@ static const void *syscalls[] = {
     0,              // 25
     0,              // 26
     0,              // 27
-    0,              // 28
+    &fstat,         // 28
     0,              // 29
     0,              // 30
     0,              // 31
@@ -149,3 +190,4 @@ static void syscall_handler(registers_t *regs){
    regs->eax = ret;
 
 }
+//0x80482b2

@@ -4,10 +4,12 @@
 #include <stdint.h>
 #include <mm/paging.h>
 
-#define DISIRED_STACK_LOCATION 	0x1000000	// 0x185000 end of kernelpreheap and all 
+#define DISIRED_STACK_LOCATION 	0x1000000
 #define STACK_SIZE				0x1000
 #define STACK_LOCATION			0x9000
 #define KERNEL_STACK_SIZE 		0x1000
+#define USER_STACK_SIZE			0x4000 	// 16Kib 
+
 
 extern uint32_t g_initial_esp;
 

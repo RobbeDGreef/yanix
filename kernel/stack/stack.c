@@ -31,5 +31,6 @@ void init_paging_stack()
 	asm volatile("mov %0, %%esp" : : "r"(DISIRED_STACK_LOCATION-(STACK_LOCATION-esp)));
 	asm volatile("mov %0, %%ebp" : : "r"(DISIRED_STACK_LOCATION-(STACK_LOCATION-ebp)));
 
-
+	map_mem(DISIRED_STACK_LOCATION, DISIRED_STACK_LOCATION+KERNEL_STACK_SIZE, 1, 0);
 }
+
