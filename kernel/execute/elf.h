@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#define ELF_MAGIC 0x464c457f 	// 0x7f 'E' 'L' 'F'
-#define ELF_SUPPORTED 1
+#define ELF_MAGIC       0x464c457f 	// 0x7f 'E' 'L' 'F'
+#define ELF_SUPPORTED   1
 
 #define ELF_BIT32 1
 #define ELF_BIT64 2

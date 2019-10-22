@@ -109,8 +109,8 @@ static int elf_check_support(elf32_hdr_t *hdr)
 static int _elf_load_pheader(void *file, elf32_phdr_t *phdr)
 {
 	map_mem(phdr->vaddr, phdr->vaddr + phdr->memsize, 0, phdr->flags & ELF_W);
-	memset((void*) phdr->vaddr,0, phdr->memsize);
-	memcpy((void*) phdr->vaddr, (void*) ((uint32_t) file + phdr->offset), phdr->filesize);
+	memset((void*) phdr->vaddr, 0, phdr->memsize);
+	memcpy((void*) phdr->vaddr, (void*) (((uint32_t) file) + phdr->offset), phdr->filesize);
 	if (phdr->filesize < phdr->memsize) {
 		memset((void*)(phdr->vaddr + phdr->filesize), 0, phdr->memsize-phdr->filesize);
 	}
@@ -190,6 +190,7 @@ uint32_t load_elf_into_mem(void* file)
 	if (_elf_loop_over_section_table(elf_hdr, elf_section_table) == -1) {
 		return 0;
 	}
+
 
 	if (_elf_loop_over_program_table(file, elf_hdr, elf_program_table) == -1) {
 		return 0;
