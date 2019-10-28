@@ -24,5 +24,5 @@ NASM_FLAGS = -f bin
 all:
 	$(info [INFO] Building bootloader.bin)
 	# Compile the binary file
-	$(NASM) bootloader.asm ${NASM_FLAGS} -o $(PREFIX)bootloader.bin
+	$(NASM) bootloader.asm ${NASM_FLAGS} -o $(PREFIX)/bootloader.bin
 

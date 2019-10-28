@@ -1,7 +1,0 @@
-- Fixed a lot of bugs in ext2 driver and vfs driver
-- Added creation of files support
-- Fixed a lot of other bugs
-- Gave the OS a name, yanix (Yet Another uNIX clone)
-
-
-

@@ -6,7 +6,11 @@
 *.c_unused
 *.h_unused
 
-# Sysroot
-sysroot*
-.testing
-.unused
+# Anything invisible
+.*
+
+# This is just only important to me
+osstart
+
+# Not important aswell
+networkdump.dat

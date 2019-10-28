@@ -55,9 +55,6 @@ void bootsequence(uint32_t stack, uint32_t code_gdt, uint32_t data_gdt)
 
 	arch_init();
 
-	/* Hook kernel debug handler */
-	kernel_handle_debug();
-
 	/* Enable the kernel timer */
 	init_timer();
 
@@ -145,10 +142,13 @@ void kernel_main()
 		} else {
 			execve_user("/hello", 0, 0);
 		}
+		printk("error");
 	} else {
 		printk("Mainloop is still running\n");
+
+		printk("leaving");
 	}
-	
+ 
 }
 
 /**

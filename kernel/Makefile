@@ -65,12 +65,12 @@ endif
 
 all: $(PWD)/kernel/arch/$(ARCH)/boot/enter_kernel.o ${OBJECTS}
 	$(info [INFO] Linking kernel)
-	$(LD) -T linker.ld ${LD_FLAGS} -o $(PREFIX)kernel.bin -Ttext $(KERNEL_ENTRY_POINT) $^ --oformat binary
+	$(LD) -T linker.ld ${LD_FLAGS} -o $(PREFIX)/kernel.bin -Ttext $(KERNEL_ENTRY_POINT) $^ --oformat binary
 
 
 ifdef KERNEL_ELF
 	# Kernel.elf was also requested
-	$(LD) -T linker.ld ${LD_FLAGS} -o $(PREFIX)kernel.elf -Ttext $(KERNEL_ENTRY_POINT) $^ 
+	$(LD) -T linker.ld ${LD_FLAGS} -o $(PREFIX)/kernel.elf -Ttext $(KERNEL_ENTRY_POINT) $^ 
 endif
 
 %.o: %.c ${HEADERS}
@@ -84,4 +84,4 @@ endif
 
 clean:
 	$(info [INFO] cleaning kernel depencies)
-	rm ${OBJECTS}
+	rm -rf ${OBJECTS}

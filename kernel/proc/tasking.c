@@ -39,8 +39,7 @@ extern page_directory_t *g_kernel_directory;
 
 // extern assebmly functions
 extern uint32_t get_eip();
-extern void task_switch(uint32_t eip, uint32_t esp, uint32_t ebp, uint32_t cr3);
-extern void jmp_userspace(uint32_t eip);
+
 
 /**
  * @brief      Adds a task to the task queue.
@@ -378,11 +377,10 @@ int send_pid_sig(pid_t pid, int sig)
  */
 void schedule(registers_t *regs)
 {
-
 	if (g_runningtask != 0){
 		if (g_runningtask->sliceused < g_runningtask->timeslice){
 			// run
-			g_runningtask->sliceused += (1000 / timer_get_frequency());
+			g_runningtask->sliceused += timer_get_period();
 		} else {
 			// switch
 			g_runningtask->sliceused = 0;
@@ -398,7 +396,7 @@ void schedule(registers_t *regs)
  *
  * @param[in]  eip   Start in usermode at this location
  */
-inline void jump_userspace(uint32_t eip)
+void jump_userspace(uint32_t eip)
 {
 	g_runningtask->ring = 3;
 	arch_jump_userspace(eip);

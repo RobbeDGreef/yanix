@@ -1,7 +1,8 @@
 #include <cpu/cpu.h>
 #include <cpu/arch_timer.h>
 #include <libk/string.h>
-
+#include <proc/tasking.h>
+#include <kernel.h>
 #include <stdint.h>
 
 #define TIMER_FREQ 250
@@ -18,7 +19,6 @@ typedef struct timer_s
 
 timer_t timer_info;
 
-
 /**
  * @brief      Standard timer callback
  *
@@ -28,6 +28,18 @@ static void timer_callback(registers_t *regs)
 {
 	(void) (regs);
 	timer_info.ticks_since_boot++;
+
+	schedule(regs);
+}
+
+/**
+ * @brief      Get the period of the timer 
+ *
+ * @return     The period of the timer
+ */
+unsigned long timer_get_period()
+{
+	return timer_info.period;
 }
 
 /**
@@ -50,15 +62,6 @@ unsigned long timer_get_cur_ticks()
 	return timer_info.ticks_since_boot;
 }
 
-/**
- * @brief      Get the period of the timer 
- *
- * @return     The period of the timer
- */
-unsigned long timer_get_period()
-{
-	return timer_info.period;
-}
 
 /**
  * @brief      Initializes the timer.
