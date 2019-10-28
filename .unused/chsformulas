@@ -1,0 +1,10 @@
+LBA = (c * Nheads + h) * Nsectors + (s - 1)
+
+	c = cylinder head
+	s = sector
+	h = head
+
+c = LBA / (Nheads * Nsectors)
+h = (LBA / Nsectors) % Nheads
+s = (LBA % Nsectors) + 1
+

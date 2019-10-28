@@ -1,0 +1,224 @@
+#include "floppyController.h"
+#include "../io/io.h"
+#include "../video/videoText.h"
+#include "../../kernel/kernelFunctions.h"
+#include "../../kernel/memorymanagement/heap.h"
+#include "../../libc/function.h"
+
+// some constants
+#define floppy_base 0x03f0
+#define floppy_irq  6
+
+// registers
+#define REG_F_DIGITAL_OUTPUT 	3
+#define REG_F_MASTER_STATUS  	4
+#define REG_F_FIFO				5
+#define REG_F_CONF_CONTROL	 	7
+
+// commands (many are not yet used)
+#define CMD_F_READ_TRACK		 2
+#define CMD_F_SPECIFY			 3
+#define CMD_F_SENSE_DRIVE_STATUS 4
+#define CMD_F_WRITE_DATA		 5
+#define CMD_F_READ_DATA			 6
+#define CMD_F_RECALIBRATE		 7
+#define CMD_F_SENSE_INTERRUPT	 8
+#define CMD_F_WRITE_DELETED_DATA 9
+#define CMD_F_READ_ID			 10
+#define CMD_F_READ_DELETED_DATA	 12
+#define CMD_F_FORMAT_TRACK		 13
+#define CMD_F_DUMPREG			 14
+#define CMD_F_SEEK				 15
+#define CMD_F_VERSION			 16
+#define CMD_F_SCAN_EQUAL		 17
+#define CMD_F_CONFIGURE			 19
+#define CMD_F_LOCK			  	 20
+
+// motor commands
+#define F_MOTOR_OFF  0
+#define F_MOTOR_ON   1
+#define F_MOTOR_WAIT 2
+
+void floppy_motor(int base, int onoff);
+
+// types of floppies
+static const char *floppy_types[] = {
+	"none",
+	"360kB 5.25\"",
+    "1.2MB 5.25\"",
+    "720kB 3.5\"",
+
+    "1.44MB 3.5\"",
+    "2.88MB 3.5\"",
+    "unknown type",
+    "unknown type"
+};
+
+
+
+uint8_t _floppy_detect(){
+	port_byte_out(0x70, 0x10);
+	return port_byte_in(0x71);
+}
+
+uint8_t floppy_get_amount_drives() {
+	uint8_t drives = _floppy_detect();
+	if (drives == 0){
+		return 0;
+	} else if ((drives & 0xf) != 0) {
+		return 2;
+	} else {
+		return 1;
+	}
+}
+
+
+floppy_detect_t* floppy_detect_drives() {
+	uint8_t drives = _floppy_detect();
+	floppy_detect_t *flpys = (floppy_detect_t*) kmalloc(sizeof(floppy_detect_t)*2);
+	flpys[0].index = 0;
+	flpys[1].index = 1;
+	flpys[0].type = drives >> 4;
+	flpys[0].typestring = (const char*) floppy_types[drives >> 4];
+	flpys[1].type = drives & 0xf;
+	flpys[1].typestring = (const char*) floppy_types[drives & 0xf];
+	return (floppy_detect_t*) flpys;
+}
+
+#if 1
+
+void floppy_write_cmd(int base, char cmd){
+	for (int i = 0; i < 100; i++){
+		tick_sleep(1); 				// this is NOT the way to do it but we just need a better sleep system first
+		if (0x80 & port_byte_in(base + REG_F_MASTER_STATUS)){
+			return (void) port_byte_out(base+REG_F_FIFO, cmd);
+		}
+	}
+	print("floppy write timeout"); 	// better system for errors
+}
+
+unsigned char floppy_read_data(int base){
+	for (int i = 0; i < 100; i++){
+		tick_sleep(1); 				// this is NOT the way to do it but we just need a better sleep system first
+		if (0x80 & port_byte_in(base + REG_F_MASTER_STATUS)){
+			return port_byte_in(base+ REG_F_FIFO);
+		}
+	}
+	print("floppy read timeout"); 	// better system for errors
+	return 0;
+}
+
+void floppy_check_interrupt(int base, int *st0, int *cyl){
+	floppy_write_cmd(base, CMD_F_SENSE_INTERRUPT);
+	*st0 = floppy_read_data(base);
+	*cyl = floppy_read_data(base);
+}
+
+int floppy_calibrate(int base) {
+	int i, st0, cyl = -1;
+	floppy_motor(base, F_MOTOR_ON);
+
+	for(i = 0; i < 10; i++){
+		floppy_write_cmd(base, CMD_F_RECALIBRATE);
+		floppy_write_cmd(base, 0);
+		irq_wait(floppy_irq);
+		floppy_check_interrupt(base, &st0, &cyl);
+
+		if (st0 & 0xC0){
+			static const char * status[] = {0, "error", "invalid", "drive"};
+			print("recalibrate status: ");print((char*)status[st0 >> 6]);print("\n");
+			continue;
+		}
+		if (!cyl) {
+			floppy_motor(base, F_MOTOR_OFF);
+			return 0;
+		}
+		
+	}
+	print("recalibrate: 10 retries");
+	floppy_motor(base, F_MOTOR_OFF);
+	return -1;
+}
+
+int floppy_reset(int base){
+	port_byte_out(base + REG_F_DIGITAL_OUTPUT, 0x00);
+	port_byte_out(base + REG_F_DIGITAL_OUTPUT, 0x0C);
+
+	irq_wait(floppy_irq);
+
+	{
+		int st0, cyl;
+		floppy_check_interrupt(base, &st0, &cyl);
+	}	
+
+	port_byte_out(base + REG_F_CONF_CONTROL, 0x00);
+	floppy_write_cmd(base, CMD_F_SPECIFY);
+	floppy_write_cmd(base, 0xdf);
+	floppy_write_cmd(base, 0x02);
+
+	if(floppy_calibrate(base)) return -1;
+	return 0;
+}
+
+static volatile int floppy_motor_ticks = 0;
+static volatile int floppy_motor_state = 0;
+
+void floppy_motor(int base, int onoff){
+	if (onoff){
+		if (!floppy_motor_state) {
+			port_byte_out(base + REG_F_DIGITAL_OUTPUT, 0x1c);
+			sleep(500);
+		}
+		floppy_motor_state = F_MOTOR_ON;
+	} else {
+		if (floppy_motor_state == F_MOTOR_WAIT) {
+			print("floppy motor already waiting\n");
+		}
+		floppy_motor_ticks = 300;
+		floppy_motor_state = F_MOTOR_WAIT;
+	}
+}
+void floppy_motor_kill(int base) {
+	port_byte_out(base + REG_F_DIGITAL_OUTPUT, 0x0c);
+	floppy_motor_state = F_MOTOR_OFF;
+}
+
+void floppy_timer(){
+	while (1) {
+		sleep(500);
+		if (floppy_motor_state == F_MOTOR_WAIT){
+			floppy_motor_ticks -= 50;
+			if (floppy_motor_ticks <=0){
+				floppy_motor_kill(floppy_base);
+			}
+		}
+	}
+}
+
+int floppy_seek(int base, unsigned cyli, int head){
+	unsigned i, st0, cyl = -1;
+	floppy_motor(base, F_MOTOR_ON);
+	for(i = 0; i < 10; i++) {
+		floppy_write_cmd(base, CMD_F_SEEK);
+		floppy_write_cmd(base, head<<2);
+		floppy_write_cmd(base, cyli);
+
+		irq_wait(floppy_irq);
+		floppy_check_interrupt(base, (int*) &st0, (int*) &cyl);
+
+		if (st0 & 0xC0) {
+			static const char *status[] = {"normal", "error", "invalid", "drive"};
+			print("Floppy seek: ");print((char*) status[st0>>6]);
+			continue;
+		}
+		if (cyl == cyli) {
+			floppy_motor(base, F_MOTOR_OFF);
+			return 0;
+		}
+	}
+	print("floppy seek 10 retries, stopping\n");
+	floppy_motor(base, F_MOTOR_OFF);
+	return -1;
+}
+
+#endif

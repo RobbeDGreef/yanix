@@ -1,0 +1,198 @@
+#include <drivers/io/io.h>
+#include <drivers/pci/pci.h>
+#include <drivers/networking/networking.h>
+#include <mm/heap.h>
+#include <drivers/video/videoText.h>
+
+#include <stdint.h>
+#include <stddef.h>
+
+#define REG_CONTROL 	 0x0000
+#define REG_EEPROM 		 0x0014
+#define REG_IMASK 		 0x00D0
+#define REG_R_CONTROL 	 0x0100
+
+#define REG_RX_DESC_LO 	 0x2800
+#define REG_RX_DESC_HI 	 0x2804
+#define REG_RX_DESC_LEN  0x2808
+#define REG_RX_DESC_HEAD 0x2810
+#define REG_RX_DESC_TAIL 0x2818
+
+#define REG_T_CONTROL 	 0x0400
+#define REG_TX_DESC_LO   0x3800
+#define REG_TX_DESC_HI   0x3804
+#define REG_TX_DESC_LEN  0x3808
+#define REG_TX_DESC_HEAD 0x3810
+#define REG_TX_DESC_TAIL 0x3818
+
+#define R_CONTROL_EN	 0x00002
+#define R_CONTROL_SBP 	 0x00004
+#define R_CONTROL_UPE 	 0x00008
+#define R_CONTROL_MPE  	 0x00010
+#define R_CONTROL_8192   0x30000
+
+#define E_CONTROL_FD	 0x01
+#define E_CONTROL_ASDE 	 0x02
+#define E_CONTROL_SLU	 0x40
+
+
+#define INTEL_VENDOR 	 0x8086
+#define E1000_DEVICE 	 0x100E
+
+typedef struct {
+	pci_device_t 	*pci_dev;
+	uint32_t		bar_type;
+	uint32_t		io_base;
+	uint32_t 		mem_base;
+	int 		  	eeprom_exists;
+} e1000_device_t;
+
+static void e1000_port_line_out(e1000_device_t *dev, uint16_t address, uint32_t value)
+{
+	port_line_out(dev->io_base, address);
+	port_line_out(dev->io_base + 4, value);
+}
+#if 0
+static void e1000_port_byte_out(e1000_device_t *dev, uint16_t address, uint32_t value)
+{
+	port_line_out(((pci_common_header_t*)dev->pci_dev->header)->BAR[PCI_BAR_IO], address);
+	port_byte_out(((pci_common_header_t*)dev->pci_dev->header)->BAR[PCI_BAR_IO]+ 4, value);
+}
+#endif
+
+static uint32_t e1000_port_line_in(e1000_device_t *dev, uint16_t address)
+{
+	port_line_out(dev->io_base, address);
+	return port_line_in(dev->io_base + 4);
+}
+
+static uint32_t eeprom_read(e1000_device_t *dev, uint8_t address)
+{
+	uint32_t value, tmp = 0;
+	if (dev->eeprom_exists == 0) {
+		tmp = address << 8;
+	} else {
+		tmp = address << 2;
+	}
+	e1000_port_line_out(dev, REG_EEPROM, tmp | 0x1);
+	if (dev->eeprom_exists == 0) {
+		while (!((value = e1000_port_line_in(dev, REG_EEPROM)) & (1 << 4)));
+		//while (1) {
+		//	value = e1000_port_line_in(dev, REG_EEPROM) & (1 << 1);
+		//	print_int(value); print(" ");
+		//}
+	} else {
+		while (!((value = e1000_port_line_in(dev, REG_EEPROM)) & (1 << 1)));
+	}
+	print("got to here");
+	return value >> 16;
+}
+
+static void get_mac_address(e1000_device_t *dev, char *mac) 
+{
+	#if 0
+	if (dev->eeprom_exists){
+		uint32_t tmp;
+		for (size_t i = 0; i < 3; i++) {
+			tmp = eeprom_read(dev, i);
+			mac[i*2] = tmp & 0xFF;
+			mac[i*2+1] = tmp >> 8;
+		}
+		print("read all");
+	} else {
+		// @TODO: well yeah this 
+	}
+	#endif
+	uint32_t temp;
+	temp = eeprom_read(dev, 0);
+	mac[0] = temp &0xff;
+	mac[1] = temp >> 8;
+	temp = eeprom_read(dev, 1);
+	mac[2] = temp &0xff;
+	mac[3] = temp >> 8;
+	temp = eeprom_read(dev, 2);
+	mac[4] = temp &0xff;
+	mac[5] = temp >> 8;
+
+}
+
+void linkup(e1000_device_t *dev)
+{
+	e1000_port_line_out(dev, REG_IMASK, 0x1F6DC);
+	// ...
+}
+
+#if 0
+
+static void enable_interrupts(e1000_device_t *dev)
+{
+	e1000_port_line_out(dev, REG_IMASK, 0x1F6DC);
+	e1000_port_line_out(dev, REG_IMASK, 0xff & ~4);
+	e1000_port_line_in(dev, 0xC0);
+}
+
+#endif
+
+static void does_eeprom_exist(e1000_device_t *dev)
+{
+	uint32_t value = 0;
+	e1000_port_line_out(dev, REG_EEPROM, 0x1);
+	for (size_t i = 0; i < 1000; i++) {
+		value = e1000_port_line_in(dev, REG_EEPROM);
+		dev->eeprom_exists = (value & 0x10)?0:1;
+	}
+}
+
+static void device_init(e1000_device_t *dev)
+{
+	print("BAR0: "); print_int(pci_get_bar_by_index(dev->pci_dev, 0)); print("\n");
+	for (size_t i = 0; i < 6; i++) {
+		print("BAR"); print_int(i); print(": "); print_hex(pci_get_bar_by_index(dev->pci_dev, i)); print("\n");
+	}
+	dev->io_base = pci_get_bar_by_type(dev->pci_dev, PCI_BAR_IO) & ~0x1;	
+	dev->mem_base = pci_get_bar_by_type(dev->pci_dev, PCI_BAR_MEM) & ~0x3;
+	// now i think the bug is that we should map the io_base physical address to a virtual address and use that
+	// BUTTT i also think that since this address is (0xc000) it is already in use (the physical pages) so that would be a huge problem
+	// the thing i ask myself then is, why the fuck would u map io so low in memory what kind of bs is that
+}
+
+/**
+ * @brief      Initialises e1000 adaptor
+ *
+ * @return     0 on failure, 1 on success
+ */
+int init_e1000()
+{
+	// first allocate the network strucutre and the device structure
+	networking_device_t *networkdev = kcalloc(sizeof(networking_device_t), 0);
+	e1000_device_t *edev = kcalloc(sizeof(e1000_device_t), 0);
+	
+	networkdev->device = edev;
+
+	// find the pci device, can be multiple devices so multiple checks are needed
+	edev->pci_dev = pci_find_by_vendor(INTEL_VENDOR, E1000_DEVICE);
+	if (edev->pci_dev == 0) { edev->pci_dev = pci_find_by_vendor(INTEL_VENDOR, 0x109A); }
+	if (edev->pci_dev == 0) { edev->pci_dev = pci_find_by_vendor(INTEL_VENDOR, 0x100F); }
+	if (edev->pci_dev != 0) {
+		// init
+		device_init(edev);
+		print("found Intel Pro/1000 Ethernet adapter Rev "); print_int(edev->pci_dev->rev_id);
+		print(" found at: "); print_hex(edev->io_base);
+		
+		does_eeprom_exist(edev);
+		
+		get_mac_address(edev, (char*) &networkdev->mac);
+		print_mac((char*) &networkdev->mac);
+		print("end");
+		return 1;
+
+	} else {
+		// no valid device was found
+		// clear out structs and return
+		print("nah fam");
+		kfree(networkdev);
+		kfree(edev);
+		return 0;
+	}
+
+}

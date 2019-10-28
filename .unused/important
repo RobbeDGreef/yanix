@@ -1,0 +1,187 @@
+
+
+    ; AH = 02h
+    ; AL = number of sectors to read (must be nonzero)
+    ; CH = low eight bits of cylinder number
+    ; CL = sector number 1-63 (bits 0-5)
+    ; high two bits of cylinder (bits 6-7, hard disk only)
+    ; DH = head number
+    ; DL = drive number (bit 7 set for hard disk)
+    ; ES:BX -> data buffe
+
+    ; now load kernel to high address
+    
+    mov     bx, 0
+    x:
+        hlt
+        cmp bx, 0xf
+        je y
+        inc bx
+
+        loop x
+    y:
+
+    mov     bx, 0x1000
+    mov     es, bx
+    mov     bx, 0x0000 
+    
+    mov     ah, 0x02    ; instruction
+
+    mov     al, 0x80    ; number of sectors to read must be nonzero (0x01 - 0x80) 128
+    mov     cl, 0x02    ; sector number 1-63 bits (0-5) 
+    mov     ch, 0x00    ; cylinder (0x0 - 0x3ff) 1023
+    mov     dh, 0x00    ; head number (0x00 - 0x0f) (side i think)
+    int     0x13
+
+    jc disk_error
+    cmp al, 128
+    jne sectors_error
+
+    mov     bx, loadedSuccessfull
+    call    print
+
+    ;cl = 0x1a
+    ;ch = 0x01
+    ;dh = 0x00
+    ;al = 0x80
+
+    mov     bx, 0x2000
+    mov     es, bx
+    mov     bx, 0x0000 
+    mov     ah, 0x02    ; instruction
+    mov     al, 0x80    ; amount of sectors from start point (0x01 - 0x80) 128
+    mov     cl, 0x1a    ; sector on track (0x01 - ...) 36
+    ; 0x1a 28000 -> 0x3a 24000 but this is 58 so this means we need to move up one ??? 58-36 22 -> 0x16
+    mov     dh, 0x00    ; head number (0x00 - 0x0f) (side i think)
+    mov     ch, 0x01    ; cylinder (0x0 - 0x3ff) 1023 
+
+    int     0x13
+
+    jc disk_error
+    cmp al, 128
+    jne sectors_error
+
+    mov     bx, loadedSuccessfull
+    call    print
+        
+    ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+    mov     bx, 0x1000
+    mov     es, bx
+    mov     bx, 0x0000 
+    
+    mov     ah, 0x02    ; instruction
+
+    mov     al, 0x08    ; number of sectors to read must be nonzero (0x01 - 0x80) 128
+    xor     cl, cl
+    mov     cl, 0x02  ; sector number 1-63 bits (0-5) 
+    mov     ch, 0x00    ; cylinder (0x0 - 0x3ff) 1023
+    mov     dh, 0x00    ; head number (0x00 - 0x0f) (side i think)
+    int     0x13
+
+    jc disk_error
+    cmp al, 0x23
+    jne sectors_error
+
+    mov     bx, loadedSuccessfull
+    call    print
+
+    mov     bx, 0x1460
+    mov     es, bx
+    mov     bx, 0x0000
+    
+    mov     ch, 0x01
+load_loop:
+    cmp     ch, 0x03
+    je      load_loop_done
+       
+    call    load_disk_cyl
+
+    add     ch, 1
+
+    movzx   dx, ch
+    call    print_hex
+
+
+    mov     bx, SPACE
+    call    print
+
+    mov     bx, es
+    add     bx, 0x480
+    mov     es, bx
+    mov     bx, 0x0000
+
+    jmp     load_loop
+
+load_loop_done:
+
+    mov     bx, loadedSuccessfull
+    call    print
+
+    ;cl = 0x1a
+    ;ch = 0x01
+    ;dh = 0x00
+    ;al = 0x80
+
+    ret
+
+
+
+
+
+
+    
+    mov     bx, 0x1000
+    mov     es, bx
+    mov     bx, 0x0000 
+    
+    mov     ah, 0x02    ; instruction
+
+    mov     al, 0x80    ; number of sectors to read must be nonzero (0x01 - 0x80) 128
+    mov     cl, 0x02    ; sector number 1-63 bits (0-5) 
+    mov     ch, 0x00    ; cylinder (0x0 - 0x3ff) 1023
+    mov     dh, 0x00    ; head number (0x00 - 0x0f) (side i think)
+    int     0x13
+
+    jc disk_error
+    cmp al, 128
+    jne sectors_error
+
+    mov     bx, loadedSuccessfull
+    call    print
+
+    mov     bx, 0x2000
+    mov     es, bx
+    mov     bx, 0x0000 
+    
+    mov     ah, 0x02    ; instruction
+
+    mov     al, 0x80    ; number of sectors to read must be nonzero (0x01 - 0x80) 128
+    mov     cl, 0x16    ; sector number 1-63 bits (0-5) 
+    mov     ch, 0x01    ; cylinder (0x0 - 0x3ff) 1023
+    mov     dh, 0x01    ; head number (0x00 - 0x0f) (side i think)
+    int     0x13
+
+    jc disk_error
+    cmp al, 128
+    jne sectors_error
+
+    mov     bx, loadedSuccessfull
+    call    print
+
+    ret
+
+[bits 32]
+pm_begin:

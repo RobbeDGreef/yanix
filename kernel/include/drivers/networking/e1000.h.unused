@@ -1,0 +1,12 @@
+#ifndef E1000_H
+#define E1000_H
+
+
+/**
+ * @brief      Initialises e1000 adaptor
+ *
+ * @return     { description_of_the_return_value }
+ */
+int init_e1000();
+
+#endif
