@@ -11,15 +11,10 @@
 
 // drivers
 #include <drivers/networking/rtl8139.h>
+#include <drivers/ata.h>
 
-#define CONFIG_ADDRESS 	0xCF8 	// Specifies the configuration address
-/* | 31: Enable bit | 30-24: Reserved | 23-16: bus | 15-11: Device | 10-8: Function | 7-0: Register offset | */
-
-
-#define CONFIG_DATA 	0xCFC 	// Access to this register will actually generate 
-								// configuration access and will transfer the data
-								// to or from the CONFIG_DATA register.
-
+#define CONFIG_ADDRESS 	0xCF8
+#define CONFIG_DATA 	0xCFC
 /**
  * System to easily insert known devices with driver
  */
@@ -29,16 +24,33 @@ typedef int (*device_driver_fpointer) (pci_device_t *);
 typedef struct known_device_s {
 	unsigned int 			vendor_id;
 	unsigned int 			device_id;
+	
 	device_driver_fpointer	driver;
 	char 					*device_name;
 } known_device_t;
 
-/* Add entries to this list */
+typedef struct generic_device_s
+{
+	unsigned int 			class_code;
+	unsigned int 			subclass;
+	int 					prog_if;
+
+	device_driver_fpointer	driver;
+	char 					*device_name;
+} generic_device_t;
+
+
+/* Add entries these this lists */
 const known_device_t known_devices[] = {
 	{.vendor_id = 0x10EC, .device_id = 0x8139, .driver = &init_rtl8139, .device_name = "rtl8139 ethernet card"}
 };
 
-#define AMOUNT_OF_KNOW_DEVICES 		 	 		sizeof(known_devices) / sizeof(known_device_t)
+const generic_device_t generic_devices[] = {
+	{.class_code = 0x01, .subclass = 0x01, .prog_if = -1, .driver = &init_ata, .device_name = "PATA hard drive"}
+};
+
+const size_t known_device_amount   = sizeof(known_devices)   / sizeof(known_device_t);
+const size_t generic_device_amount = sizeof(generic_devices) / sizeof(generic_device_t);
 
 
 /* Global variabels for the linked list of pci devices */
@@ -226,11 +238,12 @@ void *pci_parse_header(uint16_t bus, uint16_t slot, uint16_t function, uint16_t 
 		pci_common_header_t *header = kcalloc(sizeof(pci_common_header_t), 0);
 		for (size_t i = 0; i < 6; i++) {
 			header->BAR[i] = pci_get_base_address(bus, slot, function, i);
-			// @TODO: a lot of other values should be set (they are 0 for now)
-			header->interrupt_pin  = pci_read_word(bus, slot, function, PCI_INTERRUPT_PIN_OFFSET);
-			header->interrupt_line = pci_read_word(bus, slot, function, PCI_INTERRUPT_LINE_OFFSET);
 		}
+		// @TODO: a lot of other values should be set (they are 0 for now)
+		header->interrupt_pin  = pci_read_word(bus, slot, function, PCI_INTERRUPT_PIN_OFFSET);
+		header->interrupt_line = pci_read_word(bus, slot, function, PCI_INTERRUPT_LINE_OFFSET);
 		return (void*) header;
+	
 	} else {
 		// @TODO: implement the other types of headers too
 		return 0;
@@ -321,12 +334,26 @@ static void _pci_find_brute()
 				pcidev->name = "Unknown pci device";
 				add_pci_device(pcidev);
 
-				// and now check if it is present in the drivers list
-				for (size_t i = 0; i < AMOUNT_OF_KNOW_DEVICES; i += 2) { // += 2 because the list is vendor id & device id combined 
+				printk(KERN_DEBUG "PCI device classcode: %i subclass %i prog if %i\n", pcidev->class_code, pcidev->subclass, pcidev->prog_if);
+
+				/* and now check if it is present in the drivers list */
+				for (size_t i = 0; i < known_device_amount; i++) {
 					if (known_devices[i].vendor_id == pcidev->vendor_id && known_devices[i].device_id == pcidev->device_id) {
 						// found a device
 						pcidev->driver = known_devices[i].driver;
 						pcidev->name   = known_devices[i].device_name;
+					}
+				}
+
+				for (size_t i = 0; i < generic_device_amount; i++)
+				{
+					if (generic_devices[i].class_code == pcidev->class_code && generic_devices[i].subclass == pcidev->subclass)
+					{
+						if (generic_devices[i].prog_if == -1 || generic_devices[i].prog_if == pcidev->prog_if)
+						{
+							pcidev->name = generic_devices[i].device_name;
+							pcidev->driver = generic_devices[i].driver;
+						}
 					}
 				}
 			}
@@ -340,13 +367,17 @@ static void _pci_find_brute()
 void init_pci_devices()
 {
 	pci_device_t *tmp = g_pcilist;
+	
+	if (tmp == 0)
+		return;
+
 	int ret = 0;
-	while ((tmp = tmp->next) != 0) {
+	do {
 		if (tmp->driver != 0) {
 			ret = tmp->driver(tmp);
 			printk("[ PCI ] Initialisation of %s", (char*)tmp->name); printk(ret?" failed\n":" succeeded\n");
 		}
-	}
+	} while ((tmp = tmp->next) != 0);
 }
 
 /**
