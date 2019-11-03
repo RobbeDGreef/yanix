@@ -59,7 +59,12 @@ int printk(const char* __restrict fmt, ...)
 	{
 		printk("[ INFO ]  ");
 	}
+	else if (loglevel == 4)
+	{
+		printk("[WARNING] ");
+	}
 	
+
 	while ((character = fmt[i]) != '\0') {
 		
 		if (character == '%') {
