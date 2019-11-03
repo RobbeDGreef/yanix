@@ -8,6 +8,7 @@
 
 # Anything invisible
 .*
+.*/*
 
 # This is just only important to me
 osstart
