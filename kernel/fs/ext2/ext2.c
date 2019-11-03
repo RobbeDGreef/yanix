@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <errno.h>
 #include <const.h>
+#include <drivers/disk.h>
 
 #include <debug.h>
 
@@ -90,14 +91,14 @@ static inline unsigned int ext2_block_size(ext2_superblock_t *superblock)
 /**
  * @brief      Copies the ext2 superblock into memory
  *
- * @param[in]  read  The read
+ * @param[in]  read  The read function pointer
  *
  * @return     Memory location of the superblock
  */
-void *_ext2_copy_superblock_into_memory(fs_read_fpointer read)
+void *_ext2_copy_superblock_into_memory(disk_t *disk_info)
 {
 	ext2_superblock_t *ret = (ext2_superblock_t*) kmalloc(sizeof(ext2_superblock_t));
-	read(EXT2_SUPERBLOCK_START_LOC, ret, sizeof(ext2_superblock_t));
+	disk_read(EXT2_SUPERBLOCK_START_LOC, ret, sizeof(ext2_superblock_t), disk_info);
 	return (void*) ret;
 }
 
@@ -109,7 +110,7 @@ void *_ext2_copy_superblock_into_memory(fs_read_fpointer read)
  *
  * @return     { description_of_the_return_value }
  */
-ext2_block_group_descriptor_t *_ext2_get_all_block_group_descriptors(fs_read_fpointer read, ext2_superblock_t *superblock)
+ext2_block_group_descriptor_t *_ext2_get_all_block_group_descriptors(ext2_superblock_t *superblock, disk_t *disk_info)
 {
 	/* First calculate the amount of block groups */
 	unsigned int number_of_blockgroups = roundup(superblock->total_blocks, superblock->blocks_in_blockgroup);
@@ -123,7 +124,7 @@ ext2_block_group_descriptor_t *_ext2_get_all_block_group_descriptors(fs_read_fpo
 	for (size_t i = 0; i < number_of_blockgroups; i++)
 	{
 		/* Copy the bgd into the array */
-		read(bgd_offset, (void*) ((uintptr_t) bgd_array + (i * sizeof(ext2_block_group_descriptor_t))), sizeof(ext2_block_group_descriptor_t));
+		disk_read(bgd_offset, (void*) ((uintptr_t) bgd_array + (i * sizeof(ext2_block_group_descriptor_t))), sizeof(ext2_block_group_descriptor_t), disk_info);
 		
 		/* increment our offset */
 		bgd_offset += superblock->blocks_in_blockgroup * ext2_block_size(superblock);
@@ -197,7 +198,7 @@ ext2_inode_t *_ext2_get_inode_ref(ino_t inode, filesystem_t *fs_info)
 	ext2_inode_t *inode_ref = (ext2_inode_t*) kmalloc(inode_size);
 	
 	/* Now copy the inode data into our inode structure */
-	fs_info->read(_ext2_get_inode_offset(inode, fs_info), inode_ref, inode_size);
+	disk_read(_ext2_get_inode_offset(inode, fs_info), inode_ref, inode_size, fs_info->disk_info);
 
 	return inode_ref;
 }
@@ -213,7 +214,7 @@ static unsigned int handle_indirect_bp(unsigned int indirect_bp_index, unsigned 
 	}
 
 
-	fs_info->read(indirect_bp_index * fs_info->block_size, indirect_bp, fs_info->block_size);
+	disk_read(indirect_bp_index * fs_info->block_size, indirect_bp, fs_info->block_size, fs_info->disk_info);
 
 	unsigned int ret = indirect_bp[block_to_read] * fs_info->block_size;
 
@@ -262,7 +263,7 @@ unsigned int _ext2_get_inode_data_offset(ext2_inode_t *inode, unsigned int  bloc
 				return 0;
 			}
 
-			fs_info->read(inode->double_indirect_block_pointer * fs_info->block_size, d_indirect_bp, fs_info->block_size);
+			disk_read(inode->double_indirect_block_pointer * fs_info->block_size, d_indirect_bp, fs_info->block_size, fs_info->disk_info);
 
 
 			/* calculate the location of our single indirect bp */
@@ -322,12 +323,12 @@ unsigned int _ext2_read_inode_block(ext2_inode_t *inode, unsigned int block_to_r
 		errno = EFBIG;
 		return 0;
 	}
-	return fs_info->read(data_offset, buf, fs_info->block_size);
+	return disk_read(data_offset, buf, fs_info->block_size, fs_info->disk_info);
 }
 
 ssize_t _ext2_write_block(unsigned int block, void *buf, filesystem_t *fs_info)
 {
-	return fs_info->write(block * fs_info->block_size, buf, fs_info->block_size);
+	return disk_write(block * fs_info->block_size, buf, fs_info->block_size, fs_info->disk_info);
 }
 
 /**
@@ -341,7 +342,7 @@ ssize_t _ext2_write_block(unsigned int block, void *buf, filesystem_t *fs_info)
  */
 ssize_t _ext2_write_inode(ext2_inode_t *inode_ref, ino_t inode, filesystem_t *fs_info)
 {
-	return fs_info->write(_ext2_get_inode_offset(inode, fs_info), inode_ref, _ext2_get_inode_size(fs_info));
+	return disk_write(_ext2_get_inode_offset(inode, fs_info), inode_ref, _ext2_get_inode_size(fs_info), fs_info->disk_info);
 }
 
 /**
@@ -566,7 +567,7 @@ unsigned int _ext2_alloc_block(filesystem_t *fs_info)
 		
 		/* Copy data into buffer */
 		unsigned int block_bitmap_location = (((ext2_block_group_descriptor_t*) fs_info->blockgroup_list)[bgd_i].block_bitmap) * fs_info->block_size; 
-		fs_info->read(block_bitmap_location, block_bitmap, fs_info->block_size);
+		disk_read(block_bitmap_location, block_bitmap, fs_info->block_size, fs_info->disk_info);
 	
 		/* Loop to find empty block */
 		for (size_t i = 0; i < fs_info->block_size / 4; i++)
@@ -583,7 +584,7 @@ unsigned int _ext2_alloc_block(filesystem_t *fs_info)
 						free_block = i * 32 + j;
 				
 						/* Write the found block back to the block bitmap */
-						fs_info->write(block_bitmap_location, block_bitmap, fs_info->block_size);
+						disk_write(block_bitmap_location, block_bitmap, fs_info->block_size, fs_info->disk_info);
 
 						goto block_found;
 					}
@@ -616,7 +617,7 @@ ino_t _ext2_alloc_inode(filesystem_t *fs_info)
 		
 		/* Copy data into buffer */
 		unsigned int block_bitmap_location = (((ext2_block_group_descriptor_t*) fs_info->blockgroup_list)[bgd_i].inode_bitmap) * fs_info->block_size; 
-		fs_info->read(block_bitmap_location, inode_bitmap, fs_info->block_size);
+		disk_read(block_bitmap_location, inode_bitmap, fs_info->block_size, fs_info->disk_info);
 	
 		/* Loop to find empty block */
 		for (size_t i = 0; i < fs_info->block_size / 4; i++)
@@ -633,7 +634,7 @@ ino_t _ext2_alloc_inode(filesystem_t *fs_info)
 						free_inode = i * 32 + j;
 				
 						/* Write the found block back to the block bitmap */
-						fs_info->write(block_bitmap_location, inode_bitmap, fs_info->block_size);
+						disk_write(block_bitmap_location, inode_bitmap, fs_info->block_size, fs_info->disk_info);
 
 						goto block_found;
 					}
@@ -800,13 +801,14 @@ offset_t ext2_create_node_vfs(vfs_node_t *node, char *name, uint16_t flags)
 /**
  * @brief      Creates a vfs entry
  *
- * @param[in]  inode_index  The inode index
- * @param[in]  id           The node identifier
- * @param      fs_info      The file system information
+ * @param[in]  inode    The inode index
+ * @param      name     The name
+ * @param[in]  id       The node identifier
+ * @param      fs_info  The file system information
  *
  * @return     pointer to the vfs_node structure
  */
-vfs_node_t *ext2_vfs_entry(uint32_t inode, uint32_t id, filesystem_t *fs_info)
+vfs_node_t *ext2_vfs_entry(uint32_t inode, char *name, uint32_t id, filesystem_t *fs_info)
 {
 	/* If we got a illegal inode value return */
 	if (inode == 0)
@@ -820,6 +822,7 @@ vfs_node_t *ext2_vfs_entry(uint32_t inode, uint32_t id, filesystem_t *fs_info)
 	memset(node, 0, sizeof(vfs_node_t));
 
 	/* Fill in our vfs node structure with the appropriate values */
+	node->name 			= name;
 	node->type 			= _ext2_inode_type_to_vfs_type(inode_ref->type_permissions & 0xF000);
 	node->permissions 	= inode_ref->type_permissions & 0xFFF;
 	node->uid  			= inode_ref->uid;
@@ -853,18 +856,17 @@ vfs_node_t *ext2_vfs_entry(uint32_t inode, uint32_t id, filesystem_t *fs_info)
  *
  * @return     Pointer to the file system info structure
  */
-filesystem_t *init_ext2_filesystem(char *name, fs_read_fpointer read, fs_write_fpointer write)
+filesystem_t *init_ext2_filesystem(char *name, disk_t *disk_info)
 {
 	filesystem_t *ret = (filesystem_t *) kmalloc(sizeof(filesystem_t));
 	ret->name = name;
 	ret->type = FS_EXT2;
-	ret->superblock = (void*) _ext2_copy_superblock_into_memory(read);
-	ret->blockgroup_list = (void*) _ext2_get_all_block_group_descriptors(read, (ext2_superblock_t*) ret->superblock);
+	ret->superblock = (void*) _ext2_copy_superblock_into_memory(disk_info);
+	ret->blockgroup_list = (void*) _ext2_get_all_block_group_descriptors((ext2_superblock_t*) ret->superblock, disk_info);
 	ret->block_size = ext2_block_size((ext2_superblock_t*) ret->superblock);
 
+	ret->disk_info = disk_info;
 	ret->start = EXT2_ROOT_INODE;
-	ret->read  = read;
-	ret->write = write;
 	ret->file_read = &ext2_read_from_file;
 	ret->file_write = 0;
 	ret->dir_open = &ext2_open_dir_stream;
