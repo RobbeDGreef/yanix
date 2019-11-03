@@ -56,11 +56,11 @@ static ssize_t tty_stderrwrite(vfs_node_t *node, uint32_t offset, const void *bu
 void init_tty_filedescriptors()
 {
 	// @todo: create a system to read from the inputted data
-	vfs_node_t *stdin = vfs_setupnode(VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	vfs_node_t *stdin = vfs_setupnode("stdin", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	register_filedescriptor(stdin, 0);
-	vfs_node_t *stdout = vfs_setupnode(VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, &tty_stdoutwrite, 0, 0, 0);
+	vfs_node_t *stdout = vfs_setupnode("stdout", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, &tty_stdoutwrite, 0, 0, 0);
 	register_filedescriptor(stdout, 0);
-	vfs_node_t *stderr = vfs_setupnode(VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, &tty_stderrwrite, 0, 0, 0);
+	vfs_node_t *stderr = vfs_setupnode("stderr", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, &tty_stderrwrite, 0, 0, 0);
 	register_filedescriptor(stderr, 0);
 }
 

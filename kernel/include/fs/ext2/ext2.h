@@ -138,13 +138,14 @@ typedef struct {
 /**
  * @brief      Initializes the ext2 file system
  *
- * @param      name   The name
- * @param[in]  read   The read
- * @param[in]  write  The write
+ * @param      name       The name
+ * @param[in]  read       The read
+ * @param[in]  write      The write
+ * @param      disk_info  The disk information
  *
  * @return     Pointer to the file system info structure
  */
-filesystem_t *init_ext2_filesystem(char *name, fs_read_fpointer read, fs_write_fpointer write);
+filesystem_t *init_ext2_filesystem(char *name, disk_t *disk_info);
 
 
 #endif
