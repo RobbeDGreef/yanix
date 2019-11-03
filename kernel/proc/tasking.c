@@ -82,6 +82,7 @@ int remove_task_from_queue(task_t *task_to_remove)
 	// snipped task out of queue
 	return 0;	
 }
+
 /**
  * @brief      Kills a task
  *
@@ -90,7 +91,9 @@ int remove_task_from_queue(task_t *task_to_remove)
 void kill_proc(task_t *task)
 {
 	remove_task_from_queue(task);
-	clear_page_directory(task->directory);
+	/* @TODO: so actually we should really clean up the page directory */
+	/* @TODO: we should change the page directory to kernel directory every time we enter the kernel? */
+	//clear_page_directory(task->directory);
 	kfree((void*) task->directory);
 	kfree((void*) task);
 }

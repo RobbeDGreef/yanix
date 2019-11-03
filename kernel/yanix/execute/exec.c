@@ -45,15 +45,15 @@ int execve_user(const char *filename, char *const argv[], char *const envp[])
 	/* Interpret our elf executable and load it into the propper position */
 	uint32_t ret = load_elf_into_mem(buf);
 
-	if (ret == 0) {
-		
-		/* Cleanup */
-		vfs_close(file);
-		kfree(buf);
-		
+	if (ret == 0)
+	{
 		return -1;
 	}
 
+	/* Cleanup */
+	vfs_close(file);
+	kfree(buf);
+		
 	/* Count the arguments given */	
 	size_t amount = 0;
 	while (argv[amount] != 0) {
