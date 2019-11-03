@@ -77,6 +77,7 @@ void bootsequence_after_paging()
 	init_uheap();
 	message("User heap initialized", 1);
 
+
 	/* Initialize the tasking module */
 	init_tasking();
 	g_starttask = g_runningtask;	/* Because of stack stuff this needs to happen here */
@@ -86,6 +87,7 @@ void bootsequence_after_paging()
 	init_ramdisk(RAMDISK_LOCATION, RAMDISK_SIZE);
 	message("Ramdisk initialized", 1);
 	
+	message("PCI devices initialized", 1);
 	/* Initialize the virtual file system switch */
 	init_vfs();
 	message("VFS initialized", 1);
@@ -98,6 +100,12 @@ void bootsequence_after_paging()
 	init_tty_filedescriptors();
 	message("TTY initialized", 1);
 
+	/* Scan PCI bus */
+	init_pci();
+	message("PCI driver initialized", 1);
+
+	/* initialize all the pci devices with a driver */
+	init_pci_devices();
 
 	/* Initialize the mouse and keyboard drivers */
 	init_mouse();
@@ -110,45 +118,35 @@ void bootsequence_after_paging()
 	init_syscalls();
 	message("Syscalls initialized", 1);
 	
-	// initialize pci devices
-	init_pci();
-	message("PCI driver initialized", 1);
-
-	// initialize all the pci devices with a driver
-	init_pci_devices();
-	message("PCI devices initialized", 1);
-	
 	// sleep to read the messages
 	sleep(500);
 
 	// cleanup
-	clear_screenk();
+	//clear_screenk();
 }
 
 #include <errno.h>
 #include <debug.h>
 #include <yanix/exec.h>
 #include <proc/tasking.h>
+#include <drivers/ata.h>
 /**
  * @brief      Kernel main loop
  */
 void kernel_main()
 {
 	printk(KERN_INFO "kernel booted\n");
-	
-	if (fork() == 0){
-		if (fork() == 0) {
-			execve_user("/hello", 0, 0);
-		} else {
-			execve_user("/hello", 0, 0);
-		}
-		printk("error");
-	} else {
-		printk("Mainloop is still running\n");
 
-		printk("leaving");
-	}
- 
+	char *buffer = kmalloc(100);
+	memset(buffer, 0, 100);
+	extern disk_t *disk_list;
+
+	printk("disk name: %s and type %x\n", disk_list->next->name, disk_list->next->type);
+	printk("ID: %i\n", ((ata_drive_t*)disk_list->next->drive_info)->id);
+	disk_read(0, buffer, 100, disk_list->next);	
+ 	printk_hd(buffer, 100);
+
+
 }
 
 /**
