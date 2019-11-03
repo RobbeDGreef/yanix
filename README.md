@@ -89,10 +89,10 @@ run the following commands to install qemu
 #### running yanix:
 
 to just run yanix you could use this command
-- qemu-system-i386 -m 512M -fda os-image.bin
+- qemu-system-i386 -m 512M -hda os-image.bin
 
 to run it with a ethernet card:
-- qemu-system-i386 -m 512M -device rtl8139 -fda os-image.bin
+- qemu-system-i386 -m 512M -device rtl8139 -hda os-image.bin
 
 #### Building yanix
 to build yanix you will need a crosscompiler
@@ -113,8 +113,7 @@ A few notes about these tutorials:
 I personally would not recommend these articles if you just are starting out 
 as these generally do not explain the material very deeply and you are at risk
 of just copying code that works and not really understanding what happens under 
-the hood. The tutorials also have some bugs in them check: 
-https://wiki.osdev.org/James_Molloy%27s_Tutorial_Known_Bugs
+the hood. The tutorials also have some bugs in them check (this page)[https://wiki.osdev.org/James_Molloy%27s_Tutorial_Known_Bugs]
 this page for more information
 
 - http://www.jamesmolloy.co.uk/tutorial_html/
