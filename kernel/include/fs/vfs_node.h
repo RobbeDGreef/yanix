@@ -45,6 +45,7 @@ typedef int 			   (*close_dir_fpointer)(DIR *dirstream);
  * @brief      A virtual filesystem node
  */
 struct vfs_node_s {
+	char 				*name;			/* Name of the node */
 	uint8_t				type;			// directory (0) , normal file (1) , special file (2), ...
 	uint16_t			permissions;	// node permissions
 	uid_t				uid;			// user id

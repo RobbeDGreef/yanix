@@ -7,6 +7,7 @@
 #include <fs/dirent.h>
 #include <fs/vfs_node.h>
 #include <sys/types.h>
+#include <drivers/disk.h>
 
 #define FS_EXT2 	0
 #define FS_FAT32 	1
@@ -17,17 +18,13 @@ typedef struct filesystem_s filesystem_t;
 struct vfs_node_s;
 typedef struct vfs_node_s vfs_node_t;
 
-
-typedef ssize_t (*fs_read_fpointer)  (offset_t offset, void *buf, size_t count);
-typedef ssize_t (*fs_write_fpointer) (offset_t offset, const void *buf, size_t count);
-
 typedef ssize_t			(*fs_read_file_fpointer)  (ino_t inode, void *buf, size_t count, filesystem_t *fs_info);
 typedef ssize_t 		(*fs_write_file_fpointer) (ino_t inode, const void *buf, size_t count, filesystem_t *fs_info);
 typedef DIR*   			(*fs_open_dir_fpointer)   (ino_t inode, filesystem_t *fs_info);
 typedef int 		    (*fs_close_dir_fpointer)  (DIR* dirp);
 typedef struct dirent  *(*fs_read_dir_fpointer)   (DIR* dirp);
 
-typedef vfs_node_t 	*(*fs_make_node) (offset_t offset, id_t id, filesystem_t *fs_info);
+typedef vfs_node_t 	*(*fs_make_node) (offset_t offset, char *name, id_t id, filesystem_t *fs_info);
 
 /**
  * @brief      A filesystem information struct
@@ -36,11 +33,10 @@ struct filesystem_s {
 	char 				*name;
 	uint32_t 			type;					// type of filesystem (ext2, fat12, NTFS, ...)
 	unsigned int 		block_size;
+	disk_t 				*disk_info;
 	offset_t 			*superblock;
 	offset_t 			*blockgroup_list; 		// linked list
 	offset_t 			start;					// depending on implementation this could be an inode, a directory ...
-	fs_read_fpointer	read;
-	fs_write_fpointer	write;
 	fs_read_file_fpointer 	file_read;
 	fs_write_file_fpointer 	file_write;
 	fs_open_dir_fpointer 	dir_open;
@@ -65,7 +61,7 @@ extern filesystem_t *g_current_fs;
  * @param[in]  readdir    The read from directory stream function pointer
  * @param[in]  makenode   The make vfs node function pointer
  */
-void register_filesystem(char *name, int type, fs_read_fpointer read, fs_write_fpointer write, fs_read_file_fpointer readfile,
+void register_filesystem(char *name, int type, fs_read_file_fpointer readfile,
 						 fs_write_file_fpointer writefile, fs_open_dir_fpointer opendir, fs_read_dir_fpointer readdir, fs_make_node makenode);
 
 

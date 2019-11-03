@@ -142,7 +142,7 @@ DIR *vfs_opendir(const char *filepath);
  */
 vfs_node_t *vfs_find_path(const char *path);
 
-vfs_node_t *vfs_setupnode(uint8_t type, uint16_t permissions, uid_t uid, gid_t gid, size_t size, offset_t offset,
+vfs_node_t *vfs_setupnode(char *name, uint8_t type, uint16_t permissions, uid_t uid, gid_t gid, size_t size, offset_t offset,
 						  open_fpointer open, close_fpointer close, creat_fpointer creat, read_fpointer read, write_fpointer write,
 						  open_dir_fpointer opendir, read_dir_fpointer readdir, filesystem_t *fs_info);
 

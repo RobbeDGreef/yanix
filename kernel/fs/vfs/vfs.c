@@ -9,6 +9,7 @@
 
 #include <fs/vfs.h>
 #include <fs/vfs_node.h>
+#include <drivers/disk.h>
 #include <drivers/ramdisk.h>
 #include <fs/filedescriptor.h>
 #include <fs/ext2/ext2.h>
@@ -19,7 +20,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
+#include <kernel.h>
 
 vfs_node_t *g_vfs_root;
 uint32_t g_nodecount;
@@ -447,6 +448,7 @@ int _strcmpI(char *a, char *b)
  */
 vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
 {
+	#if 0
 	DIR *dirp = node->opendir(node);
 
 	if (dirp == 0) {
@@ -475,7 +477,21 @@ vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
 		tmp = tmp->nextnode;
 	}
 	return 0;
+
+	#endif
+
+	vfs_node_t *tmp = node->dirlist;
+	do
+	{
+		if (_strcmpI(name, tmp->name) == 0)
+		{
+			return tmp;
+		}
+	} while ((tmp = tmp->nextnode) != 0);
+
+	return 0;
 }
+
 
 /**
  * @brief      Finds the inode pointing to a specific path
@@ -485,7 +501,8 @@ vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
  * @return     The inode to look for
  */
 vfs_node_t *vfs_find_path(const char *path)
-{	
+{
+	#if 0
 	char *buf = (char*) kmalloc(strlen(path)+1);
 	memset(buf, 0, strlen(path)+1);
 	int i = 1;
@@ -515,14 +532,63 @@ vfs_node_t *vfs_find_path(const char *path)
 		errno = ENOENT;
 	}
 	return node;
+	#endif
+
+	/**
+	 * 
+	 * It works pretty simple
+	 * 
+	 * - if the path starts with a / -> its an absolute path
+	 * - if the path doesn't start with a / -> its a path relative of the current working directory
+	 * 
+	 */
+
+	if (path[0] != '/')
+	{
+		printk(KERN_WARNING "Kernel doesn't support relative filepaths yet, thus '%s' was not valid", path);
+	}
+
+	size_t pathlength 	= strlen(path) + 1;
+	char  *buffer 		= kmalloc(pathlength);
+	size_t bufferiter 	= 0;
+	vfs_node_t *node 	= g_vfs_root;
+
+	memset(buffer, 0, pathlength);
+
+	/* iter starts at 1 because 0 is the first / character */
+	for (size_t i = 1; i < pathlength; i++)
+	{
+		if (path[i] == '/' || path[i] == '\0')
+		{
+			node = _vfs_path_find(node, buffer);
+
+			if (path[i] == '\0')
+			{
+				kfree(buffer);
+				return node;
+			}
+			else
+			{
+				memset(buffer, 0, bufferiter+1);
+				bufferiter = 0;
+			}
+		}
+		else
+		{
+			buffer[bufferiter++] = path[i];
+		}
+	}
+
+	return 0;
 }
 
-vfs_node_t *vfs_setupnode(uint8_t type, uint16_t permissions, uid_t uid, gid_t gid, size_t size, offset_t offset,
+vfs_node_t *vfs_setupnode(char *name, uint8_t type, uint16_t permissions, uid_t uid, gid_t gid, size_t size, offset_t offset,
 						  open_fpointer open, close_fpointer close, creat_fpointer creat, read_fpointer read, write_fpointer write,
 						  open_dir_fpointer opendir, read_dir_fpointer readdir, filesystem_t *fs_info)
 {
 	vfs_node_t *node = (vfs_node_t*) kmalloc(sizeof(vfs_node_t));
 	memset(node, 0, sizeof(vfs_node_t));
+	node->name = name;
 	node->type = type;
 	node->permissions = permissions;
 	node->uid = uid;
@@ -553,34 +619,50 @@ vfs_node_t *vfs_setupnode(uint8_t type, uint16_t permissions, uid_t uid, gid_t g
  */
 void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, filesystem_t *fs_info)
 {	
+	/* If it's the root inode, add it as the first in the list */
 	if (rootnode) {
-		g_vfs_root = (vfs_node_t*) fs_info->fs_makenode(start, g_nodecount++, fs_info);
+		g_vfs_root = (vfs_node_t*) fs_info->fs_makenode(start, ".", g_nodecount++, fs_info);
 		startnode = g_vfs_root;
 	}
 	
+	/* Opens the given inode directory */
 	DIR *dirp = fs_info->dir_open(start, fs_info);
 	if (dirp == 0){
 		return;
 	}
+
 	int first = 1;
 	struct dirent *dir;
 	vfs_node_t *prevnode = startnode;
 	vfs_node_t *node;
+	
+	/* Read all the entries in the opened inode */
 	while ((dir = fs_info->dir_read(dirp)) != 0){
+		/* The files . and .. shouldn't be added in the vfs */
 		if (_strcmpI(dir->d_name, ".") != 0 && _strcmpI("..", dir->d_name) != 0){
-			node = (vfs_node_t*) fs_info->fs_makenode(dir->d_ino, g_nodecount++, fs_info);
+			
+			/* Make name string */
+			char *name = kmalloc(strlen(dir->d_name)+1);
+			memcpy(name, dir->d_name, strlen(dir->d_name));
+			name[strlen(dir->d_name)+1] = '\0';
+
+			/* Create a new inode */
+			node = (vfs_node_t*) fs_info->fs_makenode(dir->d_ino, name, g_nodecount++, fs_info);
 			if (node == 0) {
 				continue;
 			}
+
 			node->parent = prevnode;
-			if (first){
+
+			if (first)
+			{
 				prevnode->dirlist = node;
 				first = 0;
 			} else {
-
 				prevnode->nextnode = node;
 			}
 			if (node->type == VFS_DIRECTORY) {
+				/* Recursive function */
 				loop_over_filesystem(node->offset, 0, node, fs_info);
 			}
 			prevnode = node;
@@ -591,13 +673,17 @@ void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, f
 }
 
 
+/* @TODO: this is not how this system should work at all (see note below) */
+extern disk_t *disk_list;
+
 /**
  * @brief      Initialises the virtual filesystem
  */
 void init_vfs()
 {
+	/* @TODO: this is totally not how the vfs should be initialised */
 	g_nodecount = 0;
-	g_current_fs = init_ext2_filesystem("EXT2FS", &ramdisk_read, &ramdisk_write);
+	g_current_fs = init_ext2_filesystem("EXT2FS", disk_list);
 	g_vfs_root = 0;
 	//init_vfs_lookuptable(g_vfs_root);
 	loop_over_filesystem(2, 1, g_vfs_root, g_current_fs);
