@@ -42,28 +42,45 @@ void add_disk(disk_t *disk)
  * @param[in]  size    The size
  * @param      disk    The disk
  */
-ssize_t disk_read(unsigned long offset, void *buf, size_t size, disk_t *disk)
+ssize_t disk_read(unsigned long offset, void *buffer, size_t size, disk_t *disk)
 {
+	void *buf = buffer;
 	if (disk->block_size == 0)
 	{
 		/* This disk is already absolute */
 		return disk->read(offset, buf, size, disk);
 	}
 
+
 	/* Calculate the correct values */
 	unsigned int count  = size / disk->block_size;
 	unsigned int c_rest = size % disk->block_size;
 
 	/* LBA addresses start at 1 */
-	unsigned int lba    = (offset / disk->block_size) + 1;
+	unsigned int lba    = (offset / disk->block_size);
 	unsigned int l_rest = offset % disk->block_size;
+	unsigned int l_size = l_rest;
 
 	unsigned int ret = 0;
+
+	if (count == 0 && l_rest != 0)
+	{
+		l_size = c_rest;
+		count = 1; /* to make sure when it is reduced by one it doesn't wrap around */
+		c_rest = 0;
+	}
+	else if (l_rest != 0)
+	{
+		l_size = disk->block_size - l_rest;
+		c_rest -= l_rest;
+	}
+
 
 	if (l_rest)
 	{
 		/* Create a buffer */
 		void *tmp = kmalloc(disk->block_size);
+
 
 		/* Read the data into the temporary buffer and set lba en count */
 		disk->read(lba, tmp, 1, disk);
@@ -71,21 +88,25 @@ ssize_t disk_read(unsigned long offset, void *buf, size_t size, disk_t *disk)
 		count--;
 
 		/* Now copy the wanted data into the real buffer */
-		memcpy(buf, tmp + (disk->block_size - l_rest), l_rest);
+		memcpy(buf, tmp + l_rest, l_size);
 
 		/* Increase location of buffer */
-		buf += l_rest;
+		buf += l_size;
 
 		/* Cleanup */
 		kfree(tmp);
 
 		/* Count read bytes */
-		ret += l_rest;
+		ret += l_size;
+
 	}
 
 	/* Read the main data */
-	if (count != 0)
+	if (count)
+	{
 		ret += disk->read(lba, buf, count, disk);
+	}
+
 
 	if (c_rest)
 	{
@@ -95,11 +116,8 @@ ssize_t disk_read(unsigned long offset, void *buf, size_t size, disk_t *disk)
 		/* Read the data into the temporary buffer */
 		disk->read(lba + count, tmp, 1, disk);
 
-		/* Set buffer to appropriate start value */
-		buf += count * disk->block_size;
-
 		/* Now copy the wanted data into the real buffer */
-		memcpy(buf, tmp, c_rest);
+		memcpy(buf + (count * disk->block_size), tmp, c_rest);
 		
 		/* Cleanup */
 		kfree(tmp);

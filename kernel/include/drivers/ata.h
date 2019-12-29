@@ -17,6 +17,8 @@ typedef struct ata_drive_s
 
 	int 		capabilities;
 	int 		command_set; 	/* 28bit or 48 bit */
+	int 		signature;
+	int 		max_lba;
 
 	char 		model[41];
 

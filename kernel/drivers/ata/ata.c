@@ -15,6 +15,9 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <cpu/io.h>
+#include <yanix/kfunctions.h>
+
+#include <debug.h>
 
 #include <drivers/ata.h>
 
@@ -181,12 +184,14 @@ static void ata_select_drive(ata_drive_t *drive, int mode)
 	/* Check if the drive is already selected */
 	if (drive != selected_drive && mode != selected_mode)
 	{
-		if (mode & ATA_MODE_LBA48)
+		if (drive->capabilities & ATA_CAPABILITIES_LBA)
 		{
 			port_byte_out(drive->base + ATA_REG_HDDEVSEL, 0xE0 | (drive->slave << 4) | (mode & 0xF));
+			//port_byte_out(drive->base + ATA_REG_HDDEVSEL, 0xE0 | (drive->slave << 4));
 		}
 		else
 		{
+			printk("CHS\n");
 			port_byte_out(drive->base + ATA_REG_HDDEVSEL, 0xA0 | (drive->slave << 4) | (mode & 0xF));
 		}
 
@@ -206,7 +211,7 @@ static void ata_select_drive(ata_drive_t *drive, int mode)
  * @param[in]  base  The base register
  * @param[in]  ctrl  The control register
  */
-/*static*/ void ata_software_reset(unsigned long base, unsigned long ctrl)
+static void ata_software_reset(unsigned long base, unsigned long ctrl)
 {
 	/* Send reset command */
 	port_byte_out(ctrl, ATA_CMD_RESET);
@@ -256,28 +261,65 @@ static int ata_polling(unsigned long base, int advanced_check)
 	return 0;
 }
 
-inline static void ata_send_sec_and_lba(ata_drive_t *drive, unsigned long lba, unsigned long count)
+/* inline */static void ata_send_sec_and_lba(ata_drive_t *drive, unsigned long lba, unsigned long count)
 {
+	#if 0
+	/* @todo: head should be calculated with all of these see osdev pci ide */
+	if (drive->mode == ATA_MODE_CHS)
+	{
+		unsigned int sect = (lba % 63) + 1;
+		unsigned int cyl  = (lba + 1 - sect) / (16 * 63);
+		
+		port_byte_out(drive->base + ATA_REG_SECCOUNT0, count & 0xFF);
+		port_byte_out(drive->base + ATA_REG_LBA0, (uint8_t) sect);
+		port_byte_out(drive->base + ATA_REG_LBA1, (uint8_t) (cyl & 0xFF));
+		port_byte_out(drive->base + ATA_REG_LBA2, (uint8_t) ((cyl >> 8) & 0xFF));
+
+	}
+	else
+	{
+		if (drive->mode == ATA_MODE_LBA48)
+		{
+			/* Send sector count */
+			port_byte_out(drive->base + ATA_REG_SECCOUNT0, (count >> 8) & 0xFF);
+
+			printk(KERN_WARNING "Oh oh looks like you found a part of code that doesn't work due to a bug. (ata.c) ata_send_sec_and_lba\n");
+			/* Send LBA in pieces */
+			port_byte_out(drive->base + ATA_REG_LBA0, (uint8_t) ((lba >> (8 * 3)) & 0xFF));
+			
+			/* NOTE: these are commented out because LBA couldn't be a uint64_t because of compiler bug and all */
+			//port_byte_out(drive->base + ATA_REG_LBA1, (uint8_t) ((lba >> (8 * 4)) & 0xFF));
+			//port_byte_out(drive->base + ATA_REG_LBA2, (uint8_t) ((lba >> (8 * 5)) & 0xFF));
+		}
+		
+		/* Now send the first part of the LBA and sector count */
+		port_byte_out(drive->base + ATA_REG_SECCOUNT0, count & 0xFF);
+		port_byte_out(drive->base + ATA_REG_LBA0, (uint8_t) (lba) & 0xFF);
+		port_byte_out(drive->base + ATA_REG_LBA1, (uint8_t) ((lba >> 8)  & 0xFF));
+		port_byte_out(drive->base + ATA_REG_LBA2, (uint8_t) ((lba >> 16) & 0xFF));
+	}
+
+	#endif
 	if (drive->mode == ATA_MODE_LBA48)
 	{
 		/* Send sector count */
-		port_byte_out(drive->base + ATA_REG_SECCOUNT0, (count >> 8) & 0xFF);
-
 		printk(KERN_WARNING "Oh oh looks like you found a part of code that doesn't work due to a bug. (ata.c) ata_send_sec_and_lba\n");
+		port_byte_out(drive->base + ATA_REG_SECCOUNT1, count & 0xFF00);
 		/* Send LBA in pieces */
-		port_byte_out(drive->base + ATA_REG_LBA0, (uint8_t) ((lba >> (8 * 3)) & 0xFF));
-		
+		//port_short_out(drive->base + ATA_REG_LBA0, (uint16_t) ((lba >> (8 * 3)) & 0xFF));
+		port_byte_out(drive->base + ATA_REG_LBA3, (uint8_t) 0);
+		port_byte_out(drive->base + ATA_REG_LBA4, (uint8_t) 0);
+		port_byte_out(drive->base + ATA_REG_LBA5, (uint8_t) 0);
 		/* NOTE: these are commented out because LBA couldn't be a uint64_t because of compiler bug and all */
 		//port_byte_out(drive->base + ATA_REG_LBA1, (uint8_t) ((lba >> (8 * 4)) & 0xFF));
 		//port_byte_out(drive->base + ATA_REG_LBA2, (uint8_t) ((lba >> (8 * 5)) & 0xFF));
-
 	}
-
 	/* Now send the first part of the LBA and sector count */
 	port_byte_out(drive->base + ATA_REG_SECCOUNT0, count & 0xFF);
-	port_byte_out(drive->base + ATA_REG_LBA0, (uint8_t) (lba) & 0xFF);
-	port_byte_out(drive->base + ATA_REG_LBA1, (uint8_t) ((lba >> 8)  & 0xFF));
-	port_byte_out(drive->base + ATA_REG_LBA2, (uint8_t) ((lba >> 16) & 0xFF));
+	port_byte_out(drive->base + ATA_REG_LBA0, (uint8_t) (lba)         );
+	port_byte_out(drive->base + ATA_REG_LBA1, (uint8_t) ((lba >> 8)  ));
+	port_byte_out(drive->base + ATA_REG_LBA2, (uint8_t) ((lba >> 16) ));
+
 }
 
 /**
@@ -290,10 +332,10 @@ inline static void ata_send_sec_and_lba(ata_drive_t *drive, unsigned long lba, u
  *
  * @return     error code
  */
-ssize_t _atapio_read(ata_drive_t *drive, unsigned long lba, char *buffer, size_t count)
+ssize_t _atapio_read(ata_drive_t *drive, unsigned long lba, uint16_t *buffer, size_t count)
 {
-	/*@BUG: Oke so due to a compiler bug the lba variable above can't be uint64_t (and thus the note below) */
 
+	/*@BUG: Oke so due to a compiler bug the lba variable above can't be uint64_t (and thus the note below) */
 	size_t retry_count = 0;
 
 retry:
@@ -307,7 +349,7 @@ retry:
 	if (drive->capabilities & ATA_CAPABILITIES_LBA)
 	{
 		/* This is a LBA drive, select the correct LBA mode */
-		ata_select_drive(drive, drive->mode);
+		ata_select_drive(drive, drive->mode | ((lba >> 24) & 0xF));
 
 		/* Clear error */
 		clear_error(drive);
@@ -332,10 +374,10 @@ retry:
 		/* Wait for the drive */
 		ata_wait(drive->base);
 
-		for (size_t i = count; i != 0; i--)
+		for (size_t cnt = count; cnt != 0; cnt--)
 		{
-			int poll_ret = ata_polling(drive->base, 1);
-			
+			int poll_ret = ata_polling(drive->base, 1);			
+
 			/* If poll_ret is not zero then an error was returned */
 			if (poll_ret)
 			{
@@ -344,7 +386,7 @@ retry:
 					/* Retry the read */
 					printk(KERN_DEBUG "Ata retrying...\n");
 
-					for (size_t i = 0; i < 5; i++)
+					for (size_t j = 0; j < 5; j++)
 						ata_wait(drive->base);
 
 					goto retry;
@@ -354,10 +396,17 @@ retry:
 			for (size_t i = 0; i < 256; i++)
 			{
 				uint16_t data = port_word_in(drive->base + ATA_REG_DATA);
-				buffer[2 * i]	  = data & 0xFFFF;
-				buffer[2 * i + 1] = (data >> 8) & 0xFFFF;
+				buffer[i] = data;
+				
 			}
-			buffer += 512;
+			buffer += 256;
+
+			ata_wait(drive->base);
+			ata_polling(drive->base, 0);
+
+			/* Send the cache flush command */
+			port_byte_out(drive->base + ATA_REG_DATA, ATA_CMD_CACHE_FLUSH);
+			ata_polling(drive->base, 0);
 		}
 
 		if (ata_polling(drive->base, 0))
@@ -365,7 +414,7 @@ retry:
 			errno = EINVAL;
 			return -1;
 		}
-           
+
 	}
 	else
 	{
@@ -373,6 +422,9 @@ retry:
 		/* @todo: Implement CHS drive */
 		printk(KERN_WARNING "atapio chs mode is not supported yet.\n");
 	}
+	//printk("END Bsy bit is %i\n", port_byte_in(drive->base+ATA_REG_STATUS) & ATA_STATUS_BSY);
+	//printk("BSY BIT: %i\n", port_byte_in(0x1f0+7) & 0x80);
+
 	return 0;
 }
 
@@ -488,6 +540,9 @@ int init_ata(pci_device_t *pci_dev)
 			ctrl = channel ? ATA_PIO_PORT_S_CTRL : ATA_PIO_PORT_P_CTRL;
 		}
 
+		/* Turn off IRQ's */
+		port_byte_out(ctrl + ATA_REG_CONTROL, 2);
+
 		/* Loop means master and slave */
 		for (size_t ms = 0; ms < 2; ms++)
 		{
@@ -554,22 +609,24 @@ int init_ata(pci_device_t *pci_dev)
 			ata_info->id    = (channel * 2 + ms); 
 			ata_info->slave = ms;
 
+			ata_info->signature    = *(uint16_t*) (ident_buffer + ATA_IDENT_DEVICETYPE);
+			ata_info->capabilities = *(uint16_t*) (ident_buffer + ATA_IDENT_CAPABILITIES);
+			ata_info->command_set  = *(uint32_t*) (ident_buffer + ATA_IDENT_COMMANDSETS);
 
-			/* @todo: figure out why we cannot just read the byte */
-			// ata_info->capibilies = *(uint16_t*) (ident_buffer + ATA_IDENT_CAPABILITIES)
-			
-			ata_info->capabilities = ATA_CAPABILITIES_LBA;
-
-			ata_info->command_set = *(uint16_t*) (ident_buffer + ATA_IDENT_COMMANDSETS);
+			printk("ata info loc: %x\n", ata_info);
 
 			if (ata_info->command_set & ATA_COMMAND_SET_48)
 			{
 				ata_info->mode = ATA_MODE_LBA48;
+				/* @todo: Max lba needs to be calculated here */
 			} 
 			else
 			{
 				ata_info->mode = ATA_MODE_LBA28;
+				ata_info->max_lba = *(uint32_t*)(ident_buffer + ATA_IDENT_MAX_LBA);
 			}
+
+			ata_info->mode = ATA_MODE_LBA28;
 
 			/* Now set model name and it's stored in a very weird way */
 			for (size_t i = 0; i < 40; i += 2)
