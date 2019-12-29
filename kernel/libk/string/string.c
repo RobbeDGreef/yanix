@@ -97,6 +97,16 @@ void *memmove(void* destpointer, const void* sourcepointer, size_t size)
  */
 void *memset(void* destpointer, int value, size_t size)
 {
+	/* @todo: optimize this function better than this hack */
+	if (value == 0)
+	{
+		uint32_t *dst = (uint32_t*) destpointer;
+		for (size_t i = 0; i < size / sizeof(uint32_t); i++)
+		{
+			dst[i] = 0;
+		}
+		return destpointer;
+	}
 	uint8_t* dst = (uint8_t*)destpointer;
 	for (size_t i = 0; i < size; i++){
 		dst[i] = (uint8_t) value;
