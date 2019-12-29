@@ -26,6 +26,9 @@ void _exit()
     send_sig(SIGKILL);
     kill_proc(g_runningtask);
     task_yield();
+
+    /* This is a safety to handle the very slight change of there not being any task to yield to (i might change this in the future) */
+    for(;;);
 }
 
 int fstat(int file, struct stat *st)
