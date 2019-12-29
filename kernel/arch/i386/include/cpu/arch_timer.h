@@ -4,7 +4,6 @@
 #include <cpu/cpu.h>
 #include <stdint.h>
 
-#define TIMER_FREQ 250
 
 /**
  * @brief      Initialises the architechture dependand timer
