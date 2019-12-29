@@ -6,6 +6,8 @@
 #include <fs/filedescriptor.h>		 		// file descriptor system 		(init)
 #include <drivers/video/video.h>			// general video system 		(init)
 #include <drivers/video/vesa.h>				// vesa driver 					(init)
+#include <drivers/video/vga.h> 				/* VGA driver 					(init)	*/
+#include <drivers/serial.h> 				/* Serial connection driver 	(init 	*/
 #include <core/timer.h>						// cpu timer 					(init)
 #include <drivers/ramdisk.h>				// ramdisk 						(init)
 #include <proc/tasking.h>					// tasking 						(init)
@@ -40,18 +42,21 @@ extern void kernel_handle_debug(void);
  * @param[in]  code_gdt  The code gdt
  * @param[in]  data_gdt  The data gdt
  */
-void bootsequence(uint32_t stack, uint32_t code_gdt, uint32_t data_gdt)
+void bootsequence(uint32_t stack)
 {
 	/* initialize the kernel stack */
 	init_stack(stack);
 
-	/* Unused variables */
-	UNUSED(code_gdt); UNUSED(data_gdt);
+	/* Initialise the serial connection early on to print to the serial before tty is available */
+	init_serial();
 
 	/* Initialize the video driver and clearing the screen */
 	video_clear_screen();
 	init_vesa((void*) 0xfd000000, 1024, 768, 3);
 	init_video(VIDEO_MODE_VESA);
+	//init_vga(0xb8000, 80, 25, 2);
+	//init_video(VIDEO_MODE_TERM);
+	
 
 	arch_init();
 
@@ -68,10 +73,12 @@ void bootsequence(uint32_t stack, uint32_t code_gdt, uint32_t data_gdt)
  */
 void bootsequence_after_paging()
 {
+	int ret = 0;
 
 	/* Initialize the kernel heap allocation systems */
 	init_kheap();
 	message("Kernel heap initialized", 1);
+
 
 	/* Initialize the user heap allocation systems */
 	init_uheap();
@@ -84,13 +91,16 @@ void bootsequence_after_paging()
 	message("Tasking initialized", 1);
 	
 	/* Installing ramdisk */
-	init_ramdisk(RAMDISK_LOCATION, RAMDISK_SIZE);
-	message("Ramdisk initialized", 1);
+	//init_ramdisk(RAMDISK_LOCATION, RAMDISK_SIZE);
+	//message("Ramdisk initialized", 1);
+
+	/* Scan PCI bus */
+	init_pci();
+	message("PCI driver initialized", 1);
 	
+	/* initialize all the pci devices with a driver */
+	init_pci_devices();
 	message("PCI devices initialized", 1);
-	/* Initialize the virtual file system switch */
-	init_vfs();
-	message("VFS initialized", 1);
 
 	/* Initialize the file descriptors and terminal system */
 	init_filedescriptors();
@@ -100,12 +110,10 @@ void bootsequence_after_paging()
 	init_tty_filedescriptors();
 	message("TTY initialized", 1);
 
-	/* Scan PCI bus */
-	init_pci();
-	message("PCI driver initialized", 1);
-
-	/* initialize all the pci devices with a driver */
-	init_pci_devices();
+	/* Initialize the virtual file system switch */
+	ret = init_vfs();
+	//ret = 1;
+	message("VFS initialized", !ret);
 
 	/* Initialize the mouse and keyboard drivers */
 	init_mouse();
@@ -125,10 +133,10 @@ void bootsequence_after_paging()
 	//clear_screenk();
 }
 
+
 #include <errno.h>
 #include <debug.h>
 #include <yanix/exec.h>
-#include <proc/tasking.h>
 #include <drivers/ata.h>
 /**
  * @brief      Kernel main loop
@@ -137,16 +145,7 @@ void kernel_main()
 {
 	printk(KERN_INFO "kernel booted\n");
 
-	char *buffer = kmalloc(100);
-	memset(buffer, 0, 100);
-	extern disk_t *disk_list;
-
-	printk("disk name: %s and type %x\n", disk_list->next->name, disk_list->next->type);
-	printk("ID: %i\n", ((ata_drive_t*)disk_list->next->drive_info)->id);
-	disk_read(0, buffer, 100, disk_list->next);	
- 	printk_hd(buffer, 100);
-
-
+	execve_user("/bin/stdin_yanix",0,0);
 }
 
 /**
@@ -169,11 +168,11 @@ void enter_foreverloop()
  * @param[in]  code_gdt  The code gdt
  * @param[in]  data_gdt  The data gdt
  */
-void _enter(uint32_t stack, uint32_t code_gdt, uint32_t data_gdt)
+void _enter(uint32_t stack)
 {
 	// enter function for kernel
 	// starts boot sequence
-	bootsequence(stack, code_gdt, data_gdt);
+	bootsequence(stack);
 	
 	// maps the stack to the wanted location
 	init_paging_stack();
