@@ -28,8 +28,12 @@ jmp_userspace: ;jmp_userspace(uint32_t eip)
 	mov 	eax, esp
 	push 	dword 0x23
 	push 	dword eax
-	pushf
-	or 		dword [esp], 0x200  ; reenable IF in EFLAGS so that interrupts will work
+	sti
+	pushfd
+	cli
+	pop 	eax
+	or 		eax, 0x200  ; reenable IF in EFLAGS so that interrupts will work
+	push 	eax
 	push 	dword 0x1B
 	push 	ebx
 	iret 						; start at our given eip
