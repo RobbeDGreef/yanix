@@ -145,7 +145,7 @@ typedef struct {
  *
  * @return     Pointer to the file system info structure
  */
-filesystem_t *init_ext2_filesystem(char *name, disk_t *disk_info);
+filesystem_t *init_ext2_filesystem(char *name, unsigned int ext2_start, disk_t *disk_info);
 
 
 #endif

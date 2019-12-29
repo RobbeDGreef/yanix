@@ -16,7 +16,7 @@ struct file {
 /**
  * @brief      Initialises the virtual filesystem
  */
-void init_vfs();
+int init_vfs();
 
 
 /**

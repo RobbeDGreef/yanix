@@ -60,6 +60,7 @@
 #define EXT2_INODE_TYPE_FIFO 	0x1000 		// fifo
 
 #define EXT2_ROOT_INODE 		0x02
+#define EXT2_SIGNATURE 			0xef53
 
 #define EXT2_DIRECT_BLOCK_POINTER_AMOUNT 	12
 
@@ -88,6 +89,11 @@ static inline unsigned int ext2_block_size(ext2_superblock_t *superblock)
 	return 1024 << superblock->block_size_frag;
 }
 
+ssize_t ext2_disk_read(unsigned long offset, void *buf, size_t size, filesystem_t *fs_info)
+{
+	return disk_read(offset + fs_info->partstart, buf, size, fs_info->disk_info);
+}
+
 /**
  * @brief      Copies the ext2 superblock into memory
  *
@@ -95,10 +101,10 @@ static inline unsigned int ext2_block_size(ext2_superblock_t *superblock)
  *
  * @return     Memory location of the superblock
  */
-void *_ext2_copy_superblock_into_memory(disk_t *disk_info)
+void *_ext2_copy_superblock_into_memory(unsigned int start, disk_t *disk_info)
 {
 	ext2_superblock_t *ret = (ext2_superblock_t*) kmalloc(sizeof(ext2_superblock_t));
-	disk_read(EXT2_SUPERBLOCK_START_LOC, ret, sizeof(ext2_superblock_t), disk_info);
+	disk_read(EXT2_SUPERBLOCK_START_LOC + start, ret, sizeof(ext2_superblock_t), disk_info);
 	return (void*) ret;
 }
 
@@ -110,7 +116,7 @@ void *_ext2_copy_superblock_into_memory(disk_t *disk_info)
  *
  * @return     { description_of_the_return_value }
  */
-ext2_block_group_descriptor_t *_ext2_get_all_block_group_descriptors(ext2_superblock_t *superblock, disk_t *disk_info)
+ext2_block_group_descriptor_t *_ext2_get_all_block_group_descriptors(ext2_superblock_t *superblock, unsigned int fs_start, disk_t *disk_info)
 {
 	/* First calculate the amount of block groups */
 	unsigned int number_of_blockgroups = roundup(superblock->total_blocks, superblock->blocks_in_blockgroup);
@@ -120,16 +126,10 @@ ext2_block_group_descriptor_t *_ext2_get_all_block_group_descriptors(ext2_superb
 
 	// offset of first block group descriptor
 	unsigned int bgd_offset = EXT2_SUPERBLOCK_START_LOC + ext2_block_size(superblock);
-
-	for (size_t i = 0; i < number_of_blockgroups; i++)
-	{
-		/* Copy the bgd into the array */
-		disk_read(bgd_offset, (void*) ((uintptr_t) bgd_array + (i * sizeof(ext2_block_group_descriptor_t))), sizeof(ext2_block_group_descriptor_t), disk_info);
-		
-		/* increment our offset */
-		bgd_offset += superblock->blocks_in_blockgroup * ext2_block_size(superblock);
-	}
+	disk_read(bgd_offset + fs_start, bgd_array, sizeof(ext2_block_group_descriptor_t) * number_of_blockgroups, disk_info);
+	
 	return bgd_array;
+
 }
 
 /**
@@ -165,16 +165,16 @@ unsigned int _ext2_get_inode_offset(ino_t inode, filesystem_t *fs_info)
 	unsigned int index = (inode - 1) % superblock->inodes_in_blockgroup;
 
 	/* And now the block that contains the inode */
-	unsigned int cointaining_block = (index * _ext2_get_inode_size(fs_info) / fs_info->block_size);
+	unsigned int containing_block = (index * _ext2_get_inode_size(fs_info) / fs_info->block_size);
 
 	/* Get a reference to the containing block */
 	ext2_block_group_descriptor_t *bgd_ref = &((ext2_block_group_descriptor_t*) fs_info->blockgroup_list)[blockgroup];
 
 	/* Now we will calculate the actual location of the inode */
 	unsigned int inode_offset = bgd_ref->start_inode_table;
-	
+
 	/* Add the containing block index to the offset */
-	inode_offset += cointaining_block;
+	inode_offset += containing_block;
 	inode_offset *= fs_info->block_size;
 	inode_offset += (index % (fs_info->block_size / _ext2_get_inode_size(fs_info))) * _ext2_get_inode_size(fs_info);
 
@@ -193,13 +193,12 @@ ext2_inode_t *_ext2_get_inode_ref(ino_t inode, filesystem_t *fs_info)
 {
 	/* First calculate the inode size */
 	unsigned int inode_size = _ext2_get_inode_size(fs_info);
-	
+
 	/* Now allocate the appropriate buffer size */
 	ext2_inode_t *inode_ref = (ext2_inode_t*) kmalloc(inode_size);
-	
-	/* Now copy the inode data into our inode structure */
-	disk_read(_ext2_get_inode_offset(inode, fs_info), inode_ref, inode_size, fs_info->disk_info);
 
+	/* Now copy the inode data into our inode structure */
+	ext2_disk_read(_ext2_get_inode_offset(inode, fs_info), inode_ref, inode_size, fs_info);
 	return inode_ref;
 }
 
@@ -207,14 +206,14 @@ static unsigned int handle_indirect_bp(unsigned int indirect_bp_index, unsigned 
 {
 	/* Create a buffer for the block pointer block and copy data */
 	uint32_t *indirect_bp = (uint32_t*) kmalloc(fs_info->block_size);
-	
+
 	if (indirect_bp == 0)
 	{
 		return 0;
 	}
 
 
-	disk_read(indirect_bp_index * fs_info->block_size, indirect_bp, fs_info->block_size, fs_info->disk_info);
+	ext2_disk_read(indirect_bp_index * fs_info->block_size, indirect_bp, fs_info->block_size, fs_info);
 
 	unsigned int ret = indirect_bp[block_to_read] * fs_info->block_size;
 
@@ -253,17 +252,15 @@ unsigned int _ext2_get_inode_data_offset(ext2_inode_t *inode, unsigned int  bloc
 			
 			if (d_indirect_bp == 0)
 			{
-				for(;;);
 				return 0;
 			}
 			
 			if (inode->double_indirect_block_pointer == 0)
 			{
-				for(;;);
 				return 0;
 			}
 
-			disk_read(inode->double_indirect_block_pointer * fs_info->block_size, d_indirect_bp, fs_info->block_size, fs_info->disk_info);
+			ext2_disk_read(inode->double_indirect_block_pointer * fs_info->block_size, d_indirect_bp, fs_info->block_size, fs_info);
 
 
 			/* calculate the location of our single indirect bp */
@@ -293,12 +290,10 @@ unsigned int _ext2_get_inode_data_offset(ext2_inode_t *inode, unsigned int  bloc
 		{
 			/* Triple indirect block pointer will be used */
 			printk("error, ext2, reading data, file too large/not implemented yet\n");
-			for(;;);
 			return 0;
 		} else{
 			printk("error, ext2, reading data, file too large?\n");
 			/* File to large? */
-			for(;;);
 			return 0;
 		}
 	}
@@ -316,6 +311,7 @@ unsigned int _ext2_get_inode_data_offset(ext2_inode_t *inode, unsigned int  bloc
  */
 unsigned int _ext2_read_inode_block(ext2_inode_t *inode, unsigned int block_to_read, void *buf, filesystem_t *fs_info)
 {
+
 	unsigned int data_offset = _ext2_get_inode_data_offset(inode, block_to_read, fs_info);
 	if (data_offset == 0)
 	{
@@ -323,7 +319,8 @@ unsigned int _ext2_read_inode_block(ext2_inode_t *inode, unsigned int block_to_r
 		errno = EFBIG;
 		return 0;
 	}
-	return disk_read(data_offset, buf, fs_info->block_size, fs_info->disk_info);
+
+	return ext2_disk_read(data_offset, buf, fs_info->block_size, fs_info);
 }
 
 ssize_t _ext2_write_block(unsigned int block, void *buf, filesystem_t *fs_info)
@@ -446,10 +443,12 @@ ssize_t ext2_vfs_read_from_file(vfs_node_t *vfs_node, ino_t inode, void *buf, si
  */
 struct dirent *ext2_read_dir(DIR *dirp)
 {
+
 	/* We need to copy a new block into memory of our direntry offset exceeds bounds (block size) */
 	if (dirp->next_direntry_offset >= dirp->fs_info->block_size)
 	{
 		dirp->blockpointerindex++;
+
 		ext2_inode_t *inode_ref = _ext2_get_inode_ref(dirp->inode, dirp->fs_info);
 
 		/* Try to copy next block */
@@ -461,11 +460,14 @@ struct dirent *ext2_read_dir(DIR *dirp)
 		dirp->next_direntry_offset = 0;
 	}
 
+
+
 	/* Grab our next direntry reference */
 	ext2_directory_entry_t *tmp = (ext2_directory_entry_t*) (((uint32_t) dirp->filebuffer) + dirp->next_direntry_offset);
 
 	if (tmp->inode == 0)
 	{
+		//printk("Should never happen really");
 		/* This should normally never happen... I think? It isn't really clear to me */
 		return 0;
 	}
@@ -512,6 +514,7 @@ DIR *ext2_open_dir_stream(ino_t inode, filesystem_t *fs_info)
 
 	/* Now read in the first block of this directory */
 	_ext2_read_inode_block(inode_ref, 0, ret->filebuffer, fs_info);
+
 
 	/* Cleanup */
 	kfree(inode_ref);
@@ -617,7 +620,7 @@ ino_t _ext2_alloc_inode(filesystem_t *fs_info)
 		
 		/* Copy data into buffer */
 		unsigned int block_bitmap_location = (((ext2_block_group_descriptor_t*) fs_info->blockgroup_list)[bgd_i].inode_bitmap) * fs_info->block_size; 
-		disk_read(block_bitmap_location, inode_bitmap, fs_info->block_size, fs_info->disk_info);
+		ext2_disk_read(block_bitmap_location, inode_bitmap, fs_info->block_size, fs_info);
 	
 		/* Loop to find empty block */
 		for (size_t i = 0; i < fs_info->block_size / 4; i++)
@@ -816,8 +819,13 @@ vfs_node_t *ext2_vfs_entry(uint32_t inode, char *name, uint32_t id, filesystem_t
 		return 0;
 	} 
 
+
 	/* Copy our inode structure into memory and create a vfs node structure */
 	ext2_inode_t *inode_ref = _ext2_get_inode_ref(inode, fs_info);
+	
+	if (inode_ref == 0)
+		return 0;
+	
 	vfs_node_t *node = (vfs_node_t*) kmalloc(sizeof(vfs_node_t));
 	memset(node, 0, sizeof(vfs_node_t));
 
@@ -856,17 +864,25 @@ vfs_node_t *ext2_vfs_entry(uint32_t inode, char *name, uint32_t id, filesystem_t
  *
  * @return     Pointer to the file system info structure
  */
-filesystem_t *init_ext2_filesystem(char *name, disk_t *disk_info)
+filesystem_t *init_ext2_filesystem(char *name, unsigned int ext2_start, disk_t *disk_info)
 {
 	filesystem_t *ret = (filesystem_t *) kmalloc(sizeof(filesystem_t));
 	ret->name = name;
 	ret->type = FS_EXT2;
-	ret->superblock = (void*) _ext2_copy_superblock_into_memory(disk_info);
-	ret->blockgroup_list = (void*) _ext2_get_all_block_group_descriptors((ext2_superblock_t*) ret->superblock, disk_info);
+	ret->superblock = (void*) _ext2_copy_superblock_into_memory(ext2_start, disk_info);
+	
+	if (((ext2_superblock_t*) ret->superblock)->ext2_signature != EXT2_SIGNATURE)
+	{
+		return 0;
+	}
+
+	ret->blockgroup_list = (void*) _ext2_get_all_block_group_descriptors((ext2_superblock_t*) ret->superblock, ext2_start, disk_info);
+	
 	ret->block_size = ext2_block_size((ext2_superblock_t*) ret->superblock);
 
 	ret->disk_info = disk_info;
 	ret->start = EXT2_ROOT_INODE;
+	ret->partstart = ext2_start;
 	ret->file_read = &ext2_read_from_file;
 	ret->file_write = 0;
 	ret->dir_open = &ext2_open_dir_stream;

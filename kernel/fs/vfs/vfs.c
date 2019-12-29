@@ -621,13 +621,15 @@ void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, f
 {	
 	/* If it's the root inode, add it as the first in the list */
 	if (rootnode) {
-		g_vfs_root = (vfs_node_t*) fs_info->fs_makenode(start, ".", g_nodecount++, fs_info);
+		g_vfs_root = (vfs_node_t*) fs_info->fs_makenode(start, "", g_nodecount++, fs_info);
+		g_vfs_root->parent = g_vfs_root;
 		startnode = g_vfs_root;
 	}
 	
 	/* Opens the given inode directory */
 	DIR *dirp = fs_info->dir_open(start, fs_info);
-	if (dirp == 0){
+	if (dirp == 0)
+	{
 		return;
 	}
 
@@ -639,7 +641,8 @@ void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, f
 	/* Read all the entries in the opened inode */
 	while ((dir = fs_info->dir_read(dirp)) != 0){
 		/* The files . and .. shouldn't be added in the vfs */
-		if (_strcmpI(dir->d_name, ".") != 0 && _strcmpI("..", dir->d_name) != 0){
+		//if (_strcmpI(dir->d_name, ".") != 0 && _strcmpI("..", dir->d_name) != 0)
+		//{
 			
 			/* Make name string */
 			char *name = kmalloc(strlen(dir->d_name)+1);
@@ -647,8 +650,12 @@ void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, f
 			name[strlen(dir->d_name)+1] = '\0';
 
 			/* Create a new inode */
+			//printk("Inode %u name %s id %i\n", dir->d_ino, name, g_nodecount, fs_info);
 			node = (vfs_node_t*) fs_info->fs_makenode(dir->d_ino, name, g_nodecount++, fs_info);
-			if (node == 0) {
+			
+
+			if (node == 0) 
+			{
 				continue;
 			}
 
@@ -661,12 +668,14 @@ void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, f
 			} else {
 				prevnode->nextnode = node;
 			}
-			if (node->type == VFS_DIRECTORY) {
+
+			if (node->type == VFS_DIRECTORY && (_strcmpI(dir->d_name, ".") != 0 && _strcmpI("..", dir->d_name) != 0)) {
 				/* Recursive function */
 				loop_over_filesystem(node->offset, 0, node, fs_info);
 			}
 			prevnode = node;
-		}
+		//}
+
 	}
 
 	fs_info->dir_close(dirp);
@@ -679,13 +688,21 @@ extern disk_t *disk_list;
 /**
  * @brief      Initialises the virtual filesystem
  */
-void init_vfs()
+int init_vfs()
 {
 	/* @TODO: this is totally not how the vfs should be initialised */
 	g_nodecount = 0;
-	g_current_fs = init_ext2_filesystem("EXT2FS", disk_list);
+	/* @todo: hard coded entry of fs is REALY BAD here */
+	g_current_fs = init_ext2_filesystem("EXT2FS", 1048576, disk_list);
+	
+	if (g_current_fs == 0)
+	{
+		return -1;
+	}
+
 	g_vfs_root = 0;
 	//init_vfs_lookuptable(g_vfs_root);
-	loop_over_filesystem(2, 1, g_vfs_root, g_current_fs);
 
+	loop_over_filesystem(2, 1,  g_vfs_root, g_current_fs);
+	return 0;
 }
