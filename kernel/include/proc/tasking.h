@@ -48,6 +48,7 @@ typedef struct task_control_block_s
 
 	/* Linked list next identifier */
 	struct task_control_block_s *next;
+
 } __attribute__((packed))task_t;
 
 /**
@@ -121,4 +122,4 @@ void *sbrk(int incr);
  */
 void kill_proc(task_t *task);
 
-#endif
+#endif // TASKING_H_
