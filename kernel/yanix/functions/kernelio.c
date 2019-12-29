@@ -18,6 +18,10 @@ void putchark(char character)
 	vfs_write_fd(1, &character, 1);
 }
 
+size_t print(const char* txt, size_t len)
+{
+	return vfs_write_fd(1, txt, len);
+}
 
 /**
  * @brief      A general print function for the kernel with logging capabilities
@@ -29,7 +33,6 @@ void putchark(char character)
  */
 int printk(const char* __restrict fmt, ...)
 {
-
 	va_list args;
 	va_start(args, fmt);
 	
@@ -83,7 +86,7 @@ int printk(const char* __restrict fmt, ...)
 			} else if (fmt[i+1] == 's') {
 				/* Print a string here */
 				const char *tmp_str = va_arg(args, const char *);
-				written_character += vfs_write_fd(1, tmp_str, strlen(tmp_str));
+				written_character += print(tmp_str, strlen(tmp_str));
 			} else if (fmt[i+1] == 'i') {
 				/* Print a signed integer here (base 10) */
 				int tmp_int = va_arg(args, int);
