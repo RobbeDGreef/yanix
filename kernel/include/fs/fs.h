@@ -37,6 +37,7 @@ struct filesystem_s {
 	offset_t 			*superblock;
 	offset_t 			*blockgroup_list; 		// linked list
 	offset_t 			start;					// depending on implementation this could be an inode, a directory ...
+	offset_t 			partstart;
 	fs_read_file_fpointer 	file_read;
 	fs_write_file_fpointer 	file_write;
 	fs_open_dir_fpointer 	dir_open;
