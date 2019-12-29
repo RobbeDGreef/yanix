@@ -32,6 +32,8 @@
 #define PIC_CMD_SLAVE_AT_IRQ2  	(1 << 2)
 #define PIC_CMD_CASCADE_ID 		(1 << 1)
 
+#include <debug.h>
+
 /**
  * @brief      Remaps the PIC
  *
@@ -41,8 +43,8 @@
 void pic_remap(uint8_t master_offset, uint8_t slave_offset)
 {
 	/* Save the PIC masks */
-	uint8_t master_mask = port_byte_in(PIC_MASTER_DATA);
-	uint8_t slave_mask  = port_byte_in(PIC_SLAVE_DATA);
+	//uint8_t master_mask = port_byte_in(PIC_MASTER_DATA);
+	//uint8_t slave_mask  = port_byte_in(PIC_SLAVE_DATA);
 
 	/* Start init sequence */
     port_byte_out(PIC_MASTER_CMD,	PIC_CMD_ICW1_INIT | PIC_CMD_ICW1_ICW4);
@@ -63,7 +65,19 @@ void pic_remap(uint8_t master_offset, uint8_t slave_offset)
     port_byte_out(PIC_SLAVE_DATA, 	PIC_CMD_ICW4_8086);
     
     /* Restore masks */
-    port_byte_out(PIC_MASTER_DATA,	master_mask);
-    port_byte_out(PIC_SLAVE_DATA,	slave_mask); 
+    port_byte_out(PIC_MASTER_DATA,	0);
+    port_byte_out(PIC_SLAVE_DATA,	0); 
 }
 
+/**
+ * @brief      Send an end of interrupt command to the pic
+ *
+ * @param[in]  irq   The interrupt request number
+ */
+void pic_send_eio(unsigned int irq)
+{
+    if (irq >= 8)
+        port_byte_out(PIC_SLAVE_CMD, PIC_CMD_EOI);
+
+    port_byte_out(PIC_MASTER_CMD, PIC_CMD_EOI);
+}

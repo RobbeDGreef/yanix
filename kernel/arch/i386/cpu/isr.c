@@ -100,7 +100,7 @@ void isr_install(){
     set_idt_gate(128, (uint32_t)isr128);
 
     // Remap the PIC
-    pic_remap(IRQ0, IRQ0+3);   /* Translates to 32 (master) and 35 (slave), the reason slave is 35 is because the interrupts are passed through IRQ2 (index 3)*/
+    pic_remap(0x20, 0x28);
 
     /* Install the IRQs */
     set_idt_gate(32, (uint32_t)irq0);
@@ -178,6 +178,7 @@ void isr_handler(registers_t *r){
     } else {
         interrupt_handlers[num](r);
     }
+
 }
 
     
@@ -191,9 +192,15 @@ void irq_handler(registers_t *r){
         port_byte_out(0xA0, 0x20);
     }
     port_byte_out(0x20, 0x20);
-    
+
+    //if (r->int_no != 32 && r->int_no != 46)
+    //    printk("No handler for: %i\n", r->int_no);
+
     if (interrupt_handlers[r->int_no] != 0){
         isr_callback_t handler = interrupt_handlers[r->int_no];
         handler(r);
     }
+
+    /* We need to send an end of interrupt command to the pic at the end of each interrupt */
+    pic_send_eio(r->int_no);
 }
