@@ -17,6 +17,7 @@
 unsigned int g_current_tty = 0;
 tty_ctrl_t *tty_control_struct;
 
+void init_tty_stdin(void);
 
 /**
  * @brief      This function will initialize the tty devices and create all the necessary buffers
@@ -87,6 +88,7 @@ int init_tty_devices()
 
 	// now we should hook up the tty devices to the vfs
 
+	init_tty_stdin();
 	switch_filedescriptors_to_tty();
 
 	// return 0 on success
@@ -160,13 +162,16 @@ static void _tty_scroll(tty_dev_t *tty_dev)
 	for (size_t i = 1; i < tty_control_struct->row_max; i++){
 
 		void *line2 = (void*) &tty_dev->buffer[ i     * rowsize ];
-		void *line1 = (void*) &tty_dev->buffer[ i - 1 * rowsize ];
+		void *line1 = (void*) &tty_dev->buffer[ (i - 1) * rowsize ];
 		memcpy(line1, line2, rowsize);
 	}
+
 
 	// now empty the next line
 	// @todo: this is wrong !!! we should fill the line with ' ' characters because now the bg color of the last row will be completely wrong
 	memset(&tty_dev->buffer[ (tty_control_struct->row_max - 1) * rowsize ], 0, rowsize);
+	video_clear_screen();
+	//tty_update_display(tty_dev, 0, 0, tty_control_struct->col_max - 1, tty_control_struct->row_max - 1);
 }
 
 /**
@@ -260,6 +265,8 @@ ssize_t tty_write(tty_dev_t *tty_dev, const char *text_to_write, size_t bytes_to
 			/* End of screen reached we need to scroll down */
 			_tty_scroll(tty_dev);
 			dofullupdate = 1;
+			cur_col = 0;
+			cur_row--;
 		}
 
 	}
