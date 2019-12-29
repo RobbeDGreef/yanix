@@ -6,6 +6,11 @@
 time_t 		 g_epoch_seconds;	// seconds
 unsigned int g_epoch_delta;		// milliseconds
 
+/**
+ * @brief      Add delta seconds to time
+ *
+ * @param[in]  milliseconds  The milliseconds
+ */
 void time_add_delta(unsigned int milliseconds) 
 {
 	g_epoch_delta += milliseconds;
