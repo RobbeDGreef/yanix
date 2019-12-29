@@ -10,7 +10,7 @@
 #define KHEAP_START			0xC0000000
 #define KHEAP_MAXSIZE		0x100000
 #define KHEAP_MAXINDEX		0x1000
-#define KHEAP_INITIAL_SIZE	0x20000			/* Depricated */
+#define KHEAP_INITIAL_SIZE	0x30000			/* Depricated */
 
 #define UHEAP_START 		0xD0000000
 #define UHEAP_MAXSIZE		0x100000
@@ -107,5 +107,6 @@ void *kmalloc_user(size_t size);
  */
 void *kmalloc_user_base(size_t size, int aligned, phys_addr_t *physicaladdress);
 
+void heapstatus(heap_t *heap, uint32_t location);
 
 #endif
