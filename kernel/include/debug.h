@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <kernel.h>
+#include <drivers/serial.h>
 
 #define DEBUG() {asm volatile ("int $0x3");}
 
