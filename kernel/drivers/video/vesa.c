@@ -140,7 +140,7 @@ void vesa_draw_char(char character, int x, int y, int frgcolor, int bgcolor)
 	 * however for now it just works and it really is not of high priority
 	 */
 	unsigned char *cpointer = font_getchar(character);
-	
+
 	if (cpointer == 0) {
 		return;
 	}
@@ -163,8 +163,7 @@ void vesa_draw_char(char character, int x, int y, int frgcolor, int bgcolor)
 
 void vesa_clear_screen_()
 {
-	// @todo: vesa clear function
-	return;
+	memset(g_display.physicalLFB, 0, g_display.bpp * g_display.s_width * g_display.s_height);
 }
 
 /**
