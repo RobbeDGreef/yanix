@@ -21,7 +21,7 @@ int set_video_mode(int mode)
 	// @todo: This is a bad system, this system should find the appropriate driver dynamically instead of hardcoded like this 
 	if (mode == VIDEO_MODE_TERM) {
 		/* initialise vga driver */
-		//hook_vga_to_video(g_video_driver);	/* @todo: Sublime removed the VGA system so we gotta rewrite it because it somehow wasn't backed up :( */
+		hook_vga_to_video(g_video_driver);	/* @todo: Sublime removed the VGA system so we gotta rewrite it because it somehow wasn't backed up :( */
 
 	} else if (mode == VIDEO_MODE_VESA) {
 		hook_vesa_to_video(g_video_driver);
