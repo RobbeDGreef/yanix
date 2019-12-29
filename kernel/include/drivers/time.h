@@ -26,4 +26,10 @@ void init_time();
  */
 struct time_s *get_time();
 
+/**
+ * @brief      Add delta seconds to time
+ *
+ * @param[in]  milliseconds  The milliseconds
+ */
+void time_add_delta(unsigned int milliseconds);
 #endif
