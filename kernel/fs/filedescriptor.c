@@ -20,6 +20,9 @@
 extern task_t *g_runningtask;
 file_descriptor_entry_t *fd_array;
 
+/* Function from stdin.c */
+ssize_t tty_stdinwrite(vfs_node_t *node, uint32_t offset, const void *buffer, size_t size);
+ssize_t tty_stdinread(vfs_node_t *node, uint32_t offset, void *buffer, size_t size);
 
 /**
  * @brief      A tty write function
@@ -49,14 +52,13 @@ static ssize_t tty_stderrwrite(vfs_node_t *node, uint32_t offset, const void *bu
 	return ret;
 }
 
-
 /**
  * @brief      Initializes the io file descriptor
  */
 void init_tty_filedescriptors()
 {
 	// @todo: create a system to read from the inputted data
-	vfs_node_t *stdin = vfs_setupnode("stdin", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	vfs_node_t *stdin = vfs_setupnode("stdin", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, &tty_stdinread, &tty_stdinwrite, 0, 0, 0);
 	register_filedescriptor(stdin, 0);
 	vfs_node_t *stdout = vfs_setupnode("stdout", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, &tty_stdoutwrite, 0, 0, 0);
 	register_filedescriptor(stdout, 0);
@@ -68,10 +70,10 @@ void init_tty_filedescriptors()
  * @brief      Switches the filedescriptors to tty mode
  */
 void switch_filedescriptors_to_tty()
-{	
+{
 	get_filedescriptor_node(0)->read  = 0;
 	get_filedescriptor_node(1)->write = &tty_stdoutwrite;
-	get_filedescriptor_node(2)->write = &tty_stderrwrite; 
+	get_filedescriptor_node(2)->write = &tty_stderrwrite;
 }
 
 /* @TODO: a per task filedescriptor list should be created */
