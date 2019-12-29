@@ -31,6 +31,8 @@
 
 volatile task_t *g_starttask = 0;
 volatile task_t *g_runningtask = 0;
+volatile task_t *g_blockedtasks = 0;
+
 pid_t PIDS = 1;
 
 // extern page directory refrences
@@ -49,6 +51,21 @@ extern uint32_t get_eip();
 void add_task_to_queue(task_t *task_to_add)
 {
 	task_t *tmp = (task_t*) g_runningtask;
+	while (tmp->next != 0){
+		tmp = tmp->next;
+	}
+	tmp->next = task_to_add;
+}
+
+
+/**
+ * @brief      Adds a task to the blocked-task queue.
+ *
+ * @param      task_to_add  The task to add
+ */
+void add_task_to_blocked_queue(task_t *task_to_add)
+{
+	task_t *tmp = (task_t*) g_blockedtasks;
 	while (tmp->next != 0){
 		tmp = tmp->next;
 	}
@@ -82,6 +99,36 @@ int remove_task_from_queue(task_t *task_to_remove)
 	// snipped task out of queue
 	return 0;	
 }
+
+
+/**
+ * @brief      Removes a task from the blocked-task queue.
+ *
+ * @param      task_to_remove  The task to remove
+ *
+ * @return     Successcode
+ */
+int remove_task_from_blocked_queue(task_t *task_to_remove)
+{
+	task_t *tmp = (task_t*) g_blockedtasks;
+	if (tmp == 0) {
+		errno = ESRCH; // no such process
+		return -1;
+	}
+	while (tmp->next != task_to_remove) {
+		if (tmp->next == 0) {
+			errno = ESRCH; // no such process
+			return -1;
+		}
+		tmp = tmp->next;
+	}
+	// tmp now houses the task before the to remove task
+	tmp->next = task_to_remove->next;
+
+	// snipped task out of queue
+	return 0;	
+}
+
 
 /**
  * @brief      Kills a task
@@ -148,8 +195,44 @@ static void switch_task(task_t *nexttask, registers_t *regs)
 	arch_task_switch((task_t*) g_runningtask, eip, esp, ebp, g_runningtask->directory->physicalAddress);
 }
 
-#include <debug.h>
+/**
+ * @brief      Block a task
+ *
+ * @param[in]  pid   The pid
+ */
+void block_pid(unsigned int pid)
+{
+	task_t *tmp = (task_t*) g_starttask;
 
+	do
+	{
+		if (tmp->pid == pid)
+		{
+			remove_task_from_queue(tmp);
+			add_task_to_blocked_queue(tmp);
+			return;
+		}
+
+		tmp = tmp->next;
+	} while (tmp->next != 0);
+}
+
+void unblock_pid(unsigned int pid)
+{
+	task_t *tmp = (task_t*) g_blockedtasks;
+	
+	do
+	{
+		if (tmp->pid == pid)
+		{
+			remove_task_from_blocked_queue(tmp);
+			add_task_to_queue(tmp);
+			return;
+		}
+		
+		tmp = tmp->next;
+	} while (tmp->next != 0);
+}
 
 /**
  * @brief      yields control of task
