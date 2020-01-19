@@ -50,6 +50,6 @@ typedef long time_t;
 typedef long clock_t;
 typedef unsigned char  nlink_t;
 typedef unsigned short mode_t;
-
+typedef unsigned int flags_t;
 
 #endif
