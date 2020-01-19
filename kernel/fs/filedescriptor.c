@@ -9,6 +9,8 @@
 #include <yanix/tty_dev.h>
 #include <proc/tasking.h>
 
+#include <yanix/pipe.h>
+
 /*
  * this file will house the filedescriptor code 
  * the filedescriptor list will be an array for easy access and simplicity 
@@ -58,8 +60,11 @@ static ssize_t tty_stderrwrite(vfs_node_t *node, uint32_t offset, const void *bu
 void init_tty_filedescriptors()
 {
 	// @todo: create a system to read from the inputted data
-	vfs_node_t *stdin = vfs_setupnode("stdin", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, &tty_stdinread, &tty_stdinwrite, 0, 0, 0);
-	register_filedescriptor(stdin, 0);
+	//vfs_node_t *stdin = vfs_setupnode("stdin", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, &tty_stdinread, &tty_stdinwrite, 0, 0, 0);
+	//register_filedescriptor(stdin, 0);
+	int fd[2];
+	pipe(fd);
+
 	vfs_node_t *stdout = vfs_setupnode("stdout", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, &tty_stdoutwrite, 0, 0, 0);
 	register_filedescriptor(stdout, 0);
 	vfs_node_t *stderr = vfs_setupnode("stderr", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, &tty_stderrwrite, 0, 0, 0);
@@ -71,7 +76,7 @@ void init_tty_filedescriptors()
  */
 void switch_filedescriptors_to_tty()
 {
-	get_filedescriptor_node(0)->read  = 0;
+	//get_filedescriptor_node(0)->read  = 0;
 	get_filedescriptor_node(1)->write = &tty_stdoutwrite;
 	get_filedescriptor_node(2)->write = &tty_stderrwrite;
 }
