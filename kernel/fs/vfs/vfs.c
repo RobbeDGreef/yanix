@@ -380,11 +380,15 @@ int vfs_close(struct file *file)
 int vfs_close_fd(int fd)
 {
 	vfs_node_t *node = get_filedescriptor_node(fd);
-	if (node == 0) {
+	
+	if (node == 0)
 		return -1;
-	} else if (node->close != 0) {
+	
+	else if (node->close != 0)
 		node->close(node);
-	}
+
+	kfree(node);
+	
 	return close_filedescriptor(fd);
 }
 
