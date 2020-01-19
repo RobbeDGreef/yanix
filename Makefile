@@ -58,7 +58,7 @@ unmount_ramdisk: ramdisk.iso
 	umount ./initrd
 
 mount_disk: $(DISKNAME)
-	losetup /dev/loop0 $(DISKNAME) 
+	losetup /dev/loop3 $(DISKNAME) 
 	losetup /dev/loop2 $(DISKNAME) -o 1048576
 
 	mount /dev/loop2 ./rootfs
@@ -67,7 +67,7 @@ unmount_disk:
 	umount rootfs
 
 	losetup -d /dev/loop2
-	losetup -d /dev/loop0
+	losetup -d /dev/loop3
 
 	# just to be sure
 	umount maindisk.iso
