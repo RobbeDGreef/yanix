@@ -364,20 +364,23 @@ static void _pci_find_brute()
 /**
  * @brief      Initialises all the pci devices with a driver
  */
-void init_pci_devices()
+int init_pci_devices()
 {
 	pci_device_t *tmp = g_pcilist;
 	
 	if (tmp == 0)
-		return;
+		return 0;
 
 	int ret = 0;
-	do {
-		if (tmp->driver != 0) {
+	do 
+	{
+		if (tmp->driver != 0)
+		{
 			ret = tmp->driver(tmp);
 			printk("[ PCI ] Initialisation of %s", (char*)tmp->name); printk(ret?" failed\n":" succeeded\n");
 		}
 	} while ((tmp = tmp->next) != 0);
+	return 0;
 }
 
 /**
@@ -391,16 +394,21 @@ void init_pci_devices()
  */
 pci_device_t *pci_find_by_class(int classcode, int subclass, int prog_if)
 {
-	if (g_pcilist == 0) { return 0; } // no pci devices ??
+	/* No pci devices ?? */
+	if (g_pcilist == 0)
+		return 0;
 
 	pci_device_t *tmp = g_pcilist;
-	do {
-		if (tmp->class_code == classcode && tmp->subclass == subclass && tmp->prog_if == prog_if) {
-			return tmp; // pci devices found returning pointer to device struct
-		}
+	do 
+	{
+		if (tmp->class_code == classcode && tmp->subclass == subclass && tmp->prog_if == prog_if)
+			return tmp; 
+		
 		tmp = tmp->next;
 	} while (tmp != 0);
-	return 0; // pci device not found returning 0
+
+	/* pci device not found returning 0 */
+	return 0; 
 }
 
 /**
@@ -413,23 +421,31 @@ pci_device_t *pci_find_by_class(int classcode, int subclass, int prog_if)
  */
 pci_device_t *pci_find_by_vendor(int vendor, int device)
 {
-	if (g_pcilist == 0) { return 0; } // no pci devices ??
+	/* No pci devices ?? */
+	if (g_pcilist == 0)
+		return 0;
 
 	pci_device_t *tmp = g_pcilist;
-	do {
-		if (tmp->vendor_id == vendor && tmp->device_id == device) {
-			return tmp; // pci devices found returning pointer to device struct
-		}
+	do 
+	{
+		if (tmp->vendor_id == vendor && tmp->device_id == device)
+			return tmp;
+		
 		tmp = tmp->next;
 	} while (tmp != 0);
-	return 0; // pci device not found returning 0
+	
+	/* pci device not found returning 0 */
+	return 0; 
 }
 
 /**
  * @brief      Initialises pci devices (finds them)
  */
-void init_pci()
+int init_pci()
 {
-	// this is just finding the first devices and maybe already parsing them not sure yet ??
 	_pci_find_brute();
+	
+	/* Nothing can really go wrong here so we don't need to do any error checking */
+	return 0;
+
 }

@@ -132,12 +132,12 @@ uint32_t pci_get_bar_by_type(pci_device_t *pcidev, uint8_t type);
 /**
  * @brief      Initialises pci devices (finds them)
  */
-void init_pci();
+int init_pci();
 
 
 /**
  * @brief      Initialises all the pci devices with a driver
  */
-void init_pci_devices();
+int init_pci_devices();
 
 #endif

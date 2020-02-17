@@ -114,7 +114,7 @@ void mouse_poll(){
     }
 }
 
-void init_mouse()
+int init_mouse()
 {
     MOUSELOOPING = 1;
     MOUSELOOPINTERVAL = 10;
@@ -141,6 +141,8 @@ void init_mouse()
     //Enable the mouse
     mouse_write(0xF4);
     mouse_read();
+
+    return 0;
 }
 
 
