@@ -65,28 +65,45 @@ void heapstatus(heap_t *heap, uint32_t location)
  */
 heap_t *createHeap(uint32_t start, uint32_t maxsize, uint32_t maxindex, bool user)
 {
-	heap_t *heap    = (heap_t*) kmalloc_base(sizeof(heap_t), 0, 0);
+	heap_t *heap = (heap_t*) kmalloc_base(sizeof(heap_t), 0, 0);
+	
+	if (!heap)
+		return 0;
+
 	heap->array     = (blockArray *) createEmptyBlockArray(maxindex);
 	heap->start     = start;
 	heap->maxsize   = maxsize;
 	heap->user      = user; 
+	
+	if (!heap->array)
+	{
+		kfree(heap);
+		return 0;
+	}
+
 	return heap;
 }
 
 /**
  * @brief      Initializes the kernel heap
  */
-void init_kheap()
+int init_kheap()
 {
 	kernelHeap = createHeap(KHEAP_START, KHEAP_MAXSIZE, KHEAP_MAXINDEX, 0);
+	if (!kernelHeap)
+		return -1;
+	return 0;
 }
 
 /**
  * @brief      Initialises the user heap
  */
-void init_uheap()
+int init_uheap()
 {
 	userHeap = createHeap(UHEAP_START, UHEAP_MAXSIZE, UHEAP_MAXINDEX, 1);
+	if (!userHeap)
+		return -1;
+	return 0;
 }
 
 /**
