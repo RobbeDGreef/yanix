@@ -52,16 +52,18 @@ static void keyboard_callback(registers_t *regs)
 	else 
 	{
 		unsigned char c = get_key_from_scancode(scancode, shift_currently_enabled, 0);
-		vfs_write_fd(0, &c, 1);
+		if (c)
+			vfs_write_fd(0, &c, 1);
 	}
 }
 
 /**
  * @brief      Initialize keyboard function
  */
-void init_keyboard()
+int init_keyboard()
 {
     arch_register_interrupt_handler(IRQ1, &keyboard_callback);
+    return 0;
 }
 
 /**
