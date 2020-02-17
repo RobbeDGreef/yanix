@@ -6,15 +6,12 @@
 extern void jmp_userspace(uint32_t eip);
 extern void task_switch(uint32_t ip, uint32_t sp, uint32_t bp, uint32_t cr3);
 
-/* Running task reference */
-extern volatile task_t *g_runningtask;
-
 /**
  * @brief      Architechture dependend jump to userspace function 
  */
 void arch_jump_userspace(uint32_t eip)
 {
-	tss_set_kernel_stack(g_runningtask->kernel_stack + KERNEL_STACK_SIZE);
+	tss_set_kernel_stack(get_current_task()->kernel_stack + KERNEL_STACK_SIZE);
 	jmp_userspace(eip);
 }
 

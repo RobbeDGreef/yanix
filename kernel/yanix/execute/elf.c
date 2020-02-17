@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <errno.h>
+#include <kernel.h>
 
 
 #define ELF_PHDR_NULL		0
@@ -54,8 +55,6 @@
 #define ELF_SHDR_TYPE_LOUSER	0x80000000
 #define ELF_SHDR_TYPE_HIUSER	0xffffffff
 
-
-extern task_t *g_runningtask;
 
 /**
  * @brief      Checks elf file support
@@ -145,16 +144,18 @@ static int _elf_loop_over_program_table(void *file, elf32_hdr_t* elf_hdr, elf32_
 
 	}
 
-	int ind = -1;
+	/* Find the program break */
 
-	for (size_t i = 0; i < elf_hdr->pheader_table_amount; i++) {
-		if (ind == -1) {
-			ind = i;
-		} else if ((elf_program_table[i].vaddr + elf_program_table[i].memsize) > (elf_program_table[ind].vaddr + elf_program_table[ind].memsize)){
-			ind = i;
-		}
+	unsigned long pbrk = elf_program_table[0].vaddr + elf_program_table[0].memsize;
+
+	for (size_t i = 1; i < elf_hdr->pheader_table_amount; i++)
+	{
+		if ((elf_program_table[i].vaddr + elf_program_table[i].memsize) > pbrk)
+			pbrk = elf_program_table[i].vaddr + elf_program_table[i].memsize;
 	}
-	g_runningtask->program_break = (elf_program_table[ind].vaddr + elf_program_table[ind].memsize);
+	
+	get_current_task()->program_break = pbrk;
+	
 	return 0;
 }
 

@@ -1,15 +1,18 @@
+#if 0
 #include <mm/heap.h>
 #include <libk/string.h>
 
 #include <fs/vfs_node.h>
 #include <fs/vfs.h>
 #include <fs/filedescriptor.h>
-#include <stdint.h>
-#include <errno.h>
+#include <fs/pipe.h>
+
 #include <yanix/tty_dev.h>
 #include <proc/tasking.h>
 
-#include <yanix/pipe.h>
+#include <stdint.h>
+#include <errno.h>
+
 
 /*
  * this file will house the filedescriptor code 
@@ -19,8 +22,9 @@
  * can be open
 */
 
-extern task_t *g_runningtask;
+extern task_t *get_current_task();
 file_descriptor_entry_t *fd_array;
+
 
 /* Function from stdin.c */
 ssize_t tty_stdinwrite(vfs_node_t *node, uint32_t offset, const void *buffer, size_t size);
@@ -41,7 +45,7 @@ static ssize_t tty_stdoutwrite(vfs_node_t *node, uint32_t offset, const void *bu
 	(void) (node);
 	(void) (offset);
 
-	return tty_write(tty_get_device(g_runningtask->tty), buffer, size, -1, -1);
+	return tty_write(tty_get_device(get_current_task()->tty), buffer, size, -1, -1);
 }
 
 static ssize_t tty_stderrwrite(vfs_node_t *node, uint32_t offset, const void *buffer, size_t size)
@@ -49,7 +53,7 @@ static ssize_t tty_stderrwrite(vfs_node_t *node, uint32_t offset, const void *bu
 	(void) (node);
 	(void) (offset);
 	tty_set_color(TTY_RED);
-	int ret = tty_write(tty_get_device(g_runningtask->tty), buffer, size, -1, -1);
+	int ret = tty_write(tty_get_device(get_current_task()->tty), buffer, size, -1, -1);
 	tty_set_color(TTY_WHITE);
 	return ret;
 }
@@ -57,11 +61,8 @@ static ssize_t tty_stderrwrite(vfs_node_t *node, uint32_t offset, const void *bu
 /**
  * @brief      Initializes the io file descriptor
  */
-void init_tty_filedescriptors()
+int init_tty_filedescriptors()
 {
-	// @todo: create a system to read from the inputted data
-	//vfs_node_t *stdin = vfs_setupnode("stdin", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, &tty_stdinread, &tty_stdinwrite, 0, 0, 0);
-	//register_filedescriptor(stdin, 0);
 	int fd[2];
 	pipe(fd);
 
@@ -69,6 +70,8 @@ void init_tty_filedescriptors()
 	register_filedescriptor(stdout, 0);
 	vfs_node_t *stderr = vfs_setupnode("stderr", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, &tty_stderrwrite, 0, 0, 0);
 	register_filedescriptor(stderr, 0);
+
+	return 0;
 }
 
 /**
@@ -157,3 +160,99 @@ vfs_node_t *get_filedescriptor_node(int fd)
 	errno = ENXIO;
 	return 0;
 }
+
+
+#endif
+
+
+
+/* New system */
+
+/**
+ * 
+ * We will have a global file locking table
+ * 
+ * every process has it's own filedescriptors, we will save them in a vector like struct
+ * 
+ */
+
+#include <fs/filedescriptor.h>
+#include <yanix/ds/fd_vector.h>
+#include <errno.h>
+#include <kernel.h>
+
+struct file_lock 	*global_file_table;
+
+int lock_file(vfs_node_t *node, pid_t pid)
+{
+	for (int i = 0; i < GLOBAL_FILE_TABLE_SIZE; i++)
+	{
+		if (!global_file_table[i].node)
+		{
+			global_file_table[i].node = node;
+			global_file_table[i].pid  = pid;
+			return i;
+		}
+	}
+	errno = ENFILE;
+	return -1;
+}
+
+int find_locked_file(vfs_node_t *node)
+{
+	for (int i = 0; i < GLOBAL_FILE_TABLE_SIZE; i++)
+	{
+		if (global_file_table[i].node == node)
+			return i;
+	}
+	return -1;
+}
+
+int unlock_file(int index)
+{
+	global_file_table[index].node = 0;
+	return 0;
+}
+
+int register_filedescriptor(vfs_node_t *node, int mode)
+{
+	struct file_descriptor fd_struct;
+	fd_struct.node = node;
+	fd_struct.mode = mode;
+
+	return vector_add(get_current_task()->fds, fd_struct); 
+}
+
+struct file_descriptor get_filedescriptor(int fd)
+{
+	if (get_current_task())
+		return vector_get(get_current_task()->fds, fd);
+
+	struct file_descriptor err;
+	err.node = 0;
+	return err;
+}
+
+vfs_node_t *get_filedescriptor_node(int fd)
+{
+	struct file_descriptor fd_struct = get_filedescriptor(fd);
+	return fd_struct.node;
+}
+
+int close_filedescriptor(int fd)
+{
+	struct file_descriptor fd_struct = get_filedescriptor(fd);
+
+	/* Checking if the filedescriptor is actually open */	
+	if (!fd_struct.node)
+		return 0;
+
+	vector_clear(get_current_task()->fds, fd);
+	return 0;
+}
+
+int init_filedescriptors()
+{
+	return 0;
+}
+

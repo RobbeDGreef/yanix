@@ -19,8 +19,9 @@
 #include <mm/paging.h>
 #include <mm/heap.h>
 #include <signal.h>
-#include <kernel.h>
 #include <drivers/video/video.h>
+#include <kernel.h>
+
 
 /**
  * The global directory variables
@@ -37,7 +38,6 @@ offset_t *g_frames;
 size_t   g_nframes;
 
 extern uint32_t  placement_address;	// defined in heap.c
-extern task_t   *g_runningtask;
 
 /**
  * @brief      Basic kernel debug handler
@@ -209,7 +209,7 @@ static void page_fault(registers_t *regs)
 	int us = regs->err_code & 0x4;			// processor in ring 3 
 	int reserved = regs->err_code & 0x8;	// Overwritten CPU-reserved bits of a page entry
 
-	if (g_runningtask->ring != 3){		
+	if (get_current_task()->ring != 3){		
 		// this is a kernel task
 		printk("Page fault: \n");
 		int errcode = -1;

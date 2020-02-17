@@ -10,11 +10,12 @@
 #include <sys/types.h>
 #include <mm/paging.h>
 #include <mm/heap.h>
-#include <yanix/stack.h>
 #include <drivers/ps2/mouse.h>
 #include <libk/string.h>
 #include <cpu/cpu.h>
 #include <core/timer.h>
+#include <yanix/stack.h>
+#include <yanix/ds/fd_vector.h>
 
 #include <proc/tasking.h>
 #include <proc/arch_tasking.h>
@@ -42,6 +43,12 @@ extern page_directory_t *g_kernel_directory;
 // extern assebmly functions
 extern uint32_t get_eip();
 
+task_t *get_current_task()
+{
+	/* Not volatile anymore because it will always be the correct same value for each process */
+	return (task_t*) g_runningtask;
+}
+
 
 /**
  * @brief      Adds a task to the task queue.
@@ -50,7 +57,7 @@ extern uint32_t get_eip();
  */
 void add_task_to_queue(task_t *task_to_add)
 {
-	task_t *tmp = (task_t*) g_runningtask;
+	task_t *tmp = (task_t*) get_current_task();
 	while (tmp->next != 0){
 		tmp = tmp->next;
 	}
@@ -242,7 +249,7 @@ void task_yield(registers_t *regs)
 
 	schedule_killer();
 
-	task_t *tmp = (task_t*) g_runningtask;
+	task_t *tmp = (task_t*) get_current_task();
 	while (1) {
 		if (tmp->next != 0) {
 			tmp = tmp->next;
@@ -288,17 +295,24 @@ static task_t *create_task(task_t *new_task, int kernel_task, page_directory_t *
 	{
 		new_task->stacktop = ((uint32_t) kmalloc_user_base(USER_STACK_SIZE, 1, 0) ) + USER_STACK_SIZE;
 		new_task->stack_size = USER_STACK_SIZE;
+		new_task->ring = 3;
 	}
 	else 
 	{
 		new_task->stacktop = DISIRED_STACK_LOCATION;
 		new_task->stack_size = STACK_SIZE;
+		new_task->ring = 0;
 	}
 
 	/* set pid and new page directory (addr space) */
 	new_task->pid = PIDS++;
+	new_task->uid = g_runningtask->uid;
+	new_task->gid = g_runningtask->gid;
+	new_task->name = g_runningtask->name;
+	new_task->priority = g_runningtask->priority;
 	new_task->directory = dir;
 	new_task->state = TASK_RUNNING;
+	new_task->fds = vector_copy(g_runningtask->fds);
 
 	new_task->timeslice = 100;
 
@@ -361,20 +375,27 @@ pid_t fork()
  *
  * @return     Successcode
  */
+#include <debug.h>
 int init_tasking()
 {
 	// create new task struct
 	g_starttask = (task_t*) kmalloc(sizeof(task_t));
 	memset((task_t*) g_starttask, 0, sizeof(task_t));
 
-	g_starttask->pid = PIDS++;
-	g_starttask->directory = g_current_directory;
-	g_starttask->state = TASK_RUNNING;
-	g_starttask->timeslice = 100;
+	g_starttask->pid 		= PIDS++;
+	g_starttask->directory 	= g_current_directory;
+	g_starttask->state 		= TASK_RUNNING;
+	g_starttask->timeslice 	= 100;
 	
-	g_starttask->kernel_stack = (uint32_t) kmalloc_base(STACK_SIZE, 1, 0) + STACK_SIZE;
-	g_starttask->stacktop = DISIRED_STACK_LOCATION;
-	g_starttask->stack_size = STACK_SIZE;
+	g_starttask->kernel_stack 	= (uint32_t) kmalloc_base(STACK_SIZE, 1, 0) + STACK_SIZE;
+	g_starttask->stacktop 		= DISIRED_STACK_LOCATION;
+	g_starttask->stack_size 	= STACK_SIZE;
+
+	g_starttask->uid = 0;
+	g_starttask->gid = 0;
+	g_starttask->name = "Main kernel loop";
+	g_starttask->priority = 0;
+	g_starttask->fds = vector_create();
 
 	g_runningtask = g_starttask;
 
@@ -432,7 +453,7 @@ static void send_task_signal(task_t *task, int signal)
  */
 void send_sig(int signal)
 {
-	send_task_signal((task_t*) g_runningtask, signal);
+	send_task_signal(get_current_task(), signal);
 }
 
 /**
@@ -465,15 +486,15 @@ void schedule(registers_t *regs)
 {
 	if (g_runningtask != 0){
 		if (g_runningtask->sliceused < g_runningtask->timeslice){
-			// run
+			/* run */
 			g_runningtask->sliceused += timer_get_period();
 		} else {
-			// switch
+			/* switch */
 			g_runningtask->sliceused = 0;
 			task_yield(regs);
 		}
 	} else {
-		// exit gracefully because no tasking initialised
+		/* exit gracefully because no tasking initialised */
 	}
 }
 
@@ -498,6 +519,8 @@ int getpid()
 	return g_runningtask->pid;
 }
 
+#include <debug.h>
+
 /**
  * @brief      Typical sbrk that will increase the program break
  *
@@ -505,21 +528,23 @@ int getpid()
  *
  * @return     On success the old program break, on failure 0
  */
-void* sbrk(int incr)
+void* sbrk(intptr_t incr)
 {
-	for (uint32_t i = g_runningtask->program_break; i < g_runningtask->program_break + incr ;i += 0x1000) {
+	int kernel = 1;
+	if (get_current_task()->ring == 3)
+		kernel = 0;
+
+	for (uint32_t i = get_current_task()->program_break; i < get_current_task()->program_break + incr ; i += 0x1000)
+	{
 		// this will alocate a frame if the frame has not already been set 
-		int kernel = 1;
-		if (g_runningtask->ring == 3) {
-			kernel = 0;
-		}
-		if (alloc_frame(get_page(i, 1, g_runningtask->directory), kernel, kernel?0:1) == -2) {
+		if (alloc_frame(get_page(i, 1, get_current_task()->directory), kernel, kernel?0:1) == -2) 
+		{
 			// TODO: should also deallocate the frame 
 			errno = ENOMEM;
 			return (void*) -1;
 		}
+
 	}
-	g_runningtask->program_break += incr;
-	
-	return (void*) (g_runningtask->program_break -= incr);
+	get_current_task()->program_break += incr;
+	return (void*) (get_current_task()->program_break - incr);
 } 

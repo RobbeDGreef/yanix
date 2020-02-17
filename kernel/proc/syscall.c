@@ -1,5 +1,6 @@
 #include <proc/syscall.h>
 #include <cpu/cpu.h>
+#include <kernel.h>
 
 // all the imports for the syscalls
 #include <proc/tasking.h>
@@ -13,7 +14,6 @@
 
 static void syscall_handler(registers_t *regs);
 
-extern task_t *g_runningtask;
 
 // syscalls
 
@@ -24,7 +24,7 @@ char **environ = __env;
 void _exit() 
 {
     send_sig(SIGKILL);
-    kill_proc(g_runningtask);
+    kill_proc((task_t*)get_current_task());
     task_yield();
 
     /* This is a safety to handle the very slight change of there not being any task to yield to (i might change this in the future) */
@@ -39,7 +39,7 @@ int fstat(int file, struct stat *st)
     return 0;
 }
 
-int stat (char *file, struct stat *st)
+int stat(char *file, struct stat *st)
 {
     (void) (file);
     (void) (st); 
@@ -103,6 +103,57 @@ sighandler_t signal(int signum, sighandler_t handler)
     return 0;
 }
 
+int sys_readdir(int fd, struct dirent* dirp, int count)
+{
+    (void) (fd);
+    (void) (dirp);
+    (void) (count);
+    return -1;
+}
+
+int sys_getdents(int fd, struct dirent* dirp, int count)
+{
+    (void) (fd);
+    (void) (dirp);
+    (void) (count);
+    printk(KERN_DEBUG "Een schreeuw\n");
+    
+
+    return -1;
+}
+
+int sys_chdir(const char *path)
+{
+    (void) (path);
+    return -1;
+}
+
+int sys_getcwd()
+{
+    return 0;
+}
+
+int sys_pipe(int pipefd[2])
+{
+    (void) (pipefd);
+    return -1;
+}
+
+int sys_mkdir(const char *path, mode_t mode)
+{
+    (void) (path);
+    (void) (mode);
+    return -1;
+} 
+
+int sys_fcntl(int fd, int cmd, uintptr_t arguments)
+{
+    (void) (fd);
+    (void) (cmd);
+    (void) (arguments);
+    printk(KERN_DEBUG "AAAAAA\n");
+    return -1;
+}
 
 // @todo: ok so im done with placing the syscalls in the right order FIX SYSCALL ORDER (linux)
 // @TODO: sbrk should be a lib func and not a syscall (should use a brk)
@@ -128,13 +179,13 @@ static const void *syscalls[] = {
     &isatty,        // 17
     &stat,          // 18
     &signal,        // 19
-    0,              // 20
-    0,              // 21
-    0,              // 22
-    0,              // 23
-    0,              // 24
-    0,              // 25
-    0,              // 26
+    &sys_readdir,   // 20
+    &sys_getdents,  // 21
+    &sys_chdir,     // 22
+    &sys_getcwd,    // 23
+    &sys_pipe,      // 24
+    &sys_mkdir,     // 25
+    &sys_fcntl,     // 26
     0,              // 27
     &fstat,         // 28
     0,              // 29
@@ -147,19 +198,19 @@ static const void *syscalls[] = {
     0,              // 36
     0,              // 37
     0,              // 38
-    &getpid         // 39
+    &getpid,        // 39
+
 };
 
-const uint32_t num_syscalls = sizeof(syscalls) / sizeof(void*);
-
-DEFN_SYSCALL0(0, 0);
+#define NUMER_OF_SYSCALLS sizeof(syscalls) / sizeof(void*)
 
 /**
  * @brief      Initialzes the system calls
  */
-void init_syscalls()
+int init_syscalls()
 {
 	arch_register_interrupt_handler(0x80, &syscall_handler);
+    return 0;
 }
 
 /**
@@ -168,7 +219,9 @@ void init_syscalls()
  * @param      regs  The pushed registers
  */
 static void syscall_handler(registers_t *regs){
-    if (regs->eax >= num_syscalls)
+    //printk("Syscall: %i with %i %i %i\n", regs->eax, regs->ebx, regs->ecx, regs->edx);
+
+    if (regs->eax >= NUMER_OF_SYSCALLS)
 		return;
 
     void *location = (void*) syscalls[regs->eax];
@@ -191,6 +244,5 @@ static void syscall_handler(registers_t *regs){
      	pop %%ebx; \
    		" : "=a" (ret) : "r" (regs->edi), "r" (regs->esi), "r" (regs->edx), "r" (regs->ecx), "r" (regs->ebx), "r" (location));
    regs->eax = ret;
-
 }
 //0x80482b2
