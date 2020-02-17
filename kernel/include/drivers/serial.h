@@ -21,6 +21,7 @@ void serial_put(char data);
  * @param      data  The data
  */
 void serial_write(char *data);
+void serial_write_noc(char *data, size_t len);
 
 void init_serial();
 

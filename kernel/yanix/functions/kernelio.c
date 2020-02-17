@@ -3,8 +3,7 @@
 #include <stdarg.h>
 #include <yanix/tty_dev.h>
 #include <proc/tasking.h>
-
-extern task_t *g_runningtask;
+#include <debug.h>
 
 unsigned int g_kernel_log_level;
 
@@ -16,10 +15,12 @@ unsigned int g_kernel_log_level;
 void putchark(char character)
 {
 	vfs_write_fd(1, &character, 1);
+	serial_put(character);
 }
 
 size_t print(const char* txt, size_t len)
 {
+	serial_write((char*)txt);
 	return vfs_write_fd(1, txt, len);
 }
 
@@ -263,7 +264,7 @@ int printk(const char* __restrict fmt, ...)
  */
 void clear_screenk()
 {
-	tty_clear_buf(tty_get_device(g_runningtask->tty));
+	tty_clear_buf(tty_get_device(get_current_task()->tty));
 }
 
 void printk_hd(void *ptr, size_t size)

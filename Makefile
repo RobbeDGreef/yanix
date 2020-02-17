@@ -45,7 +45,9 @@ clean:
 	$(MAKE) -C ./bootloader/ clean PREFIX=$(PWD)/bootloader
 
 run: kernel.bin maindisk.iso
-	$(QEMU) ${QEMU_FLAGS} -hda $(DISKNAME)
+	@echo "Serial output: "
+	cat /serial_output.out &
+	$(QEMU) ${QEMU_FLAGS} -hda /dev/loop3
 
 debug: kernel.bin maindisk.iso kernel.elf
 	$(QEMU) -s -d guest_errors ${QEMU_FLAGS} -hda $(DISKNAME) &
