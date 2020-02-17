@@ -3,7 +3,6 @@
 #include <proc/tasking.h>
 #include <kernel.h>
 
-extern task_t *g_runningtask;
 
 /**
  * @brief      Displays status message on display
