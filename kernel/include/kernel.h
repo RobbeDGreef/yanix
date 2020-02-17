@@ -1,6 +1,9 @@
 #ifndef KERNEL_H
 #define KERNEL_H
 
+#include <yanix/kfunctions.h>
+#include <proc/tasking.h>
+
 #define KERN_EMERG	 "<0>"
 #define KERN_ALERT	 "<1>"
 #define KERN_CRIT	 "<2>"
@@ -11,12 +14,8 @@
 #define KERN_DEBUG 	 "<7>"
 
 
+
 int printk(const char* __restrict fmt, ...);
-
-
-/**
- * @brief      Clears the screen
- */
 void clear_screenk();
 
 #endif
