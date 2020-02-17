@@ -9,12 +9,16 @@ typedef struct filesystem_s filesystem_t;
 
 
 /**
- * @brief      dirent structure according to POSIX standards (+ d_length but this does not interfere with POSIX)
+ * @brief      dirent structure according to POSIX standards
  */
 struct dirent {
-	ino_t	 	d_ino;		// the inode number
-	char 		*d_name;	// file name
-	size_t 		d_length;	// name length
+	unsigned long	d_ino;		/* The inode number */
+	unsigned long 	d_off;		/* The offset to the next dirent */ 
+	unsigned short 	d_reclen;	/* Length of this dirent structure in bytes */
+
+	char		pad;			/* Zero padding byte */
+	char 		d_type;			/* The filetype */
+	char 		d_name[];		/* The filename (null terminated c string) */
 };
 
 
