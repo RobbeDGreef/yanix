@@ -153,4 +153,8 @@ vfs_node_t *vfs_setupnode(char *name, uint8_t type, uint16_t permissions, uid_t 
  */
 int vfs_check_if_initialised();
 
+int vfs_link_node_vfs(const char *path, vfs_node_t *node);
+
+char *vfs_get_name(const char*path);
+
 #endif
