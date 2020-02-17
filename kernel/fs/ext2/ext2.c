@@ -384,6 +384,8 @@ ssize_t ext2_read_from_file(ino_t inode, void *buf, size_t byte_count, filesyste
 			/* Cleanup */
 			kfree(inode_ref);
 
+			errno = 0;
+
 			return ret;
 		}
 		/* Copied a block successfully so update our return value */
@@ -408,6 +410,7 @@ ssize_t ext2_read_from_file(ino_t inode, void *buf, size_t byte_count, filesyste
 		if (_ext2_read_inode_block(inode_ref, block_count, tmp_buf, fs_info) == 0)
 		{
 			printk(KERN_DEBUG "error");
+			errno = 0;
 			return -1;
 		}
 
@@ -455,6 +458,7 @@ struct dirent *ext2_read_dir(DIR *dirp)
 		if (_ext2_read_inode_block(inode_ref, dirp->blockpointerindex, dirp->filebuffer, dirp->fs_info) == 0)
 		{
 			/* Failed to copy next block */
+			errno = 0;
 			return 0;
 		}
 		dirp->next_direntry_offset = 0;
@@ -507,7 +511,8 @@ DIR *ext2_open_dir_stream(ino_t inode, filesystem_t *fs_info)
 	DIR *ret = (DIR*) kmalloc(sizeof(DIR));
 	memset(ret, 0, sizeof(DIR));
 
-	ret->dirent.d_name = (char*) kmalloc(NAME_MAX);
+	//ret->dirent.d_name = (char*) kmalloc(NAME_MAX);
+	//ret->dirent.d_name = "";
 	ret->fs_info = fs_info;
 	ret->inode = inode;
 	ret->filebuffer = (void*) kmalloc(fs_info->block_size);
