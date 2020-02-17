@@ -61,12 +61,12 @@ void *kmalloc(size_t size);
 /**
  * @brief      Initializes the kernel heap
  */
-void init_kheap();
+int init_kheap();
 
 /**
  * @brief      Initialises the user heap
  */
-void init_uheap();
+int init_uheap();
 
 
 /**
