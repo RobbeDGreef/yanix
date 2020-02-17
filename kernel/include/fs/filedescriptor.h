@@ -1,14 +1,17 @@
 #ifndef FILEDESCRIPTOR_H
 #define FILEDESCRIPTOR_H
 
+#if 0
+
 #include <fs/vfs_node.h>
 
 #define MAX_FILEDESCRIPTORS 	32	/* This number should probably be higher */
 
 typedef struct {
-	int 			mode;
 	vfs_node_t		*node;
-}file_descriptor_entry_t;
+	int 			mode;
+	int 			seek;
+} file_descriptor_entry_t;
 
 
 /**
@@ -52,6 +55,35 @@ vfs_node_t *get_filedescriptor_node(int fd);
  */
 void switch_filedescriptors_to_tty();
 
-void init_tty_filedescriptors();
+int init_tty_filedescriptors();
+
+#endif
+
+#include <fs/vfs_node.h>
+
+#define GLOBAL_FILE_TABLE_SIZE	1024
+
+struct file_lock 
+{
+	vfs_node_t 	*node;	/* The vfs file node that is locked */
+	pid_t		pid;	/* The process that locked the file */
+};
+
+struct file_descriptor
+{
+	vfs_node_t	*node;
+	mode_t		mode;
+	int 		seek;
+	int 		lock_index;
+};
+
+
+
+int init_filedescriptors();
+int close_filedescriptor(int fd);
+vfs_node_t *get_filedescriptor_node(int fd);
+int register_filedescriptor(vfs_node_t *node, int mode);
+
+
 
 #endif

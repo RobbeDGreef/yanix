@@ -88,8 +88,8 @@ int init_tty_devices()
 
 	// now we should hook up the tty devices to the vfs
 
-	init_tty_stdin();
-	switch_filedescriptors_to_tty();
+	//init_tty_stdin();
+	//switch_filedescriptors_to_tty();
 
 	// return 0 on success
 	return 0;
