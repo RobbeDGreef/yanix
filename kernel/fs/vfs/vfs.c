@@ -1,12 +1,3 @@
-/**
- * drivers/vfs/vfs.c
- * 
- * Author: Robbe De Greef
- * Date:   31 may 2019
- * 
- * Version 3.0
- */
-
 #include <fs/vfs.h>
 #include <fs/vfs_node.h>
 #include <drivers/disk.h>
@@ -22,8 +13,8 @@
 #include <fcntl.h>
 #include <kernel.h>
 
-vfs_node_t *g_vfs_root;
-uint32_t g_nodecount;
+vfs_node_t 		*g_vfs_root;
+unsigned long g_nodecount;
 
 /**
  * @brief      Reads from a vfs_node
@@ -51,9 +42,9 @@ static ssize_t _vfs_read(vfs_node_t* node, void *buf, size_t amount)
  */
 int vfs_check_if_initialised()
 {
-	if (g_vfs_root == 0) {
+	if (g_vfs_root == 0)
 		return 0;
-	}
+
 	return 1;
 }
 
@@ -69,9 +60,9 @@ int vfs_check_if_initialised()
 ssize_t vfs_read_fd(int fd, void *buf, size_t amount)
 {
 	vfs_node_t *node = get_filedescriptor_node(fd);
-	if (node == 0) {
+	if (node == 0)
 		return -1;
-	}
+
 	return _vfs_read(node, buf, amount);
 }
 
@@ -121,11 +112,9 @@ static ssize_t _vfs_write(vfs_node_t *node, const void *buf, size_t amount)
 ssize_t vfs_write_fd(int fd, const void *buf, size_t amount)
 {
 	vfs_node_t *node = get_filedescriptor_node(fd);
-	if (node == 0) {
-		return -1;
-	}
-
-	return _vfs_write(node, buf, amount);
+	
+	if (node == 0)
+		return -1s_write(node, buf, amount);
 }
 
 
@@ -164,19 +153,18 @@ static int _get_type(int mode)
 	}
 }
 
-static vfs_node_t *_create_node(const char *nodepath, int flags, int mode)
+static vfs_node_t *_create_node(const char *nodepath, int flags, mode_t mode)
 {
 	//@todo: see creat(); (we need to take into account flags parameter)
 	(void) (flags);
 
-	// just so we can edit the path easier
 	char *path = (char*) kmalloc(sizeof(char) * (strlen(nodepath)+1));
 	memcpy(path, nodepath, sizeof(char) * (strlen(nodepath)+1));
 
-	// if the path ends on '/' snip it of
-	if (path[strlen(path)-1] == '/') {
+	/* if the path ends on '/' snip it of */
+	if (path[strlen(path)-1] == '/')
 		path[strlen(path)-1] = '\0';
-	}
+	
 
 	vfs_node_t *dir = 0;
 	// snip of path at last '/' in other words get directory of node
@@ -215,7 +203,8 @@ static vfs_node_t *_create_node(const char *nodepath, int flags, int mode)
 	node->fs_info = dir->fs_info;
 	
 
-	if (node->type == VFS_FILE || node->type == VFS_DIRECTORY) {
+	if (node->type == VFS_FILE || node->type == VFS_DIRECTORY)
+	{
 		node->open = dir->open;
 		node->close = dir->close;
 		node->read = dir->read;
@@ -226,12 +215,13 @@ static vfs_node_t *_create_node(const char *nodepath, int flags, int mode)
 		node->readdir = dir->readdir;
 	}
 	
-	// now connect the node into the directory
+	/* Connect the node into the directory */
 	node->parent = dir;
 	vfs_node_t *tmp = dir->dirlist;
-	while (tmp->nextnode != 0) {
+	
+	while (tmp->nextnode != 0)
 		tmp = tmp->nextnode;
-	}
+	
 	tmp->nextnode = node;
 	kfree(path);
 
@@ -240,20 +230,23 @@ static vfs_node_t *_create_node(const char *nodepath, int flags, int mode)
 
 vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 {
-	// find a node
+	/* find node */
 	vfs_node_t *node = vfs_find_path(path);
 	int node_already_exists = 1;
-	// if node was not found check if O_CREAT flag set (and node needs to be created)
-	if (node == 0 && (flags & O_CREAT) != 0) {
-		// create the node
+
+	/* if node was not found check if O_CREAT flag is set */
+	if (node == 0 && (flags & O_CREAT) != 0)
+	{
+		/*create the node */
 		node = _create_node(path, flags, mode);
 		node_already_exists = 0;
 
 		// if node was not created return with error
-		if (node == 0) {
+		if (node == 0)
 			return 0;
-		}
-		if (node->creat != 0) {
+		
+		if (node->creat != 0)
+		{
 			int i;
 			for (i = strlen(path); i >= 0; i--) {
 				if (path[i] == '/' && (unsigned int) i != strlen(path)){
@@ -270,12 +263,16 @@ vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 		}
 
 		// node created so continue on
-	} else if (node == 0) {
+	}
+	else if (node == 0) 
+	{
 		// not found and shouldn't create so return with error
 		return 0;
 	}
-	// if node has open function, run open function and if return value == -1 return with error
-	if (node->open != 0) {
+	
+	/* if node has open function, run open function and if return value == -1 return with error */
+	if (node->open != 0) 
+	{
 		if (node->open(node, node_already_exists, flags, mode) == -1) {
 			return 0;
 		}
@@ -297,9 +294,10 @@ vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 int vfs_open_fd(const char* path, int flags, int mode)
 {
 	vfs_node_t *node = _vfs_open(path, flags, mode);
-	if (node == 0) {
-		return -1;
-	}
+
+	if (node == 0)
+		return -errno;
+
 	return register_filedescriptor(node, mode);
 }
 
@@ -335,6 +333,70 @@ struct file *vfs_open(const char *path, int flags, int mode)
 	return file;
 }
 
+char *vfs_get_name(const char*path)
+{
+	int pathlen = strlen(path);
+	char *tmp = kmalloc(pathlen);
+	memcpy(tmp, path, pathlen);
+
+	if (path[pathlen-1] == '/')
+	{
+		tmp[pathlen-1] = '\0';
+		pathlen--;
+	}
+	
+
+	for (int i = pathlen; i != 0; i--)
+	{
+		if (tmp[i] == '/')
+		{
+			return &tmp[i+1];
+		}
+	}
+	kfree(tmp);
+
+	return 0;
+}
+
+int vfs_link_node_vfs(const char *path, vfs_node_t *node)
+{
+	int pathlen = strlen(path);
+	char *tmp = kmalloc(pathlen);
+	memcpy(tmp, path, pathlen);
+
+	if (path[pathlen-1] == '/')
+	{
+		tmp[pathlen-1] = '\0';
+		pathlen--;
+	}
+	
+	vfs_node_t *dir;
+
+	for (int i = pathlen; i != 0; i--)
+	{
+		if (tmp[i] == '/')
+		{
+			tmp[i] = '\0';
+			dir = vfs_find_path(tmp);
+		}
+	}
+
+	if (dir == 0)
+		return -1;
+
+	node->parent = dir;
+
+	vfs_node_t *ntmp = dir->dirlist;
+	
+	while (ntmp->nextnode != 0)
+		ntmp = ntmp->nextnode;
+	
+	ntmp->nextnode = node;
+
+	kfree(tmp);
+
+	return 0;
+}
 
 /**
  * @brief      Creates file and opens it
@@ -416,9 +478,10 @@ struct dirent *vfs_readdir(DIR *dirstream)
 DIR *vfs_opendir(const char *filepath)
 {
 	vfs_node_t *node = vfs_find_path(filepath);
-	if (node == 0 && node->opendir != 0) {
+
+	if (node == 0 || node->opendir == 0)
 		return 0;
-	}
+
 	return node->opendir(node);
 }
 
@@ -565,7 +628,6 @@ vfs_node_t *vfs_find_path(const char *path)
 		if (path[i] == '/' || path[i] == '\0')
 		{
 			node = _vfs_path_find(node, buffer);
-
 			if (path[i] == '\0')
 			{
 				kfree(buffer);
@@ -583,6 +645,7 @@ vfs_node_t *vfs_find_path(const char *path)
 		}
 	}
 
+	errno = ENOENT;
 	return 0;
 }
 
