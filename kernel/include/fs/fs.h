@@ -66,4 +66,7 @@ void register_filesystem(char *name, int type, fs_read_file_fpointer readfile,
 						 fs_write_file_fpointer writefile, fs_open_dir_fpointer opendir, fs_read_dir_fpointer readdir, fs_make_node makenode);
 
 
+int init_char_specials();
+int getdents(int fd, struct dirent *dir, int count);
+
 #endif /* drivers/fs/fs.h */
