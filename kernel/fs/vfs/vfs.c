@@ -114,7 +114,7 @@ ssize_t vfs_write_fd(int fd, const void *buf, size_t amount)
 	vfs_node_t *node = get_filedescriptor_node(fd);
 	
 	if (node == 0)
-		return -1s_write(node, buf, amount);
+		return _vfs_write(node, buf, amount);
 }
 
 
