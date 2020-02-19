@@ -55,7 +55,8 @@ struct vfs_node_s {
 	filesystem_t 		*fs_info;		// the information of the filesystem this inode points to
 	offset_t 			offset;			// this points to the offset of the file (this can also be something like an inode 
 										// depending on implementation) basically any way to refrence a file
-	
+	nlink_t 			nlink;			/* Number of hard links */
+
 	open_fpointer		open;			// open file descriptor
 	close_fpointer		close;			// close file descriptor
 
