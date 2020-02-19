@@ -438,6 +438,61 @@ ssize_t ext2_vfs_read_from_file(vfs_node_t *vfs_node, ino_t inode, void *buf, si
 }
 
 /**
+ * @brief      Converts ext2 type values to the vfs type values
+ *
+ * @param[in]  type  The type
+ *
+ * @return     The converted type
+ */
+unsigned char _ext2_inode_type_to_vfs_type(unsigned short type)
+{
+	if (type == EXT2_INODE_TYPE_DIR){
+		return VFS_DIRECTORY;
+	} else if (type == EXT2_INODE_TYPE_REG){
+		return VFS_FILE;
+	} else if (type == EXT2_INODE_TYPE_CHR){
+		return VFS_CHARDEVICE;
+	} else if (type == EXT2_INODE_TYPE_BLK){
+		return VFS_BLOCKDEVICE;
+	} else if (type == EXT2_INODE_TYPE_FIFO){
+		return VFS_PIPE;
+	} else if (type == EXT2_INODE_TYPE_LINK){
+		return VFS_SYMLINK;
+	} else if (type == EXT2_INODE_TYPE_SOCK){
+		return VFS_SOCKET;
+	} else {
+		return 0;
+	}
+}
+
+/**
+ * @brief      The inverse of the function above
+ *
+ * @param[in]  type  The type
+ *
+ * @return     The converted type
+ */
+unsigned short _ext2_vfs_type_to_inode_type(unsigned char type)
+{
+	if (type == VFS_DIRECTORY) {
+		return EXT2_INODE_TYPE_DIR;
+	} else if (type == VFS_CHARDEVICE) {
+		return EXT2_INODE_TYPE_CHR;
+	} else if (type == VFS_BLOCKDEVICE) {
+		return EXT2_INODE_TYPE_BLK;
+	} else if (type == VFS_PIPE) {
+		return EXT2_INODE_TYPE_FIFO;
+	} else if (type == VFS_SOCKET) {
+		return EXT2_INODE_TYPE_SOCK;
+	} else if (type == VFS_SYMLINK) {
+		return EXT2_INODE_TYPE_LINK;
+	} else {
+		return EXT2_INODE_TYPE_REG;
+	} 
+}
+
+
+/**
  * @brief      Reads a directory stream
  *
  * @param      dirp  The dirp
@@ -446,7 +501,6 @@ ssize_t ext2_vfs_read_from_file(vfs_node_t *vfs_node, ino_t inode, void *buf, si
  */
 struct dirent *ext2_read_dir(DIR *dirp)
 {
-
 	/* We need to copy a new block into memory of our direntry offset exceeds bounds (block size) */
 	if (dirp->next_direntry_offset >= dirp->fs_info->block_size)
 	{
@@ -474,18 +528,23 @@ struct dirent *ext2_read_dir(DIR *dirp)
 		//printk("Should never happen really");
 		/* This should normally never happen... I think? It isn't really clear to me */
 		return 0;
-	}
-
-	/* Fill in the dirp structure with correct data and make ready for next cycle */
-	dirp->dirent.d_ino = tmp->inode;
+	} 
 
 	/* Copy name */
-	memcpy(dirp->dirent.d_name, &tmp->name, tmp->name_length);
+	memcpy(&dirp->dirent.d_name, &tmp->name, tmp->name_length);
 	dirp->dirent.d_name[tmp->name_length] = '\0'; 				// string ends with 0 char
 	
+	/* @todo: we don't really need dirp anymore with the new dirent offset fields so i might need to redo this system (or complete ext2 because it's a mess) */
+
 	dirp->next_direntry_offset += tmp->total_size_of_entry;
 	dirp->lastentrysize = tmp->total_size_of_entry;
 	
+	/* Fill in the dirp structure with correct data and make ready for next cycle */
+	dirp->dirent.d_ino = tmp->inode;
+	dirp->dirent.d_off = dirp->next_direntry_offset;
+	dirp->dirent.d_reclen = tmp->name_length + sizeof(struct dirent)+1;
+	dirp->dirent.d_type = _ext2_inode_type_to_vfs_type(tmp->type_indicator);
+
 	return &dirp->dirent;
 }
 
@@ -735,61 +794,6 @@ ino_t _ext2_create_inode(ino_t parent_inode, char *name, uint16_t type, uint16_t
 	return new_inode;
 }
 
-
-
-/**
- * @brief      Converts ext2 type values to the vfs type values
- *
- * @param[in]  type  The type
- *
- * @return     The converted type
- */
-unsigned char _ext2_inode_type_to_vfs_type(unsigned short type)
-{
-	if (type == EXT2_INODE_TYPE_DIR){
-		return VFS_DIRECTORY;
-	} else if (type == EXT2_INODE_TYPE_REG){
-		return VFS_FILE;
-	} else if (type == EXT2_INODE_TYPE_CHR){
-		return VFS_CHARDEVICE;
-	} else if (type == EXT2_INODE_TYPE_BLK){
-		return VFS_BLOCKDEVICE;
-	} else if (type == EXT2_INODE_TYPE_FIFO){
-		return VFS_PIPE;
-	} else if (type == EXT2_INODE_TYPE_LINK){
-		return VFS_SYMLINK;
-	} else if (type == EXT2_INODE_TYPE_SOCK){
-		return VFS_SOCKET;
-	} else {
-		return 0;
-	}
-}
-
-/**
- * @brief      The inverse of the function above
- *
- * @param[in]  type  The type
- *
- * @return     The converted type
- */
-unsigned short _ext2_vfs_type_to_inode_type(unsigned char type)
-{
-	if (type == VFS_DIRECTORY) {
-		return EXT2_INODE_TYPE_DIR;
-	} else if (type == VFS_CHARDEVICE) {
-		return EXT2_INODE_TYPE_CHR;
-	} else if (type == VFS_BLOCKDEVICE) {
-		return EXT2_INODE_TYPE_BLK;
-	} else if (type == VFS_PIPE) {
-		return EXT2_INODE_TYPE_FIFO;
-	} else if (type == VFS_SOCKET) {
-		return EXT2_INODE_TYPE_SOCK;
-	} else if (type == VFS_SYMLINK) {
-		return EXT2_INODE_TYPE_LINK;
-	} else {
-		return EXT2_INODE_TYPE_REG;
-	} 
-}
 
 /**
  * @brief      Creates a inode in the system

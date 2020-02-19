@@ -8,7 +8,8 @@
 #include <fs/pipe.h>
 #include <yanix/tty_dev.h>
 #include <kernel.h>
-
+#include <errno.h>
+#include <libk/string.h>
 
 /*
  * This file is the combination of all the pieces of filesystem code that together make one 
@@ -30,12 +31,50 @@ filesystem_t *g_current_fs;
  */
 int getdents(int fd, struct dirent *dir, int count)
 {
-	//vfs_node_t *node = get_filedescriptor_node(fd);
-	(void) (fd);
-	(void) (dir);
-	(void) (count);
-	return 0;
+	struct file_descriptor *fd_struct = get_filedescriptor(fd);
 
+	if (!fd_struct)
+		return -1;
+
+	/* Whenever a directory is opened, the fd's seek is a pointer to the yanix DIR struct */
+	DIR *dirstream = (DIR*) fd_struct->seek;
+
+	if (!dirstream)
+	{
+		errno = EBADFD;
+		return -1;
+	}
+
+	int i = 0;
+	char *buf = (char*) dir;
+	struct dirent *dirent = 0;
+
+	while (i < count)
+	{
+		dirent = vfs_readdir(dirstream);
+
+		//printk_hd(dirent, dirent->d_reclen);
+
+		/* The directory is completely read if 0 is returned */
+		if (!dirent)
+			break;
+
+		i += dirent->d_reclen;
+		
+		if (i <= count)
+		{
+			memcpy(buf, dirent, dirent->d_reclen);
+			((struct dirent*) buf)->d_off = i;
+			buf += dirent->d_reclen;
+		}
+		else
+		{
+			i -= dirent->d_reclen;
+			break;
+		}
+	}
+
+	return i;
 }
 
 /**

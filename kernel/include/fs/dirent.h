@@ -16,7 +16,7 @@ struct dirent {
 	unsigned long 	d_off;		/* The offset to the next dirent */ 
 	unsigned short 	d_reclen;	/* Length of this dirent structure in bytes */
 
-	char		pad;			/* Zero padding byte */
+	//char		pad;			/* Zero padding byte */
 	char 		d_type;			/* The filetype */
 	char 		d_name[];		/* The filename (null terminated c string) */
 };

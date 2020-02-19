@@ -12,9 +12,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <kernel.h>
+#include <unistd.h>
 
-vfs_node_t 		*g_vfs_root;
-unsigned long g_nodecount;
+vfs_node_t	   *g_vfs_root;
+unsigned long 	g_nodecount;
 
 /**
  * @brief      Reads from a vfs_node
@@ -27,9 +28,11 @@ unsigned long g_nodecount;
  */
 static ssize_t _vfs_read(vfs_node_t* node, void *buf, size_t amount)
 {
-	if (node->read != 0) {
+	if (node->read != 0)
 		return node->read(node, node->offset, buf, amount);
-	} else {
+	
+	else
+	{
 		errno = EUNATCH;
 		return -1;
 	}
@@ -60,6 +63,7 @@ int vfs_check_if_initialised()
 ssize_t vfs_read_fd(int fd, void *buf, size_t amount)
 {
 	vfs_node_t *node = get_filedescriptor_node(fd);
+
 	if (node == 0)
 		return -1;
 
@@ -263,19 +267,17 @@ vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 			node->offset = node->creat(node, newpath, mode);
 			kfree(newpath);
 		}
-
-		// node created so continue on
 	}
-	else if (node == 0) 
+	else if (node == 0)
 	{
-		// not found and shouldn't create so return with error
 		return 0;
-	}
-	
-	/* if node has open function, run open function and if return value == -1 return with error */
+	} 
+
 	if (node->open != 0) 
 	{
-		if (node->open(node, node_already_exists, flags, mode) == -1) {
+		if (node->open(node, node_already_exists, flags, mode) == -1) 
+		{
+
 			return 0;
 		}
 	}
@@ -283,6 +285,67 @@ vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 	return node;
 }
 
+int _vfs_stat(vfs_node_t *node, struct stat *statbuf)
+{	
+	if (!node)
+		return -1;
+
+	/* See man stat(2) for these values */
+	statbuf->st_dev = 0;						/* @todo: What is the st_dev ? */
+	statbuf->st_ino = node->id;
+	statbuf->st_mode = (mode_t) node->type;		/* This should be mode and type but idc */
+	statbuf->st_nlink = node->nlink;
+	statbuf->st_uid	= node->uid;
+	statbuf->st_gid = node->gid;
+	statbuf->st_rdev = 0;						/* @todo: rdev number in vfs nodes ? see man stat(2) */
+	statbuf->st_size = node->filelength;
+	/* @todo: access times in stat struct */
+
+	return 0;
+}
+
+
+int vfs_fstat(int fd, struct stat *statbuf)
+{
+	vfs_node_t *node = get_filedescriptor_node(fd);
+	return _vfs_stat(node, statbuf);
+}
+
+int vfs_stat(const char *pathname, struct stat *statbuf)
+{
+	vfs_node_t *node = vfs_find_path(pathname);
+	return _vfs_stat(node, statbuf);
+}
+
+off_t vfs_lseek(int fd, off_t offset, int whence)
+{
+	struct file_descriptor *fd_struct = get_filedescriptor(fd);
+
+	if (whence == SEEK_CUR)
+		offset += fd_struct->seek;
+
+	else if (whence == SEEK_END)
+	{
+		struct stat statbuf;
+		if (vfs_fstat(fd, &statbuf) == -1)
+			return -1;
+
+		offset += statbuf.st_size;
+	}
+
+	fd_struct->seek = offset;
+
+	return offset;
+}
+
+DIR *_vfs_opendir(vfs_node_t *node)
+{
+	if (node == 0 || node->opendir == 0)
+		return 0;
+
+
+	return node->opendir(node);
+}
 
 /**
  * @brief      Open a file descriptor
@@ -300,7 +363,15 @@ int vfs_open_fd(const char* path, int flags, int mode)
 	if (node == 0)
 		return -errno;
 
-	return register_filedescriptor(node, mode);
+	int fd = register_filedescriptor(node, mode);
+
+	if (flags & O_DIRECTORY)
+	{
+		DIR *d = _vfs_opendir(node);
+		vfs_lseek(fd, (unsigned int) d, SEEK_SET);
+	}
+
+	return fd;
 }
 
 
@@ -316,9 +387,10 @@ int vfs_open_fd(const char* path, int flags, int mode)
 struct file *vfs_open(const char *path, int flags, int mode)
 {
 	vfs_node_t *node = _vfs_open(path, flags, mode);
-	if (node == 0) {
+	
+	if (node == 0)
 		return 0;
-	}
+	
 	int fd = register_filedescriptor(node, mode);
 
 	if (fd == -1) {
@@ -466,9 +538,12 @@ int vfs_close_fd(int fd)
  */
 struct dirent *vfs_readdir(DIR *dirstream)
 {
-	return dirstream->fs_info->dir_read(dirstream);
-}
+	if (dirstream && dirstream->fs_info && dirstream->fs_info->dir_read)
+		return dirstream->fs_info->dir_read(dirstream);
 
+
+	return 0;
+}
 
 /**
  * @brief      Opens a directory stream
@@ -481,10 +556,7 @@ DIR *vfs_opendir(const char *filepath)
 {
 	vfs_node_t *node = vfs_find_path(filepath);
 
-	if (node == 0 || node->opendir == 0)
-		return 0;
-
-	return node->opendir(node);
+	return _vfs_opendir(node);
 }
 
 
@@ -558,6 +630,8 @@ vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
 		}
 	} while ((tmp = tmp->nextnode) != 0);
 
+	errno = ENOENT;
+
 	return 0;
 }
 
@@ -624,12 +698,14 @@ vfs_node_t *vfs_find_path(const char *path)
 
 	memset(buffer, 0, pathlength);
 
-	/* iter starts at 1 because 0 is the first / character */
+	/* iter starts at 1 because 0 is the first '/' character */
 	for (size_t i = 1; i < pathlength; i++)
 	{
 		if (path[i] == '/' || path[i] == '\0')
 		{
+			/* @fixme: Whenever we want to find '/' we can't because it looks in the subdirectory of that node anyway we need to fix that */
 			node = _vfs_path_find(node, buffer);
+
 			if (path[i] == '\0')
 			{
 				kfree(buffer);

@@ -6,15 +6,18 @@ int main()
 {
 	printf("Lets try this\n");
 	struct dirent *dir;
-	DIR *dp = opendir("/");
+	DIR *dp = opendir("/.");
 	if (dp == 0)
 	{
 		printf("Could not open directory");
 		exit(1);
 	}
+
+	printf("DIR location: %x\n",dp);
+
 	while ((dir = readdir(dp)) != 0)
 	{
-		printf("%s\n", dir->d_name);
+		printf("inode %i name %s\n", dir->d_ino, dir->d_name);
 	}
 	closedir(dp);
 	return 0;

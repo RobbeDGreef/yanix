@@ -111,15 +111,17 @@ int sys_readdir(int fd, struct dirent* dirp, int count)
     return -1;
 }
 
+
+int getdents(int fd, struct dirent* dirp, int count);
+
 int sys_getdents(int fd, struct dirent* dirp, int count)
 {
-    (void) (fd);
-    (void) (dirp);
-    (void) (count);
-    printk(KERN_DEBUG "Een schreeuw\n");
-    
+    int size = getdents(fd, dirp, count);
 
-    return -1;
+    if (size == -1)
+        return -errno;
+
+    return size;
 }
 
 int sys_chdir(const char *path)
