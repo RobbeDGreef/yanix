@@ -16,6 +16,6 @@ vector_t *vector_create();
 vector_t *vector_copy(vector_t *cp);
 int vector_clear(vector_t *vec, int fd);
 int vector_add(vector_t *vec, struct file_descriptor fd);
-struct file_descriptor vector_get(vector_t *vec, int fd);
+struct file_descriptor *vector_get(vector_t *vec, int fd);
 
 #endif /* _YANIX_DS_FD_VECTOR_H */

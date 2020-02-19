@@ -103,13 +103,11 @@ int vector_clear(vector_t *vec, int fd)
 	vec->vector_size--;
 	return 0;
 }
-#include <debug.h>
-struct file_descriptor vector_get(vector_t *vec, int fd)
+
+struct file_descriptor *vector_get(vector_t *vec, int fd)
 {
 	if (vec && fd <= vec->vector_size)
-		return vec->vector_buffer[fd];
+		return &vec->vector_buffer[fd];
 	
-	struct file_descriptor err;
-	err.node = 0;
-	return err;
+	return 0;
 }
