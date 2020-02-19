@@ -2,8 +2,7 @@
 #define VFS_H
 
 #include <fs/vfs_node.h>
-
-// end of defining
+#include <sys/stat.h>
 
 extern vfs_node_t *vfs_root;
 
@@ -156,5 +155,11 @@ int vfs_check_if_initialised();
 int vfs_link_node_vfs(const char *path, vfs_node_t *node);
 
 char *vfs_get_name(const char*path);
+
+int vfs_fstat(int fd, struct stat *statbuf);
+int vfs_stat(const char *pathname, struct stat *statbuf);
+
+off_t vfs_lseek(int fd, off_t offset, int whence);
+
 
 #endif
