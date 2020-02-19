@@ -223,28 +223,31 @@ int register_filedescriptor(vfs_node_t *node, int mode)
 	return vector_add(get_current_task()->fds, fd_struct); 
 }
 
-struct file_descriptor get_filedescriptor(int fd)
+struct file_descriptor *get_filedescriptor(int fd)
 {
 	if (get_current_task())
 		return vector_get(get_current_task()->fds, fd);
 
-	struct file_descriptor err;
-	err.node = 0;
-	return err;
+	errno = EBADFD;
+	return 0;
 }
 
 vfs_node_t *get_filedescriptor_node(int fd)
 {
-	struct file_descriptor fd_struct = get_filedescriptor(fd);
-	return fd_struct.node;
+	struct file_descriptor *fd_struct = get_filedescriptor(fd);
+	
+	if (!fd_struct)
+		return 0;
+
+	return fd_struct->node;
 }
 
 int close_filedescriptor(int fd)
 {
-	struct file_descriptor fd_struct = get_filedescriptor(fd);
+	struct file_descriptor *fd_struct = get_filedescriptor(fd);
 
 	/* Checking if the filedescriptor is actually open */	
-	if (!fd_struct.node)
+	if (!fd_struct)
 		return 0;
 
 	vector_clear(get_current_task()->fds, fd);
