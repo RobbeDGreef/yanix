@@ -15,6 +15,8 @@ RAMDISK_SIZE		= 384K
 ARCH 				= i386
 DISK_SIZE			= 250M
 DISKNAME 			= maindisk.iso
+LOOPD_ROOTFS		= /dev/loop5
+LOOPD_DISK			= /dev/loop4
 
 # Easier in sublime
 CC = /usr/share/crosscompiler/bin/i386-elf-gcc
@@ -47,7 +49,7 @@ clean:
 run: kernel.bin maindisk.iso
 	@echo "Serial output: "
 	cat /serial_output.out &
-	$(QEMU) ${QEMU_FLAGS} -hda /dev/loop3
+	$(QEMU) ${QEMU_FLAGS} -hda $(DISKNAME)
 
 debug: kernel.bin maindisk.iso kernel.elf
 	$(QEMU) -s -d guest_errors ${QEMU_FLAGS} -hda $(DISKNAME) &
@@ -60,16 +62,16 @@ unmount_ramdisk: ramdisk.iso
 	umount ./initrd
 
 mount_disk: $(DISKNAME)
-	losetup /dev/loop3 $(DISKNAME) 
-	losetup /dev/loop2 $(DISKNAME) -o 1048576
+	losetup $(LOOPD_DISK) $(DISKNAME) 
+	losetup $(LOOPD_ROOTFS) $(DISKNAME) -o 1048576
 
-	mount /dev/loop2 ./rootfs
+	mount $(LOOPD_ROOTFS) ./rootfs
 
 unmount_disk:
 	umount rootfs
 
-	losetup -d /dev/loop2
-	losetup -d /dev/loop3
+	losetup -d $(LOOPD_ROOTFS)
+	losetup -d $(LOOPD_DISK)
 
 	# just to be sure
 	umount maindisk.iso
@@ -95,6 +97,6 @@ ramdisk.iso:
 $(DISKNAME):
 	fallocate -l $(DISK_SIZE) $(DISKNAME)
 	sh ./tools/create_part.sh $(DISKNAME)
-	losetup /dev/loop0 $(DISKNAME) -o 1048576
-	mkfs.ext2 /dev/loop0
-	losetup -d /dev/loop0
+	losetup $(LOOPD_ROOTFS) $(DISKNAME) -o 1048576
+	mkfs.ext2 $(LOOPD_ROOTFS)
+	losetup -d $(LOOPD_ROOTFS)
