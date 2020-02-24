@@ -141,7 +141,7 @@ ssize_t disk_write(unsigned long offset, const void *buf, size_t size, disk_t *d
 	}
 	else
 	{
-		printk("Not implemented yet (file: disk.c ~line 120) \n");
+		printk(KERN_WARNING "Not implemented yet (file: disk.c ~line 120) \n");
 	}
 	return -1;
 }
