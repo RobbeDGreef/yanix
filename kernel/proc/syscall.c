@@ -31,20 +31,22 @@ void _exit()
     for(;;);
 }
 
-int fstat(int file, struct stat *st)
+int sys_fstat(int fd, struct stat *st)
 {
-    (void) (file);
-    (void) (st);
-    st->st_mode = S_IFCHR;
-    return 0;
+    int ret = vfs_fstat(fd, st);
+    if (ret == -1)
+        return -errno;
+    
+    return ret;
 }
 
-int stat(char *file, struct stat *st)
+int sys_stat(char *file, struct stat *st)
 {
-    (void) (file);
-    (void) (st); 
-    st->st_mode = S_IFCHR;
-    return 0;
+    int ret = vfs_stat(fd, st);
+    if (ret == -1)
+        return -errno;
+    
+    return ret;
 }
 
 int times(struct tms *buf)
@@ -80,12 +82,13 @@ int wait(int *status)
     return -1;
 }
 
-int lseek(const char* name, int flags, int mode)
+int sys_lseek(const char* name, int offset, int mode)
 {
-    (void) (name);
-    (void) (flags);
-    (void) (mode);
-    return -1;
+    int ret = vfs_lseek(name, offset, mode);
+    if (ret == -1)
+        return -errno;
+    
+    return ret;
 }
 
 int isatty(int file)
@@ -105,6 +108,7 @@ sighandler_t signal(int signum, sighandler_t handler)
 
 int sys_readdir(int fd, struct dirent* dirp, int count)
 {
+    /* Depricated so never implemented */
     (void) (fd);
     (void) (dirp);
     (void) (count);
@@ -146,7 +150,7 @@ int sys_mkdir(const char *path, mode_t mode)
     (void) (path);
     (void) (mode);
     return -1;
-} 
+}
 
 int sys_fcntl(int fd, int cmd, uintptr_t arguments)
 {
@@ -175,11 +179,11 @@ static const void *syscalls[] = {
     &execve,        // 11 int execve(struct pt_regs, regs)
     &sys_kill,      // 12 int kill(int pid, int sig) @TODO: THIS SHOULD BE SYSCALL 62
     &link,          // 13 should be 86
-    &lseek,         // 14 should be 8
+    &sys_lseek,         // 14 should be 8
     &sbrk,          // 15
     &times,         // 16
     &isatty,        // 17
-    &stat,          // 18
+    &sys_stat,          // 18
     &signal,        // 19
     &sys_readdir,   // 20
     &sys_getdents,  // 21
@@ -189,7 +193,7 @@ static const void *syscalls[] = {
     &sys_mkdir,     // 25
     &sys_fcntl,     // 26
     0,              // 27
-    &fstat,         // 28
+    &sys_fstat,         // 28
     0,              // 29
     0,              // 30
     0,              // 31
@@ -204,7 +208,7 @@ static const void *syscalls[] = {
 
 };
 
-#define NUMER_OF_SYSCALLS sizeof(syscalls) / sizeof(void*)
+#define NUMER_OF_SYSCALLS sizeof(syscalls) / sizeof(syscalls[0])
 
 /**
  * @brief      Initialzes the system calls
