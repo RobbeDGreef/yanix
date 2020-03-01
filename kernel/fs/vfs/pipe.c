@@ -45,12 +45,12 @@ ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer, size_t si
 	
 	struct pipe_s *pipe = (struct pipe_s*) offset;
 
-	if (pipe->flags & NON_BLOCK)
+	if (pipe->circbuf->virtual_begin == pipe->circbuf->virtual_end && pipe->flags & NON_BLOCK)
 		return 0;
 	
 	else
 	{
-		// waiting for a process to write to the pipe
+		/* waiting for a process to write to the pipe */
 		asm volatile("sti;");
 		while (pipe->circbuf->virtual_begin == pipe->circbuf->virtual_end);
 		asm volatile("cli;");
@@ -139,8 +139,9 @@ int pipe(int pipefd[2])
 
 int mkfifo(const char *path)
 {
-	/* @todo: I am not sure if fifo's are actually removed at reboot or not, \
-			  might need to bind them into the filesystem completely */
+	/**
+	 * @todo: This actually needs to be written into the filesystem and not just into the vfs
+	 */
 
 	struct pipe_s *pipe = pipe_create();
 	
