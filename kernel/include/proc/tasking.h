@@ -84,7 +84,7 @@ pid_t fork(void);
 /**
  * @brief      Jump to userspace
  */
-void jump_userspace();
+void jump_userspace(reg_t eip, reg_t argc, reg_t argv);
 
 /**
  * @brief      Sends a signal to the current task.

@@ -19,7 +19,7 @@ void arch_task_switch(task_t *task, unsigned long ip, unsigned long sp, unsigned
 /**
  * @brief      Architechture dependend jump to userspace function 
  */
-void arch_jump_userspace(uint32_t eip);
+void arch_jump_userspace(uint32_t eip, uint32_t argc, uint32_t argv);
 
 
 #endif

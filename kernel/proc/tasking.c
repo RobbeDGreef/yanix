@@ -503,10 +503,10 @@ void schedule(registers_t *regs)
  *
  * @param[in]  eip   Start in usermode at this location
  */
-void jump_userspace(uint32_t eip)
+void jump_userspace(reg_t eip, reg_t argc, reg_t argv)
 {
 	g_runningtask->ring = 3;
-	arch_jump_userspace(eip);
+	arch_jump_userspace(eip, argc, argv);
 }
 
 /**

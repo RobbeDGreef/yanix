@@ -52,4 +52,6 @@ typedef unsigned char  nlink_t;
 typedef unsigned short mode_t;
 typedef unsigned int flags_t;
 
+typedef uint32_t reg_t;
+
 #endif

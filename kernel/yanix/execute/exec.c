@@ -4,6 +4,7 @@
 #include <proc/tasking.h>
 #include <yanix/elf.h>
 #include <yanix/stack.h>
+#include <yanix/env.h>
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -11,7 +12,10 @@
 
 #include <kernel.h>
 
-static int _execve(int kernel, const char *filename, char *const argv[], char *const envp[])
+#include <libk/string.h>
+#include <debug.h>
+
+static int _execve(int kernel, const char *filename, const char *argv[], char *const envp[])
 {
 	(void) (envp);
 
@@ -57,12 +61,15 @@ static int _execve(int kernel, const char *filename, char *const argv[], char *c
 	while (argv[amount] != 0) {
 		amount++;
 	}
-	amount += 2;
+
+	argv = (const char **) combine_args_env((char**) argv, (char**) envp);
+
+	printk(KERN_INFO "Executing execve\n");
 
 	if (kernel)
 	{
 		/* Execute the program */
-		int (*program)(int amount, char *const argv[]) = (int (*) (int amount, char *const argv[])) ret;
+		int (*program)(int amount, const char * argv[]) = (int (*) (int amount, const char * argv[])) ret;
 		program(amount, argv);
 		kill_proc(get_current_task());	// kill ourselves because we shouldn't ever return
 		return 0;
@@ -73,29 +80,33 @@ static int _execve(int kernel, const char *filename, char *const argv[], char *c
 
 		/* First disable interrupts because we are working on the stack (not sure if it's necesairy but it wont hurt) */
 		cli();
-	
+
 		/* And allocate a new stack */
 		get_current_task()->stacktop = (uint32_t) kmalloc_user_base(USER_STACK_SIZE, 1, 0) + USER_STACK_SIZE;
 		get_current_task()->stack_size = USER_STACK_SIZE;
-	
-		asm volatile("mov %0, %%eax; \
-					  mov %1, %%ebx; \
-					  mov %%ebx, %%esp; \
-					  mov %%esp, %%ebp; \
+
+		asm volatile("movl %0, %%eax; \
+					  movl %1, %%ebx; \
+					  movl %2, %%ecx; \
+					  movl %3, %%edx; \
+					  movl %%ebx, %%esp; \
+					  movl %%esp, %%ebp; \
 					  sti; \
-					  push %%eax; \
-					  call jump_userspace"
-					  : : "r"(ret), "r"(get_current_task()->stacktop));
+					  pushl %%edx; \
+					  pushl %%ecx; \
+					  pushl %%eax; \
+					  call jump_userspace;"
+					  : : "r"(ret), "r"(get_current_task()->stacktop), "c"(amount), "d"((reg_t) argv));
 		return 0;
 	}
 }
 
-int execve_user(const char *filename, char *const argv[], char *const envp[])
+int execve_user(const char *filename, const char *argv[], char *const envp[])
 {
 	return _execve(0, filename, argv, envp);
 }
 
-int execve(const char *filename, char *const argv[], char *const envp[])
+int execve(const char *filename, const char * argv[], char *const envp[])
 {
 	return _execve(1, filename, argv, envp);
 }
