@@ -2,7 +2,7 @@
 #include <cpu/cpu.h>
 #include <kernel.h>
 
-// all the imports for the syscalls
+/* all the imports for syscalls */
 #include <proc/tasking.h>
 #include <fs/vfs.h>
 #include <yanix/exec.h>
@@ -14,10 +14,7 @@
 
 static void syscall_handler(registers_t *regs);
 
-
-// syscalls
-
-// environment variable (@todo: )
+/* @todo: environment variable */
 char *__env[1] = { 0 };
 char **environ = __env;
 
@@ -242,13 +239,25 @@ int init_syscalls()
  * @param      regs  The pushed registers
  */
 static void syscall_handler(registers_t *regs){
-    //printk("Syscall: %i with %i %i %i\n", regs->eax, regs->ebx, regs->ecx, regs->edx);
-
+    //printk(KERN_INFO "Syscall: %i with %x %x %x\n", regs->eax, regs->ebx, regs->ecx, regs->edx);
+    
     if (regs->eax >= NUMER_OF_SYSCALLS)
 		return;
 
+    if (regs->eax != 4)
+    {
+            //printk(KERN_INFO "Syscall: %i with %x %x %x\n", regs->eax, regs->ebx, regs->ecx, regs->edx);
+    
+        //printk("Trying to write: '");
+        //for (unsigned int i = 0; i < regs->edx; i++)
+        //    printk("%x ", ((char*)regs->ecx)[i] & 0xFF);
+        //printk("'\n");
+    }
+
     void *location = (void*) syscalls[regs->eax];
-    if (location == 0) {
+    if (location == 0) 
+    {
+        printk(KERN_WARNING "SYSCALL %i NOT IMPLEMENTED\n", regs->eax);
         return;
     }
 
@@ -268,4 +277,3 @@ static void syscall_handler(registers_t *regs){
    		" : "=a" (ret) : "r" (regs->edi), "r" (regs->esi), "r" (regs->edx), "r" (regs->ecx), "r" (regs->ebx), "r" (location));
    regs->eax = ret;
 }
-//0x80482b2

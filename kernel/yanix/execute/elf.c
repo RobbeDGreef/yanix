@@ -164,38 +164,29 @@ static int _elf_loop_over_section_table(elf32_hdr_t* elf_hdr, elf32_shdr_t* elf_
 	(void) (elf_section_table);
 
 	for (size_t i = 0; i < elf_hdr->sheader_table_amount; i++) {
-		// we gotta loop over all the sections and make a section to segment mapping, then map the segments into the tasks struct
-		// so that we can modify the program break and create a sbrk function for the malloc of newlib
-		// the mapping probably can be calculated with the vaddresses and the section sizes (sectionhdr->size)
-		
-		// oke scrap all this bs im just gonna look for the most outward address and put that as a program break
-		// (program headers)
-		
+		/* ??? */
 	}
 	return 0;
 }
 
 uint32_t load_elf_into_mem(void* file) 
 {
-	// check if it is executable
 	elf32_hdr_t *elf_hdr = (elf32_hdr_t*) file;
-	if (elf_check_support(elf_hdr) == -1) {
+	if (elf_check_support(elf_hdr) == -1)
 		return 0;
-	}
+
 
 	// locating the header tables
 	elf32_shdr_t *elf_section_table = (elf32_shdr_t*) ((uint32_t)file + elf_hdr->sheader_table_position);
 	elf32_phdr_t *elf_program_table = (elf32_phdr_t*) ((uint32_t)file + elf_hdr->pheader_table_position);
 	
 	// looping over the header tables
-	if (_elf_loop_over_section_table(elf_hdr, elf_section_table) == -1) {
+	if (_elf_loop_over_section_table(elf_hdr, elf_section_table) == -1)
 		return 0;
-	}
 
-
-	if (_elf_loop_over_program_table(file, elf_hdr, elf_program_table) == -1) {
+	if (_elf_loop_over_program_table(file, elf_hdr, elf_program_table) == -1)
 		return 0;
-	}
+	
 
 	return elf_hdr->entry;
 }
