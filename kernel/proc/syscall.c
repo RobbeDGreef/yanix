@@ -161,50 +161,67 @@ int sys_fcntl(int fd, int cmd, uintptr_t arguments)
     return -1;
 }
 
-// @todo: ok so im done with placing the syscalls in the right order FIX SYSCALL ORDER (linux)
+void *sys_mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
+{
+    (void) (addr);
+    (void) (length);
+    (void) (prot);
+    (void) (flags);
+    (void) (fd);
+    (void) (offset);
+    return (void*) -ENOMEM;
+}
+
+int sys_munmap(void *addr, size_t length)
+{
+    (void) (addr);
+    (void) (length);
+    return -EINVAL;
+}
+
 // @TODO: sbrk should be a lib func and not a syscall (should use a brk)
 
 static const void *syscalls[] = {
-	0,              // 0  int sys_setup(void)
-    &_exit,         // 1  int exit_proc(int status)
-    &fork,          // 2  int fork()
-    &vfs_read_fd,   // 3  ssize_t read(unsigned int fd, char *buf, size_t count)
-    &vfs_write_fd,  // 4  ssize_t write(unsigned int fd, const char *buf, size_t count)
-    &vfs_open_fd,   // 5  int open(const char *filename, int flags, int mode)
-    &vfs_close_fd,  // 6  void close(unsigned int fd)
-    &wait,          // 7  int waitpid(pid_t pid, unsigned int *stat_addr, int options)
-    &vfs_creat,     // 8  int creat(const char *pathname, int mode)
-    &link,          // 9  int link(const char *oldname, const char *newname)
-    &unlink,        // 10 int unlink(const char *pathname)
-    &execve,        // 11 int execve(struct pt_regs, regs)
-    &sys_kill,      // 12 int kill(int pid, int sig) @TODO: THIS SHOULD BE SYSCALL 62
-    &link,          // 13 should be 86
-    &sys_lseek,         // 14 should be 8
-    &sbrk,          // 15
-    &times,         // 16
-    &isatty,        // 17
-    &sys_stat,          // 18
-    &signal,        // 19
-    &sys_readdir,   // 20
-    &sys_getdents,  // 21
-    &sys_chdir,     // 22
-    &sys_getcwd,    // 23
-    &sys_pipe,      // 24
-    &sys_mkdir,     // 25
-    &sys_fcntl,     // 26
-    0,              // 27
-    &sys_fstat,         // 28
-    0,              // 29
-    0,              // 30
-    0,              // 31
-    0,              // 32
-    0,              // 33
-    0,              // 34
-    0,              // 35
-    0,              // 36
-    0,              // 37
-    0,              // 38
-    &getpid,        // 39
+    /* 0 */           0,
+    /* 1 */           &_exit,           /* DONE */
+    /* 2 */           &fork,            /* DONE */
+    /* 3 */           &vfs_read_fd,     /* DONE */
+    /* 4 */           &vfs_write_fd,    /* DONE */
+    /* 5 */           &vfs_open_fd,     /* DONE */
+    /* 6 */           &vfs_close_fd,    /* DONE */
+    /* 7 */           &wait,            /* NOT DONE */
+    /* 8 */           &vfs_creat,       /* DONE */
+    /* 9 */           &link,            /* NOT DONE */
+    /* 10 */          &unlink,          /* NOT DONE */
+    /* 11 */          &execve,          /* DONE */
+    /* 12 */          &sys_kill,        /* DONE */
+    /* 13 */          0,
+    /* 14 */          &sys_lseek,       /* DONE */
+    /* 15 */          &sbrk,            /* DONE */
+    /* 16 */          &times,           /* NOT DONE */
+    /* 17 */          &isatty,          /* NOT DONE */
+    /* 18 */          &sys_stat,        /* DONE */
+    /* 19 */          &signal,          /* NOT DONE */
+    /* 20 */          &sys_readdir,     /* ???? */
+    /* 21 */          &sys_getdents,    /* DONE */
+    /* 22 */          &sys_chdir,       /* NOT DONE */
+    /* 23 */          &sys_getcwd,      /* NOT DONE */
+    /* 24 */          &sys_pipe,        /* NOT DONE */
+    /* 25 */          &sys_mkdir,       /* NOT DONE */
+    /* 26 */          &sys_fcntl,       /* NOT DONE */
+    /* 27 */          0,
+    /* 28 */          &sys_fstat,       /* DONE */
+    /* 29 */          &sys_mmap,        /* NOT DONE */
+    /* 30 */          &sys_munmap,      /* NOT DONE */
+    /* 31 */          0,
+    /* 32 */          0,
+    /* 33 */          0,
+    /* 34 */          0,
+    /* 35 */          0,
+    /* 36 */          0,
+    /* 37 */          0,
+    /* 38 */          0,
+    /* 39 */          &getpid,          /* DONE */
 
 };
 
