@@ -17,6 +17,7 @@ DISK_SIZE			= 250M
 DISKNAME 			= maindisk.iso
 LOOPD_ROOTFS		= /dev/loop5
 LOOPD_DISK			= /dev/loop4
+ROOTFS 				= ./rootfs
 
 # Easier in sublime
 CC = /usr/share/crosscompiler/bin/i386-elf-gcc
@@ -65,7 +66,7 @@ mount_disk: $(DISKNAME)
 	losetup $(LOOPD_DISK) $(DISKNAME) 
 	losetup $(LOOPD_ROOTFS) $(DISKNAME) -o 1048576
 
-	mount $(LOOPD_ROOTFS) ./rootfs
+	mount $(LOOPD_ROOTFS) $(ROOTFS)
 
 unmount_disk:
 	umount rootfs
@@ -99,4 +100,15 @@ $(DISKNAME):
 	sh ./tools/create_part.sh $(DISKNAME)
 	losetup $(LOOPD_ROOTFS) $(DISKNAME) -o 1048576
 	mkfs.ext2 $(LOOPD_ROOTFS)
+	
+	mount $(LOOPD_ROOTFS) $(ROOTFS)
+	
+	mkdir $(ROOTFS)/bin
+	mkdir $(ROOTFS)/sbin
+	mkdir $(ROOTFS)/dev
+	mkdir $(ROOTFS)/etc
+
+	cp sysroot/usr $(ROOTFS)/usr -r
+
+	umount $(ROOTFS)
 	losetup -d $(LOOPD_ROOTFS)
