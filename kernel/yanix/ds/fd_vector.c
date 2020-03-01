@@ -9,6 +9,7 @@
 
 #include <mm/heap.h>
 #include <fs/filedescriptor.h>
+#include <fs/vfs_node.h>
 #include <libk/string.h>
 #include <yanix/ds/fd_vector.h>
 
@@ -109,5 +110,18 @@ struct file_descriptor *vector_get(vector_t *vec, int fd)
 	if (vec && fd <= vec->vector_size)
 		return &vec->vector_buffer[fd];
 	
+	return 0;
+}
+
+struct file_descriptor *vector_get_node(vector_t *vec, vfs_node_t *node)
+{
+	if (vec && node)
+	{
+		for (int i = 0; i < vec->vector_size; i++)
+		{
+			if (vec->vector_buffer[i].node == node)
+				return &vec->vector_buffer[i];
+		}
+	}
 	return 0;
 }
