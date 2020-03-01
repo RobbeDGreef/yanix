@@ -6,10 +6,12 @@
 //#include <sys/cdefs.h>
 #include <stdint.h>
 
+#define BUFSIZ 0x400
 // standard library 
 
 int putchar(int);
 int puts(const char*);
+
 
 #if 0
 
