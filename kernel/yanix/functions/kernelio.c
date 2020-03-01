@@ -15,12 +15,10 @@ unsigned int g_kernel_log_level;
 void putchark(char character)
 {
 	vfs_write_fd(1, &character, 1);
-	serial_put(character);
 }
 
 size_t print(const char* txt, size_t len)
 {
-	serial_write((char*)txt);
 	return vfs_write_fd(1, txt, len);
 }
 
@@ -46,7 +44,8 @@ int printk(const char* __restrict fmt, ...)
 
 	/* In case a log level is specified follow it */
 	/* This checks if the loglevel is specified */
-	if (fmt[0] == '<' && (fmt[1] <= '7' && fmt[i] >= '0') && fmt[2] == '>') {
+	if (fmt[0] == '<' && (fmt[1] <= '7' && fmt[i] >= '0') && fmt[2] == '>') 
+	{
 		/* All printable number characters go up from character '0' so just a little calculation here */
 		loglevel = (int) fmt[1] - '0';
 		i = 3;
