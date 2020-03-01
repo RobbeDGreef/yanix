@@ -10,6 +10,10 @@
 #include <kernel.h>
 #include <errno.h>
 #include <libk/string.h>
+#include <libk/stdio.h>
+#include <mm/heap.h>
+
+#include <drivers/serial.h>
 
 /*
  * This file is the combination of all the pieces of filesystem code that together make one 
@@ -87,28 +91,66 @@ int getdents(int fd, struct dirent *dir, int count)
  *
  * @return     { description_of_the_return_value }
  */
-static ssize_t tty_stdoutwrite(vfs_node_t *node, uint32_t offset, const void *buffer, size_t size)
+static ssize_t tty_stdoutwrite(vfs_node_t *node, unsigned int offset, const void *buffer, size_t size)
 {
 	(void) (node);
 	(void) (offset);
+
+	for (unsigned int i = 0; i < size; i++)
+		serial_put(((char*)buffer)[i]);
 
 	return tty_write(tty_get_device(get_current_task()->tty), buffer, size, -1, -1);
 }
-
-static ssize_t tty_stderrwrite(vfs_node_t *node, uint32_t offset, const void *buffer, size_t size)
+#include <debug.h>
+static ssize_t tty_stderrwrite(vfs_node_t *node, unsigned int offset, const void *buffer, size_t size)
 {
 	(void) (node);
 	(void) (offset);
+
+	for (unsigned int i = 0; i < size; i++)
+		serial_put(((char*)buffer)[i]);
+
 	tty_set_color(TTY_RED);
+
 	int ret = tty_write(tty_get_device(get_current_task()->tty), buffer, size, -1, -1);
 	tty_set_color(TTY_WHITE);
 	return ret;
 }
 
+char *stdinbuffer;
+int index;
+
+static ssize_t tty_stdinwrite(vfs_node_t *node, unsigned int offset, const void *buffer, size_t size)
+{
+	char *buf = (char*) buffer;
+	for (unsigned int i = 0; i < size; i++)
+	{
+		if (buf[i] == 0x8)
+			stdinbuffer[--index] = '\0';
+		else
+			stdinbuffer[index++] = buf[i];
+
+		if (buf[i] == '\n' || index == BUFSIZ)
+		{
+			stdinbuffer[index] = '\0';
+			pipe_write(node, offset, stdinbuffer, index);
+
+			index = 0;
+		}
+	}
+	tty_stdoutwrite(0, 0, buffer, size);
+	return size;
+}
+
 int init_char_specials()
 {
 	/* Create /dev/stdin */
+	stdinbuffer = kmalloc(BUFSIZ);
 	mkfifo("/dev/stdin");
+
+	vfs_node_t *node = vfs_find_path("/dev/stdin");
+	if (node)
+		node->write = &tty_stdinwrite;
 
 	/* @todo: Should actually be a pipe that notifies the tty systems, because we need to be able to read from stdout too */
 	vfs_node_t *stdout = vfs_setupnode("stdout", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, tty_stdoutwrite, 0, 0, 0);
