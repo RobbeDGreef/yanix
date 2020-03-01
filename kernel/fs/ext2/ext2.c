@@ -212,10 +212,64 @@ static unsigned int handle_indirect_bp(unsigned int indirect_bp_index, unsigned 
 		return 0;
 	}
 
-
 	ext2_disk_read(indirect_bp_index * fs_info->block_size, indirect_bp, fs_info->block_size, fs_info);
 
 	unsigned int ret = indirect_bp[block_to_read] * fs_info->block_size;
+
+	/**
+	 * @todo:	Figure out why this is happening and also if this is common, figure out if linux does this 
+	 * 			type of fixing too.
+	 *
+	 * @bug: 	Okay so ext2 is doing something weird and i can't find any information on the issue online
+	 * 			So for some reason it sometimes just randomly skips a block in it's indirect block pointer
+	 * 			structure. Why? I have no clue. It looks like this
+	 * 			
+	 * 			C0220080:  AD 0C 00 00 AE 0C 00 00   AF 0C 00 00 B0 0C 00 00
+	 *			C0220090:  B1 0C 00 00 B2 0C 00 00   B3 0C 00 00 00 00 00 00    <--- here
+	 *			C02200A0:  B5 0C 00 00 B6 0C 00 00   B7 0C 00 00 B8 0C 00 00
+	 *			
+	 *			As you can see (these are all 4 byte integer values) the blockpointer index for block
+	 *			0xcb4 (probably) is missing, i've looked at the raw hex code of the disk and there 
+	 *			actually is data in that block, and from the looks of it that data is just a continuation 
+	 *			of a normal elf file so it all looks like just this one block pointer is going bananas.
+	 *			
+	 *			I've checked my drivers and even the raw disk.iso file has this issue so it isn't any weird
+	 *			os / memory bug or something, this actually is something else.
+	 *			
+	 *			The thing I don't understand is it is just all of a sudden popping up and other strange things are 
+	 *			happening too like for example my executables also being able to run on my linux machine. So it
+	 *			might just be some weiiird ass toolchain stuff that's happening. I might need to rebuild everything 
+	 *			i don't know but for now i'll try to fix it with this workaround  (see next XXX)
+	 *	
+	 *	
+	 *			
+	 * @XXX:	So as we just discussed something in ext2 is doing weird stuff so I created this weird workaround
+	 * 			that checks if the next blockpointer index is valid and if the value that should be guessed is guessable
+	 * 			
+	 * @XXX:	Okay so 2 days later and i get another one only this time it's two blockpointers that are missing
+	 * 			what the hell is going on???? I'll fix this one up as well but I've got a feeling three blockpointer gaps are comming
+	 */
+
+	if (!ret)
+	{
+		if (indirect_bp[block_to_read+1] || indirect_bp[block_to_read+2])
+		{
+			if ((indirect_bp[block_to_read+1] == indirect_bp[block_to_read-1]+2) || (indirect_bp[block_to_read+2] == indirect_bp[block_to_read-1]+3))
+			{
+				int fill = indirect_bp[block_to_read-1] + 1;
+
+				printk(KERN_WARNING "Filled in blockindex gap with: %i\n", fill);
+				ret = fill * fs_info->block_size;
+			}
+			else if (indirect_bp[block_to_read+1] == indirect_bp[block_to_read-2]+3)
+			{
+				int fill = indirect_bp[block_to_read-2] + 2;
+
+				printk(KERN_WARNING "Filled in blockindex gap with: %i\n", fill);
+				ret = fill * fs_info->block_size;
+			}
+		}
+	}
 
 	/* cleanup */
 	kfree(indirect_bp);
@@ -239,7 +293,6 @@ unsigned int _ext2_get_inode_data_offset(ext2_inode_t *inode, unsigned int  bloc
 		{
 			/* Single indirect block pointer will be used */
 			return handle_indirect_bp(inode->single_indirect_block_pointer, block_to_read - EXT2_DIRECT_BLOCK_POINTER_AMOUNT, fs_info);
-		
 		} 
 		else if (block_to_read  < (unsigned int) pow(fs_info->block_size / sizeof(uint32_t), 2) + EXT2_DIRECT_BLOCK_POINTER_AMOUNT)
 		{
@@ -275,11 +328,11 @@ unsigned int _ext2_get_inode_data_offset(ext2_inode_t *inode, unsigned int  bloc
 			{
 				/* Cleanup */
 				kfree(d_indirect_bp);
-
 				return 0;
 			}
 			
 			unsigned int ret = handle_indirect_bp(indirect_to_read, block_index, fs_info);
+
 
 			/* Cleanup */
 			kfree(d_indirect_bp);
@@ -352,7 +405,7 @@ ssize_t _ext2_write_inode(ext2_inode_t *inode_ref, ino_t inode, filesystem_t *fs
  *
  * @return     The actual amount of bytes written.
  */
-ssize_t ext2_read_from_file(ino_t inode, void *buf, size_t byte_count, filesystem_t *fs_info)
+ssize_t ext2_read_from_file(ino_t inode, unsigned int offset, void *buf, size_t byte_count, filesystem_t *fs_info)
 {
 	/* The return value, this will be the amount of bytes copied */
 	unsigned int ret = 0;
@@ -370,21 +423,43 @@ ssize_t ext2_read_from_file(ino_t inode, void *buf, size_t byte_count, filesyste
 		return -1;
 	}
 
+	unsigned int startblock = offset / fs_info->block_size;
+	unsigned int start_rest = offset % fs_info->block_size;
+
+	if (start_rest)
+	{
+		void *tmp_buf = kmalloc(fs_info->block_size);
+
+		if (tmp_buf == 0)
+			return -1;
+
+		if (_ext2_read_inode_block(inode_ref, startblock, tmp_buf, fs_info) == 0)
+		{
+			printk(KERN_DEBUG "Error reading inode block\n");
+			return -1;
+		}
+
+		memcpy(buf, (void*) ((unsigned int) tmp_buf + offset), fs_info->block_size - start_rest);
+
+		kfree(tmp_buf);
+
+		ret += fs_info->block_size - start_rest;
+
+		startblock++;
+	}
 
 	/**
 	 * loop over those blocks and copy them 
 	 */
-	for (size_t i = 0; i < block_count; i ++)
+	for (size_t i = startblock; i < block_count+startblock; i ++)
 	{
-		if (_ext2_read_inode_block(inode_ref, i, (void*) ((unsigned int) buf + i * fs_info->block_size), fs_info) == 0)
+		if (_ext2_read_inode_block(inode_ref, i, (void*) ((unsigned int) buf + ret) , fs_info) == 0)
 		{
 			/* Error occurred, we tried to read more blocks then there are */
-			printk("Error, tried to read block: %u addr: %08x\n", i, i * fs_info->block_size);
-			
+			printk("Error, tried to read block: %u addr: %08x errno: %i\n", i, (char*)buf + i * fs_info->block_size, errno);
+
 			/* Cleanup */
 			kfree(inode_ref);
-
-			errno = 0;
 
 			return ret;
 		}
@@ -409,14 +484,13 @@ ssize_t ext2_read_from_file(ino_t inode, void *buf, size_t byte_count, filesyste
 		/* Copy the data */
 		if (_ext2_read_inode_block(inode_ref, block_count, tmp_buf, fs_info) == 0)
 		{
-			printk(KERN_DEBUG "error");
-			errno = 0;
+			printk(KERN_DEBUG "error reading inode block errno %i\n", errno);
 			return -1;
 		}
 
 		
 		/* Now copy the correct amount into the real buffer */
-		memcpy((void*) (((unsigned int) buf) + (block_count * fs_info->block_size)), tmp_buf, byte_rest);
+		memcpy((void*) ((unsigned int) buf + ret), tmp_buf, byte_rest);
 
 		/* Cleanup */
 		kfree(tmp_buf);
@@ -432,9 +506,9 @@ ssize_t ext2_read_from_file(ino_t inode, void *buf, size_t byte_count, filesyste
 
 }
 
-ssize_t ext2_vfs_read_from_file(vfs_node_t *vfs_node, ino_t inode, void *buf, size_t count)
+ssize_t ext2_vfs_read_from_file(vfs_node_t *vfs_node, unsigned int offset, void *buf, size_t count)
 {
-	return ext2_read_from_file(inode, buf, count, vfs_node->fs_info);
+	return ext2_read_from_file(vfs_node->offset, offset, buf, count, vfs_node->fs_info);
 }
 
 /**
