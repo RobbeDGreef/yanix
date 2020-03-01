@@ -121,6 +121,8 @@ int vesa_vga_to_full(int color)
 	return 0;
 }
 
+#include <debug.h>
+
 /**
  * @brief      Draws a character on desired location on screen
  *
@@ -149,11 +151,12 @@ void vesa_draw_char(char character, int x, int y, int frgcolor, int bgcolor)
 		// looping over every line
 		for (size_t b = 0; b < FONTWIDTH; b++) {
 			// looping over every pixel
+			int indent = (FONTWIDTH - font_getchar_width(character)) / 2;
 			if (getbit(cpointer[l], b)) {
-				vesa_draw_pixel(x+(FONTWIDTH-b), y+l, frgcolor);
+				vesa_draw_pixel(x+(FONTWIDTH-b)+indent, y+l, frgcolor);
 			} else {
 				if (bgcolor != -1) {
-					vesa_draw_pixel(x+(FONTWIDTH-b), y+l, bgcolor);
+					vesa_draw_pixel(x+(FONTWIDTH-b) + indent, y+l, bgcolor);
 				}
 			}
 		}
