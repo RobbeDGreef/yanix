@@ -79,9 +79,9 @@ int wait(int *status)
     return -1;
 }
 
-int sys_lseek(const char* name, int offset, int mode)
+int sys_lseek(int fd, int offset, int mode)
 {
-    int ret = vfs_lseek(name, offset, mode);
+    int ret = vfs_lseek(fd, offset, mode);
     if (ret == -1)
         return -errno;
     
