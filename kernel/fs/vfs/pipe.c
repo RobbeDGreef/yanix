@@ -33,9 +33,9 @@ int pipe_close(vfs_node_t *node)
  *
  * @return     On success, the amount of bytes read is returned. On failure, -1 is returned and errno is set appropriately.
  */
-ssize_t pipe_read(vfs_node_t *node, uint32_t offset, void *buffer, size_t size)
+ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer, size_t size)
 {
-	(void) (node);
+	offset = node->offset;
 
 	if (!offset)
 	{
@@ -69,9 +69,9 @@ ssize_t pipe_read(vfs_node_t *node, uint32_t offset, void *buffer, size_t size)
  *
  * @return     On success, the amount of bytes written is returned. On failure, -1 is returned and errno is set appropriately.
  */
-ssize_t pipe_write(vfs_node_t *node, uint32_t offset, const void *buffer, size_t size)
+ssize_t pipe_write(vfs_node_t *node, unsigned int offset, const void *buffer, size_t size)
 {
-	(void) (node);
+	offset = node->offset;
 
 	if (!offset)
 	{

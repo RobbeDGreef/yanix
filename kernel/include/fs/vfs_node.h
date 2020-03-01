@@ -30,8 +30,8 @@ typedef struct filesystem_s filesystem_t;
 struct dirent;
 typedef struct vfs_node_s vfs_node_t;
 
-typedef ssize_t  (*read_fpointer)  (vfs_node_t*, uint32_t offset, void *buffer, size_t size);
-typedef ssize_t  (*write_fpointer) (vfs_node_t*, uint32_t offset, const void *buffer, size_t size);
+typedef ssize_t  (*read_fpointer)  (vfs_node_t*, unsigned int offset, void *buffer, size_t size);
+typedef ssize_t  (*write_fpointer) (vfs_node_t*, unsigned int offset, const void *buffer, size_t size);
 typedef int 	 (*close_fpointer) (vfs_node_t*);
 typedef int 	 (*open_fpointer)  (vfs_node_t*, int already_exists, int flags, int mode);
 typedef offset_t (*creat_fpointer) (vfs_node_t*, char *name, uint16_t flags);
