@@ -292,7 +292,7 @@ vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 	return node;
 }
 
-int _vfs_stat(vfs_node_t *node, struct stat *statbuf)
+int _vfs_stat(vfs_node_t *node, mode_t mode, struct stat *statbuf)
 {	
 	if (!node)
 		return -1;
@@ -300,12 +300,14 @@ int _vfs_stat(vfs_node_t *node, struct stat *statbuf)
 	/* See man stat(2) for these values */
 	statbuf->st_dev = 0;						/* @todo: What is the st_dev ? */
 	statbuf->st_ino = node->id;
-	statbuf->st_mode = (mode_t) node->type;		/* This should be mode and type but idc */
+	statbuf->st_mode = (mode_t) node->type | mode;
 	statbuf->st_nlink = node->nlink;
 	statbuf->st_uid	= node->uid;
 	statbuf->st_gid = node->gid;
 	statbuf->st_rdev = 0;						/* @todo: rdev number in vfs nodes ? see man stat(2) */
 	statbuf->st_size = node->filelength;
+	statbuf->st_blksize = node->fs_info->block_size;
+	statbuf->st_blocks = roundup(node->filelength, 512);
 	/* @todo: access times in stat struct */
 
 	return 0;
@@ -314,14 +316,23 @@ int _vfs_stat(vfs_node_t *node, struct stat *statbuf)
 
 int vfs_fstat(int fd, struct stat *statbuf)
 {
-	vfs_node_t *node = get_filedescriptor_node(fd);
-	return _vfs_stat(node, statbuf);
+	struct file_descriptor *fd_struct = get_filedescriptor(fd);
+	
+	if (fd_struct)
+		return _vfs_stat(fd_struct->node, fd_struct->mode, statbuf);
+
+	return -1;
 }
 
 int vfs_stat(const char *pathname, struct stat *statbuf)
 {
 	vfs_node_t *node = vfs_find_path(pathname);
-	return _vfs_stat(node, statbuf);
+	struct file_descriptor *fd_struct = get_filedescriptor_from_node(node);
+	
+	if (fd_struct)
+		return _vfs_stat(node, fd_struct->mode, statbuf);
+
+	return _vfs_stat(node, 0, statbuf);
 }
 
 off_t vfs_lseek(int fd, off_t offset, int whence)
