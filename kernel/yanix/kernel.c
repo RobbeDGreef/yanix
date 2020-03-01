@@ -1,8 +1,10 @@
 #include <kernel.h>
 #include <yanix/exec.h>
+#include <errno.h>
 
 /* Debugging */
 
+#include <yanix/env.h>
 #include <fs/vfs_node.h>
 
 extern vfs_node_t *g_vfs_root;
@@ -15,5 +17,12 @@ extern vfs_node_t *g_vfs_root;
 void kernel_main()
 {
 	printk(KERN_INFO "kernel boot up procedure completed\n");
-	execve_user("/bin/testfile4",0,0);
+	
+	char **envvars = make_envvars();
+	const char **args = (const char **) make_args(2, "/bin/figlet", "Hello World");
+
+	int ret = execve_user("/bin/figlet", args, envvars);
+
+	if (ret)
+		printk(KERN_WARNING "Main execve returned, error was thrown: %i errno: %i\n", ret, errno);
 }
