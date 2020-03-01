@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <kernel.h>
 #include <unistd.h>
+#include <libk/math.h>
 
 vfs_node_t	   *g_vfs_root;
 unsigned long 	g_nodecount;
@@ -26,11 +27,15 @@ unsigned long 	g_nodecount;
  *
  * @return     amount of bytes read
  */
-static ssize_t _vfs_read(vfs_node_t* node, void *buf, size_t amount)
+static ssize_t _vfs_read(struct file_descriptor* fd_struct, void *buf, size_t amount)
 {
-	if (node->read != 0)
-		return node->read(node, node->offset, buf, amount);
-	
+	ssize_t ret = 0;
+	if (fd_struct->node->read != 0)
+	{
+		ret = fd_struct->node->read(fd_struct->node, fd_struct->seek, buf, amount);	
+		fd_struct->seek += ret;
+		return ret;
+	}
 	else
 	{
 		errno = EUNATCH;
@@ -62,12 +67,12 @@ int vfs_check_if_initialised()
  */
 ssize_t vfs_read_fd(int fd, void *buf, size_t amount)
 {
-	vfs_node_t *node = get_filedescriptor_node(fd);
+	struct file_descriptor *fd_struct = get_filedescriptor(fd);
 
-	if (node == 0)
+	if (fd_struct == 0)
 		return -1;
 
-	return _vfs_read(node, buf, amount);
+	return _vfs_read(fd_struct, buf, amount);
 }
 
 /**
@@ -81,7 +86,7 @@ ssize_t vfs_read_fd(int fd, void *buf, size_t amount)
  */
 ssize_t vfs_read(struct file *file, void *buf, size_t amount)
 {
-	return _vfs_read(file->vfs_node, buf, amount);
+	return _vfs_read(get_filedescriptor(file->filedescriptor), buf, amount);
 }
 
 
@@ -94,11 +99,13 @@ ssize_t vfs_read(struct file *file, void *buf, size_t amount)
  *
  * @return     amount of bytes written
  */
-static ssize_t _vfs_write(vfs_node_t *node, const void *buf, size_t amount)
+static ssize_t _vfs_write(struct file_descriptor *fd_struct, const void *buf, size_t amount)
 {
-	if (node->write != 0) {
-		return node->write(node, node->offset, buf, amount);
-	} else {
+	if (fd_struct->node->write != 0)
+		return fd_struct->node->write(fd_struct->node, fd_struct->seek, buf, amount);
+	
+	else
+	{
 		errno = EUNATCH;
 		return -1;
 	}
@@ -115,12 +122,12 @@ static ssize_t _vfs_write(vfs_node_t *node, const void *buf, size_t amount)
  */
 ssize_t vfs_write_fd(int fd, const void *buf, size_t amount)
 {
-	vfs_node_t *node = get_filedescriptor_node(fd);
+	struct file_descriptor *fd_struct = get_filedescriptor(fd);
 	
-	if (node == 0)
+	if (fd_struct  == 0)
 		return -1;
 
-	return _vfs_write(node, buf, amount);
+	return _vfs_write(fd_struct, buf, amount);
 }
 
 
@@ -135,7 +142,7 @@ ssize_t vfs_write_fd(int fd, const void *buf, size_t amount)
  */
 ssize_t vfs_write(struct file *file, const void *buf, size_t amount)
 {
-	return _vfs_write(file->vfs_node, buf, amount);
+	return _vfs_write(get_filedescriptor(file->filedescriptor), buf, amount);
 }
 
 static int _get_type(int mode)
