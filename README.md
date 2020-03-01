@@ -80,6 +80,7 @@ on that wiki. For more helpfull links check the bottom of this page
 Right now we are working hard on porting other unix software to this operating system.
 The first port ever completed is FIGlet and it runs perfectly on yanix!
 
+	__   __          _        _                                                   
 	\ \ / /_ _ _ __ (_)_  __ (_)___    __ ___      _____  ___  ___  _ __ ___   ___ 
 	 \ V / _` | '_ \| \ \/ / | / __|  / _` \ \ /\ / / _ \/ __|/ _ \| '_ ` _ \ / _ \
 	  | | (_| | | | | |>  <  | \__ \ | (_| |\ V  V /  __/\__ \ (_) | | | | | |  __/
