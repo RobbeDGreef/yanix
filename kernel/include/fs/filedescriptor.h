@@ -82,6 +82,7 @@ struct file_descriptor
 int init_filedescriptors();
 int close_filedescriptor(int fd);
 struct file_descriptor *get_filedescriptor(int fd);
+struct file_descriptor *get_filedescriptor_from_node(vfs_node_t *node);
 vfs_node_t *get_filedescriptor_node(int fd);
 int register_filedescriptor(vfs_node_t *node, int mode);
 

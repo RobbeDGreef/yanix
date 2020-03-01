@@ -219,6 +219,7 @@ int register_filedescriptor(vfs_node_t *node, int mode)
 	struct file_descriptor fd_struct;
 	fd_struct.node = node;
 	fd_struct.mode = mode;
+	fd_struct.seek = 0;
 
 	return vector_add(get_current_task()->fds, fd_struct); 
 }
@@ -227,6 +228,16 @@ struct file_descriptor *get_filedescriptor(int fd)
 {
 	if (get_current_task())
 		return vector_get(get_current_task()->fds, fd);
+
+	/* @XXX: I don't think this is the right errno? */
+	errno = EBADFD;
+	return 0;
+}
+
+struct file_descriptor *get_filedescriptor_from_node(vfs_node_t *node)
+{
+	if (get_current_task())
+		return vector_get_node(get_current_task()->fds, node);
 
 	errno = EBADFD;
 	return 0;
