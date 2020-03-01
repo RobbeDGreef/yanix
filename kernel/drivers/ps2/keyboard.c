@@ -51,9 +51,11 @@ static void keyboard_callback(registers_t *regs)
 
 	else 
 	{
-		unsigned char c = get_key_from_scancode(scancode, shift_currently_enabled, 0);
-		if (c)
+		if (scancode < 128)
+		{
+			unsigned char c = get_key_from_scancode(scancode, shift_currently_enabled, 0);
 			vfs_write_fd(0, &c, 1);
+		}
 	}
 }
 
