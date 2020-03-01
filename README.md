@@ -71,10 +71,25 @@ on that wiki. For more helpfull links check the bottom of this page
 
 ## Latest commit includes:
 - Various bug fixes
-- A better execve system call but the environment variables are still nonexistent and it only executes static elf files.
-- A lot of new system calls (most of them are stubbed for ...)
+- A better execve system call.
+- A lot of new system calls (most of them are stubbed for now)
 - A libc, I ported newlib to yanix and I'm now working on a os specific toolchain to start userspace development and create a shell afterwards.
+- FIGlet port!
 
+## Ported software
+Right now we are working hard on porting other unix software to this operating system.
+The first port ever completed is FIGlet and it runs perfectly on yanix!
+
+\ \ / /_ _ _ __ (_)_  __ (_)___    __ ___      _____  ___  ___  _ __ ___   ___ 
+ \ V / _` | '_ \| \ \/ / | / __|  / _` \ \ /\ / / _ \/ __|/ _ \| '_ ` _ \ / _ \
+  | | (_| | | | | |>  <  | \__ \ | (_| |\ V  V /  __/\__ \ (_) | | | | | |  __/
+  |_|\__,_|_| |_|_/_/\_\ |_|___/  \__,_| \_/\_/ \___||___/\___/|_| |_| |_|\___|
+
+- [x] FIGlet
+- [ ] Bash
+- [ ] GCC
+- [ ] TCC
+- [ ] lua
 
 ## Getting it to work on your machine:
 
