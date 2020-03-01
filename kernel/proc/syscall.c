@@ -39,7 +39,7 @@ int sys_fstat(int fd, struct stat *st)
 
 int sys_stat(char *file, struct stat *st)
 {
-    int ret = vfs_stat(fd, st);
+    int ret = vfs_stat(file, st);
     if (ret == -1)
         return -errno;
     
