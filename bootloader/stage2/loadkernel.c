@@ -132,7 +132,7 @@ go_asm:
 	
 	if (!jump)
 	{
-		print("No bootable partition found");
+		print("Error, no bootable partition found\nCheck if the parititon you want to boot from is actually flagged for boot");
 		for(;;);
 	}
 
