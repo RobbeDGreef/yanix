@@ -84,6 +84,10 @@ static int _execve(int kernel, const char *filename, const char *argv[], char *c
 		/* And allocate a new stack */
 		get_current_task()->stacktop = (uint32_t) kmalloc_user_base(USER_STACK_SIZE, 1, 0) + USER_STACK_SIZE;
 		get_current_task()->stack_size = USER_STACK_SIZE;
+		
+		/* We memset stack so that we are certain that all pages are allocated
+		 * and no triple faults will occur */
+		memset((void*) get_current_task()->stacktop - USER_STACK_SIZE, 0, USER_STACK_SIZE);
 
 		asm volatile("movl %0, %%eax; \
 					  movl %1, %%ebx; \

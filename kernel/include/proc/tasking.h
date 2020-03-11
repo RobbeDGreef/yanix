@@ -21,6 +21,7 @@ typedef struct task_control_block_s
 	page_directory_t 	*directory;			/* Program page directory */
 
 	/* Program information */
+	uint32_t			program_start; 		/* The start of the program */
 	uint32_t			program_break;		/* Program break */
 	uint32_t	 		stacktop;			/* Program's stack top */
 	uint32_t			stack_size;			/* Program's stack size */

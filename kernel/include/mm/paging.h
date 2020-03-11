@@ -43,6 +43,8 @@ typedef struct page_directory {
  */
 int alloc_frame(page_t *page, int is_kernel, int is_writable_from_userspace);
 
+int realloc_frame(page_t *page, int is_kernel, int is_writable_from_userspace);
+
 /**
  * @brief      Maps a frame to requested location
  *
@@ -82,6 +84,14 @@ void switch_page_directory(page_directory_t *dir);
  * @return     The page.
  */
 page_t *get_page(uint32_t virtual_address, int make_page_table, page_directory_t *dir);
+
+/**
+ * @brief      Allocate virtual memory in current page dir
+ *
+ * @param[in]  start  The start
+ * @param[in]  size   The size
+ */
+void alloc_virt(offset_t start, size_t size, int user);
 
 /**
  * @brief      Duplicates the current page directory

@@ -169,7 +169,6 @@ void schedule_killer()
 	}
 }
 
-
 /**
  * @brief      Switches task to the next task
  *
@@ -276,6 +275,7 @@ void task_yield(registers_t *regs)
 
 	switch_task(tmp, regs);
 }
+#include <debug.h>
 
 /**
  * @brief      Creates a task.
@@ -318,7 +318,6 @@ static task_t *create_task(task_t *new_task, int kernel_task, page_directory_t *
 
 	return new_task;
 }
-
 /**
  * @brief      Forks a process 
  *
@@ -327,7 +326,7 @@ static task_t *create_task(task_t *new_task, int kernel_task, page_directory_t *
 pid_t fork()
 {
 	// disable interrupts
-	asm volatile ("cli");
+	asm volatile ("cli;");
 
 	// save for later refrence
 	volatile task_t *parent_task = g_runningtask;
@@ -340,12 +339,14 @@ pid_t fork()
 	memcpy(new_task, (task_t*) parent_task, sizeof(task_t));
 
 	// create a new task with the new address space and task structure
-	new_task = create_task(new_task, 1, copied_dir);
+	new_task = create_task(new_task, parent_task->ring ? 0:1, copied_dir);
 
 	// copy the stack to the new addr space
 	copy_stack_to_new_addressspace(copied_dir);
 
-	// entry point for func
+
+
+	/* ENTRY POINT FOR CHILD PID */
 	uint32_t eip = get_eip();
 
 	if (g_runningtask == parent_task) {
