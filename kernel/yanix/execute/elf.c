@@ -147,14 +147,19 @@ static int _elf_loop_over_program_table(void *file, elf32_hdr_t* elf_hdr, elf32_
 	/* Find the program break */
 
 	unsigned long pbrk = elf_program_table[0].vaddr + elf_program_table[0].memsize;
+	unsigned long pstrt= elf_program_table[0].vaddr;
 
 	for (size_t i = 1; i < elf_hdr->pheader_table_amount; i++)
 	{
 		if ((elf_program_table[i].vaddr + elf_program_table[i].memsize) > pbrk)
 			pbrk = elf_program_table[i].vaddr + elf_program_table[i].memsize;
+
+		if ((elf_program_table[i].vaddr) < pstrt)
+			pstrt = (elf_program_table[i].vaddr);
 	}
 	
 	get_current_task()->program_break = pbrk;
+	get_current_task()->program_start = pstrt;
 	
 	return 0;
 }
