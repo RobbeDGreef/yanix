@@ -12,4 +12,6 @@ void shutdown(int errorcode);
  * @brief      Exits the current process
  */
 int sys_exit(int status);
+
+char *int_to_str(unsigned int val);
 #endif

@@ -12,7 +12,7 @@
 #include <const.h>
 #include <drivers/disk.h>
 
-#include <debug.h>
+#include <kernel.h>
 
 /**
  * Some definitions to avoid magic numbers
@@ -213,6 +213,7 @@ static unsigned int handle_indirect_bp(unsigned int indirect_bp_index, unsigned 
 	}
 
 	ext2_disk_read(indirect_bp_index * fs_info->block_size, indirect_bp, fs_info->block_size, fs_info);
+
 
 	unsigned int ret = indirect_bp[block_to_read] * fs_info->block_size;
 
@@ -607,6 +608,7 @@ struct dirent *ext2_read_dir(DIR *dirp)
 	/* Copy name */
 	memcpy(&dirp->dirent.d_name, &tmp->name, tmp->name_length);
 	dirp->dirent.d_name[tmp->name_length] = '\0'; 				// string ends with 0 char
+	
 	
 	/* @todo: we don't really need dirp anymore with the new dirent offset fields so i might need to redo this system (or complete ext2 because it's a mess) */
 
