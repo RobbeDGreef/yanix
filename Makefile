@@ -25,7 +25,8 @@ LD = /usr/share/crosscompiler/bin/i386-elf-ld
 GDB = gdb
 NASM = nasm
 QEMU = qemu-system-x86_64
-QEMU_FLAGS =  -m 512M -device isa-debug-exit,iobase=0xf4,iosize=0x04 -no-reboot -netdev user,id=u1,hostfwd=tcp::5555-:5454 -device rtl8139,netdev=u1
+QEMU_DEBUG_FLAGS = -d guest_errors,cpu_reset
+QEMU_FLAGS = $(QEMU_DEBUG_FLAGS) -m 512M -device isa-debug-exit,iobase=0xf4,iosize=0x04 -no-reboot -netdev user,id=u1,hostfwd=tcp::5555-:5454 -device rtl8139,netdev=u1
 QEMU_FLAGS += -object filter-dump,id=f1,netdev=u1,file=networkdump.dat -serial pipe:/serial_output.out
 
 all:
@@ -53,7 +54,7 @@ run: kernel.bin maindisk.iso
 	$(QEMU) ${QEMU_FLAGS} -hda $(DISKNAME)
 
 debug: kernel.bin maindisk.iso kernel.elf
-	$(QEMU) -s -d guest_errors ${QEMU_FLAGS} -hda $(DISKNAME) &
+	$(QEMU) -s ${QEMU_FLAGS} -hda $(DISKNAME) &
 	$(GDB) -ex "target remote localhost:1234" -ex "symbol-file kernel.elf"
 
 mount_ramdisk: ramdisk.iso

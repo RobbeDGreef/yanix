@@ -68,3 +68,49 @@ void shutdown(int errorcode)
     printk("Shutting down...\n%i", errorcode);
     port_byte_out(0xf4, 0x00);
 }
+
+/**
+ * @todo: This is absolute crap, redo this i just made it for debugging quickly
+ */
+char strbuf[9];
+char *int_to_str(unsigned int val)
+{
+	unsigned int tmp_int = val;
+	unsigned int reversed_int = 0;
+	unsigned int zeros_before = 0;
+	int i = 0;
+
+	while (tmp_int > 0)
+	{
+		reversed_int = reversed_int * 0x10 + tmp_int % 0x10;
+		if ((reversed_int == 0) && ((tmp_int % 0x10) == 0))
+			zeros_before++;
+		tmp_int /= 0x10;
+	} 
+
+	if (reversed_int == 0)
+	{
+		strbuf[i++] = '0';
+		strbuf[i] = 0;
+		return strbuf;
+	}
+
+	while (reversed_int > 0)
+	{
+		if ((reversed_int % 0x10) >= 0xA) {
+			strbuf[i++] = ('A' + ((reversed_int % 0x10) - 10));
+		} else {
+			strbuf[i++] = ('0' + (reversed_int % 0x10));
+		}
+		reversed_int /= 0x10;
+	}
+
+	for (size_t x = 0; x < zeros_before; x++)
+	{
+		strbuf[i++] = '0';
+	}
+
+	strbuf[i] = 0;
+
+	return strbuf;
+}
