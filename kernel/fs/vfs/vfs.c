@@ -14,6 +14,7 @@
 #include <kernel.h>
 #include <unistd.h>
 #include <libk/math.h>
+#include <debug.h>
 
 vfs_node_t	   *g_vfs_root;
 unsigned long 	g_nodecount;
@@ -795,7 +796,6 @@ void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, f
 	{
 		return;
 	}
-
 	int first = 1;
 	struct dirent *dir;
 	vfs_node_t *prevnode = startnode;
@@ -809,13 +809,12 @@ void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, f
 			
 			/* Make name string */
 			char *name = kmalloc(strlen(dir->d_name)+1);
-			memcpy(name, dir->d_name, strlen(dir->d_name));
-			name[strlen(dir->d_name)+1] = '\0';
+			memcpy(name, &dir->d_name, strlen(dir->d_name));
+			name[strlen(dir->d_name)] = '\0';
 
 			/* Create a new inode */
 			//printk("Inode %u name %s id %i\n", dir->d_ino, name, g_nodecount, fs_info);
 			node = (vfs_node_t*) fs_info->fs_makenode(dir->d_ino, name, g_nodecount++, fs_info);
-			
 
 			if (node == 0) 
 			{
@@ -844,10 +843,14 @@ void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, f
 	fs_info->dir_close(dirp);
 }
 
+int check_vfs_initialised()
+{
+	return g_vfs_root ? 1:0;
+}
 
 /* @TODO: this is not how this system should work at all (see note below) */
 extern disk_t *disk_list;
-
+#include <debug.h>
 /**
  * @brief      Initialises the virtual filesystem
  */
