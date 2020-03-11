@@ -19,9 +19,9 @@ void kernel_main()
 	printk(KERN_INFO "kernel boot up procedure completed\n");
 	
 	char **envvars = make_envvars();
-	const char **args = (const char **) make_args(2, "/bin/figlet", "Hello World");
+	const char **args = (const char **) make_args(2, "/bin/figlet", "Hello world");
 
-	int ret = execve_user("/bin/figlet", args, envvars);
+	int ret = execve_user("/bin/print", args, envvars);
 
 	if (ret)
 		printk(KERN_WARNING "Main execve returned, error was thrown: %i errno: %i\n", ret, errno);

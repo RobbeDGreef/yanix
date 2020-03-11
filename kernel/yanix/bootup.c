@@ -36,6 +36,7 @@ void bootsequence(uint32_t stack)
 	/* Initialise the serial connection early on to print to the serial before tty is available */
 	init_serial();
 
+
 	/* Initialize the video driver and clearing the screen */
 	video_clear_screen();
 	init_vesa((void*) 0xfd000000, 1024, 768, 3);
@@ -56,6 +57,7 @@ void bootsequence(uint32_t stack)
 void bootsequence_after_paging()
 {
 	int ret = 0;
+	debug_print("BEGIN\n");
 
 	ret = init_kheap();
 	message("Kernel heap initialized", !ret);
@@ -98,7 +100,7 @@ void bootsequence_after_paging()
 	message("Syscalls initialized", !ret);
 	
 	/* sleep to read the messages */
-	sleep(500);
+	sleep(1000);
 
 	/* cleanup */
 	clear_screenk();
@@ -127,8 +129,6 @@ void _enter(uint32_t stack)
 
 	message("Successfully remapped kernel stack to desired location", 1);
 	bootsequence_after_paging();
-	
-
 
 	kernel_main();
 

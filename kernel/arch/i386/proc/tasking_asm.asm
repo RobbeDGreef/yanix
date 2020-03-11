@@ -4,7 +4,7 @@ get_eip:
 	jmp	eax
 
 [GLOBAL task_switch]
-task_switch: ;task_switch_new(eip, esp, ebp, cr3)
+task_switch: ;task_switch(eip, esp, ebp, cr3)
 	cli
 	mov ecx, [esp+4]  ; eip
 	mov eax, [esp+16] ; cr3
