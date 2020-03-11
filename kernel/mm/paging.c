@@ -37,14 +37,18 @@ page_directory_t *g_current_directory = 0;
 offset_t *g_frames;
 size_t   g_nframes;
 
-extern uint32_t  placement_address;	// defined in heap.c
 
-/**
- * @brief      Basic kernel debug handler
- *
- * @param      Registers
- */
-extern void debug_handler(registers_t *);
+page_directory_t *get_kernel_dir()
+{
+	return g_kernel_directory;
+}
+
+page_directory_t *get_current_dir()
+{
+	return g_current_directory;
+}
+
+extern void page_fault(registers_t *);
 
 /**
  * All the bitset algorithms
@@ -64,7 +68,7 @@ extern void debug_handler(registers_t *);
 static void set_frame(unsigned int frame_addr)
 {
 	uint32_t frame  = frame_addr/0x1000;
-	uint32_t index   = INDEX_FROM_BIT(frame);
+	uint32_t index  = INDEX_FROM_BIT(frame);
 	uint32_t offset = OFFSET_FROM_BIT(frame);
 	g_frames[index] |= (0x1 << offset);
 }
@@ -77,7 +81,7 @@ static void set_frame(unsigned int frame_addr)
 static void clear_frame(unsigned int frame_addr)
 {
 	uint32_t frame  = frame_addr/0x1000;
-	uint32_t index   = INDEX_FROM_BIT(frame);
+	uint32_t index  = INDEX_FROM_BIT(frame);
 	uint32_t offset = OFFSET_FROM_BIT(frame);
 	g_frames[index] &= ~(0x1 << offset);			// '~' bitwise not
 }
@@ -103,8 +107,6 @@ static ssize_t first_frame()
 	}
 	return -1;
 }
-
-
 
 /**
  * @brief      Alocates a frame from a page struct
@@ -135,7 +137,52 @@ int alloc_frame(page_t *page, int is_kernel, int is_writable_from_userspace)
 	}
 }
 
+/**
+ * @brief      Realocates a frame from a page struct
+ *
+ * @param      page                        The page struct
+ * @param[in]  is_kernel                   Indicates if kernel
+ * @param[in]  is_writable_from_userspace  Indicates if writable from userspace
+ * @param[in]  is_writable  Indicates if writable
+ *
+ * @return     successcode 
+ */
+int realloc_frame(page_t *page, int is_kernel, int is_writable_from_userspace)
+{
+	if (page->frame != 0)
+		clear_frame(page->frame);
+	
+	ssize_t index = first_frame();
+	
+	if (index == -1)
+	{
+		errno = ENOMEM;
+		return -2;
+	}
+	
+	set_frame(index*0x1000);
+	page->present = 1;
+	page->rw = (is_writable_from_userspace)?1:0;
+	page->user = (is_kernel)?0:1;
+	page->frame = index;
+	
+	return 0;
+}
 
+
+/**
+ * @brief      Allocate virtual memory in current page dir
+ *
+ * @param[in]  start  The start
+ * @param[in]  size   The size
+ * @param[in]  user   Whether user mode is enabled or not
+ */
+void alloc_virt(offset_t start, size_t size, int user)
+{
+	for (unsigned int i = 0; i <= size; i += 0x1000)
+		alloc_frame(get_page(start + i, 1, g_kernel_directory), user ? 0 : 1, user);
+	
+}
 
 /**
  * @brief      Maps a frame to requested location
@@ -190,49 +237,6 @@ phys_addr_t virt_to_phys_from_dir(void *virtual_address, page_directory_t *dir)
 		return 0;
 	}
 	return page->frame * 0x1000 + ((uint32_t) virtual_address & 0x00000FFF);
-}
-
-
-/**
- * @brief      The page fault handler
- *
- * @param      regs  The regs
- */
-
-static void page_fault(registers_t *regs)
-{
-	offset_t faulting_address;
-	asm volatile("mov %%cr2, %0":"=r"(faulting_address));
-
-	int present = !(regs->err_code & 0x1);	// the page that was not present
-	int rw = regs->err_code & 0x2;			// whether write operation or not
-	int us = regs->err_code & 0x4;			// processor in ring 3 
-	int reserved = regs->err_code & 0x8;	// Overwritten CPU-reserved bits of a page entry
-
-	if (get_current_task()->ring != 3){		
-		// this is a kernel task
-		printk("Page fault: \n");
-		int errcode = -1;
-		if (present)  {printk("was not present, ");}
-		if (rw) 	  {printk("read write, "); errcode = -EPERM;}
-		if (us) 	  {printk("user-mode, ");  errcode = -EACCES;}
-		if (reserved) {printk("reserved, ");   errcode = -EACCES;}
-		printk(" at 0x%x\n", faulting_address);
-		(void) (errcode);
-		debug_handler(regs);
-		for(;;);
-	} else {
-		// this is a user task
-		printk("Segmentation fault, faulting address: 0x%08x\n", faulting_address);
-		if (present)  printk("was not present, ");
-		if (rw) 	  printk("read write, ");
-		if (us) 	  printk("user-mode, ");
-		if (reserved) printk("reserved, ");
-		printk("\n");
-		debug_handler(regs);
-		send_sig(SIGKILL);
-		for(;;);
-	}
 }
 
 /**
@@ -311,11 +315,11 @@ static void copy_page(size_t addr, page_directory_t *newdir)
 	page_t *buffer_page 	 = get_page(PAGE_BUFFER_LOCATION, 1, g_current_directory);
 	page_t *new_page  		 = get_page(addr, 1, newdir);
 	
-	alloc_frame(new_page, page_to_copy_ref->user?0:1, page_to_copy_ref->rw?1:0);
-	
+	alloc_frame(new_page, page_to_copy_ref->user?0:1, page_to_copy_ref->rw);
+
 	buffer_page->frame = new_page->frame;
 	memcpy((void*) PAGE_BUFFER_LOCATION, (void*) addr, 0x1000);
-
+	//printk("Page now%x: %x %x\n", addr, get_page(addr, 0, newdir), *get_page(addr, 0, newdir));
 }
 
 /**
@@ -369,18 +373,22 @@ page_directory_t *duplicate_current_page_directory()
 			} else {
 				// copy the page table 
 				newdir->tables[tableiter] = (page_table_t*) kmalloc_base(sizeof(page_table_t), 1, &phys);
+				memset(newdir->tables[tableiter], 0, sizeof(page_table_t));
 				newdir->tablesPhysical[tableiter] = (uint32_t) phys | (g_current_directory->tablesPhysical[tableiter] & 0xF); // copy the flags over too
 
 				// loop over evey page and copy the contents if it exists
 				for (size_t pageiter = 0; pageiter < AMOUNT_OF_PAGES_PER_TABLE; pageiter++) {
-					if ((uint32_t) g_current_directory->tables[tableiter]->pages[pageiter].frame != 0 && 
-						!is_addr_in_stackrange((tableiter*AMOUNT_OF_PAGES_PER_TABLE+pageiter)*0x1000)) {
+					if (g_current_directory->tables[tableiter]->pages[pageiter].present && 
+						!is_addr_in_stackrange((tableiter*AMOUNT_OF_PAGES_PER_TABLE+pageiter)*0x1000)) 
+					{
 						copy_page((tableiter*AMOUNT_OF_PAGES_PER_TABLE+pageiter)*0x1000, newdir);
 					}
 				}
 			}
 		}
 	}
+
+	//printk_hd(get_page(0x804ab97, 0, newdir), 200);
 	return newdir;
 }
 
@@ -527,15 +535,15 @@ int init_paging()
 	// it checks if anything is written to the page direcotry and if so it will use
 	// the heap, problem being we haven't initialized our heap yet
 	
-	for (uint32_t i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i+=0x1000) {
+	for (unsigned int i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i+=0x1000)
 		get_page(i, 1, g_kernel_directory);
-	}
+	
 
 	// identity map the memory from 0 to the end of the kernel and make it unwriteable from user space and kernel only
-	identity_map_memory_block(0, placement_address+0x85000, 1, 0, g_kernel_directory);
+	identity_map_memory_block(0, get_placement_addr() + PREHEAPSPACE, 1, 0, g_kernel_directory);
 	// @note: the reason that we need to add so much memory after placement address is because of the page allocation systems
 
-	// allocate the heaps
+	/* allocate the start of the heaps */
 	map_memory_block(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE, 1, 0, g_kernel_directory);
 	map_memory_block(UHEAP_START, UHEAP_START+UHEAP_INITIAL_SIZE, 0, 1, g_kernel_directory);
 

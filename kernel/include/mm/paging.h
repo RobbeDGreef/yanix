@@ -31,6 +31,9 @@ typedef struct page_directory {
 	uint32_t 		physicalAddress;
 } page_directory_t;
 
+page_directory_t *get_kernel_dir();
+page_directory_t *get_current_dir();
+
 /**
  * @brief      Alocates a frame from a page struct
  *
