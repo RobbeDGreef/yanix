@@ -641,7 +641,7 @@ DIR *ext2_open_dir_stream(ino_t inode, filesystem_t *fs_info)
 	}
 
 	/* Allocate the needed structures and fill them in */
-	DIR *ret = (DIR*) kmalloc(sizeof(DIR));
+	DIR *ret = (DIR*) kmalloc(sizeof(DIR) + NAME_MAX);
 	memset(ret, 0, sizeof(DIR));
 
 	//ret->dirent.d_name = (char*) kmalloc(NAME_MAX);
