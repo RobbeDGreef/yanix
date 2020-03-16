@@ -57,7 +57,6 @@ void bootsequence(uint32_t stack)
 void bootsequence_after_paging()
 {
 	int ret = 0;
-	debug_print("BEGIN\n");
 
 	ret = init_kheap();
 	message("Kernel heap initialized", !ret);
