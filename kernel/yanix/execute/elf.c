@@ -109,10 +109,11 @@ static int _elf_load_pheader(void *file, elf32_phdr_t *phdr)
 {
 	map_mem(phdr->vaddr, phdr->vaddr + phdr->memsize, 0, phdr->flags & ELF_W);
 	memset((void*) phdr->vaddr, 0, phdr->memsize);
-	memcpy((void*) phdr->vaddr, (void*) (((uint32_t) file) + phdr->offset), phdr->filesize);
-	if (phdr->filesize < phdr->memsize) {
+	memcpy((void*) phdr->vaddr, (void*) ((unsigned int) file + phdr->offset), phdr->filesize);
+
+	if (phdr->filesize < phdr->memsize)
 		memset((void*)(phdr->vaddr + phdr->filesize), 0, phdr->memsize-phdr->filesize);
-	}
+	
 	return  0; 
 }
 

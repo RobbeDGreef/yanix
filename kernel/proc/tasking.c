@@ -485,16 +485,22 @@ int send_pid_sig(pid_t pid, int sig)
  */
 void schedule(registers_t *regs)
 {
-	if (g_runningtask != 0){
-		if (g_runningtask->sliceused < g_runningtask->timeslice){
+	if (g_runningtask != 0)
+	{
+		if (g_runningtask->sliceused < g_runningtask->timeslice)
+		{
 			/* run */
 			g_runningtask->sliceused += timer_get_period();
-		} else {
+		}
+		else
+		{
 			/* switch */
 			g_runningtask->sliceused = 0;
 			task_yield(regs);
 		}
-	} else {
+	}
+	else 
+	{
 		/* exit gracefully because no tasking initialised */
 	}
 }
@@ -519,8 +525,6 @@ int getpid()
 {
 	return g_runningtask->pid;
 }
-
-#include <debug.h>
 
 /**
  * @brief      Typical sbrk that will increase the program break

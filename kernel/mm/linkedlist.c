@@ -54,6 +54,7 @@ struct linkedlist *create_linkedlist(offset_t memorystart, size_t maxsize, int u
 	return heap;
 }
 
+
 void add_to_used(struct ll_node *node, struct linkedlist *list)
 {
 	struct ll_node *tmp = list->start_used;
@@ -65,12 +66,12 @@ void add_to_used(struct ll_node *node, struct linkedlist *list)
 		return;
 	}
 
-	while (tmp->next != 0)
+	while (tmp->next)
 		tmp = tmp->next;
 
 	tmp->next = node;
 	node->prev = tmp;
-	node->next = 0;	
+	node->next = 0;
 }
 
 void add_to_free(struct ll_node *node, struct linkedlist *list)
@@ -276,8 +277,7 @@ struct ll_node *get_free(size_t searchsize, struct linkedlist *list, int pageali
 
 	if (!tmp)
 		goto expand;
-
-
+	
 	if (pagealigned)
 	{
 		do
@@ -337,13 +337,12 @@ struct ll_node *get_free(size_t searchsize, struct linkedlist *list, int pageali
 			if (tmp->size >= searchsize)
 			{
 				if (tmp->size != searchsize)
-				{
 					return split_fit(searchsize, tmp, list);
-				}
 				
 				else
 					return perfect_fit(tmp, list);
 			}
+
 		} while ((tmp = tmp->next) != 0);
 	}
 

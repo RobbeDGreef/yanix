@@ -68,7 +68,8 @@ int printk(const char* __restrict fmt, ...)
 	}
 	
 
-	while ((character = fmt[i]) != '\0') {
+	while ((character = fmt[i]) != '\0')
+	{
 		
 		if (character == '%') {
 			/* escape character */
@@ -245,7 +246,9 @@ int printk(const char* __restrict fmt, ...)
 
 			/* Skip over next character */
 			i++;
-		} else {
+		}
+		else
+		{
 			/* A regular character to print */
 			putchark(fmt[i]);
 			written_character++;

@@ -11,7 +11,7 @@ extern void debug_handler(registers_t *);
 
 void zero_page(offset_t addr, page_directory_t *pdir, int user)
 {
-	alloc_frame(get_page(addr, 1, pdir), user ? 0: 1, user);
+	alloc_frame(get_page(addr, 1, pdir), user ? 0 : 1, user);
 	/* @todo: actually zero the page out, I don't think it really needs to happen but anyway */
 }
 

@@ -136,9 +136,8 @@ void video_draw_line(int x1, int y1, int x2, int y2, int color)
  */
 void video_clear_screen()
 {
-	if (g_video_driver != 0 && g_video_driver->clear != 0){
+	if (g_video_driver && g_video_driver->clear)
 		g_video_driver->clear();
-	}
 }
 
 /**

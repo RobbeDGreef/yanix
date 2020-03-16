@@ -784,7 +784,8 @@ vfs_node_t *vfs_setupnode(char *name, uint8_t type, uint16_t permissions, uid_t 
 void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, filesystem_t *fs_info)
 {	
 	/* If it's the root inode, add it as the first in the list */
-	if (rootnode) {
+	if (rootnode) 
+	{
 		g_vfs_root = (vfs_node_t*) fs_info->fs_makenode(start, "", g_nodecount++, fs_info);
 		g_vfs_root->parent = g_vfs_root;
 		startnode = g_vfs_root;
@@ -800,13 +801,13 @@ void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, f
 	struct dirent *dir;
 	vfs_node_t *prevnode = startnode;
 	vfs_node_t *node;
-	
+
 	/* Read all the entries in the opened inode */
-	while ((dir = fs_info->dir_read(dirp)) != 0){
+	while ((dir = fs_info->dir_read(dirp)) != 0)
+	{
 		/* The files . and .. shouldn't be added in the vfs */
 		//if (_strcmpI(dir->d_name, ".") != 0 && _strcmpI("..", dir->d_name) != 0)
 		//{
-			
 			/* Make name string */
 			char *name = kmalloc(strlen(dir->d_name)+1);
 			memcpy(name, &dir->d_name, strlen(dir->d_name));

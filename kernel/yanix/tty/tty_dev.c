@@ -62,7 +62,7 @@ int init_tty_devices()
 		return -1;
 	}
 
-	// set the necessary values
+	/* set the necessary values */
 	tty_control_struct->col_max = cols;
 	tty_control_struct->row_max = rows;
 	tty_control_struct->colorbit_size = sizeof(colorbit_t);
@@ -190,24 +190,24 @@ ssize_t tty_write(tty_dev_t *tty_dev, const char *text_to_write, size_t bytes_to
 	/**
 	 * Just checks if the tty device we got is not a null pointer
 	 */
-	if (tty_dev == 0) {
+	if (tty_dev == 0)
 		return -1;
-	}
 
 	/**
 	 * If the column or row specified equals -1, we should write to the cursor location (and update the cursor location too)
 	 */
 
 	unsigned int cur_col, cur_row;
-	if ((col == -1) | (row == -1)) {
+	if ((col == -1) | (row == -1))
+	{
 		cur_col = tty_dev->c_col;
 		cur_row = tty_dev->c_row;
-
-	} else {
+	}
+	else
+	{
 		cur_col = col;
 		cur_row = row;
 	}
-
 	/**
 	 * These are for calculating from where to update the buffer
 	 */

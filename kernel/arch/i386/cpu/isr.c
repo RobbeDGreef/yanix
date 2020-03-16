@@ -188,15 +188,16 @@ void arch_register_interrupt_handler(uint8_t n, isr_callback_t handler) {
 }
 
 void irq_handler(registers_t *r){
-    if (r->int_no >= 40) {
+    if (r->int_no >= 40)
         port_byte_out(0xA0, 0x20);
-    }
+    
     port_byte_out(0x20, 0x20);
 
     //if (r->int_no != 32 && r->int_no != 46)
     //    printk("No handler for: %i\n", r->int_no);
 
-    if (interrupt_handlers[r->int_no] != 0){
+    if (interrupt_handlers[r->int_no] != 0)
+    {
         isr_callback_t handler = interrupt_handlers[r->int_no];
         handler(r);
     }

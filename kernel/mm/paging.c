@@ -535,7 +535,7 @@ int init_paging()
 	// it checks if anything is written to the page direcotry and if so it will use
 	// the heap, problem being we haven't initialized our heap yet
 	
-	for (unsigned int i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i+=0x1000)
+	for (unsigned int i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += 0x1000)
 		get_page(i, 1, g_kernel_directory);
 	
 
