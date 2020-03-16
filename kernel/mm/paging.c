@@ -28,7 +28,7 @@
  */
 
 page_directory_t *g_kernel_directory  = 0;
-page_directory_t *g_current_directory = 0;
+volatile page_directory_t *g_current_directory = 0;
 
 /**
  * The global frame variables
