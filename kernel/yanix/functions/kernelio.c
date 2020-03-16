@@ -12,12 +12,12 @@ unsigned int g_kernel_log_level;
  *
  * @param[in]  character  The character
  */
-void putchark(char character)
+static void putchark(char character)
 {
 	vfs_write_fd(1, &character, 1);
 }
 
-size_t print(const char* txt, size_t len)
+static size_t print(const char* txt, size_t len)
 {
 	return vfs_write_fd(1, txt, len);
 }
