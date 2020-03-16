@@ -5,6 +5,20 @@
 #include <mm/paging.h>
 extern page_directory_t *g_current_directory;
 
+void debug_handler_task()
+{
+	task_t *curtask = get_current_task();
+
+	if (!curtask)
+		return;
+	
+	printk("Task name: '%s'\n", curtask->name);
+	printk("Task ring: %i, id: %i\n", curtask->ring, curtask->pid);
+	printk("Program start: %08x program break %08x\n", curtask->program_start, curtask->program_break);
+	printk("Stacktop %08x stacksize %08x kernel stack %08x\n", curtask->stacktop, curtask->stack_size, curtask->kernel_stack);
+
+}
+
 void debug_handler(registers_t *regs)
 {
 
@@ -27,6 +41,18 @@ void debug_handler(registers_t *regs)
 stacktrace:;
 	printk("----------------- STACKTRACE -----------------\n");
 	dump_stacktrace();
+	printk("----------------  TASK INFO  -----------------\n");
+	task_t *curtask = get_current_task();
+
+	if (!curtask)
+		goto end;
+	
+	printk("Task name: '%s'\n", curtask->name);
+	printk("Task ring: %i, id: %i\n", curtask->ring, curtask->pid);
+	printk("Program start: %08x program break %08x\n", curtask->program_start, curtask->program_break);
+	printk("Stacktop %08x stacksize %08x kernel stack %08x\n", curtask->stacktop, curtask->stack_size, curtask->kernel_stack);
+
+end:;
 	printk("============       DEBUG END      ============\n");
 
 	for(;;);
