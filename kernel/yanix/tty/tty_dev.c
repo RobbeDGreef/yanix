@@ -72,13 +72,14 @@ int init_tty_devices()
 
 	tty_control_struct->tty_devices = kmalloc(sizeof(tty_dev_t) * TTY_DEVICE_AMOUNT);
 
-	// check if memory allocation succeeded
-	if (tty_control_struct->tty_devices == 0) {
+	/* check if memory allocation succeeded */
+	if (tty_control_struct->tty_devices == 0)
 		return -1;
-	}
 	
-	// initialize each tty device
-	for (size_t i = 0; i < TTY_DEVICE_AMOUNT; i++) {
+	
+	/* initialize each tty device */
+	for (size_t i = 0; i < TTY_DEVICE_AMOUNT; i++)
+	{
 		tty_control_struct->tty_devices[i].buffer 	= kmalloc(tty_buf_size);
 		tty_control_struct->tty_devices[i].id 		= i;
 		tty_control_struct->tty_devices[i].c_col	= 0;
@@ -86,10 +87,8 @@ int init_tty_devices()
 
 	}
 
-	// now we should hook up the tty devices to the vfs
-
-	//init_tty_stdin();
-	//switch_filedescriptors_to_tty();
+	/* Kernel will get tty 0 for now, i haven't completely tought this tty system through */
+	get_current_task()->tty = 0;
 
 	// return 0 on success
 	return 0;
