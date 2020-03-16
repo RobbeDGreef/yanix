@@ -144,6 +144,7 @@ void copy_stack_to_new_addressspace(page_directory_t *newdir);
  * @return     { description_of_the_return_value }
  */
 int map_mem(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace);
+int remap_mem(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace);
 
 
 /**

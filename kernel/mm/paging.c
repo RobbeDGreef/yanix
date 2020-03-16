@@ -441,6 +441,21 @@ static int map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel,
 	return 0;
 }
 
+static int remap_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace, page_directory_t *dir)
+{
+	int ret;
+	/* this loop uses startaddr as an iterator */
+	while (startaddr <= endaddr) {
+		/* alocates a frame for every page that is in this memory block */
+		ret = realloc_frame(get_page(startaddr, 1, dir), is_kernel, is_writable_from_userspace);
+		if (ret != 0) {
+			return ret;
+		}
+		startaddr += 0x1000;
+	}
+	return 0;
+}
+
 /**
  * @brief      Maps a physical memory block to the virtual memory
  *
@@ -453,7 +468,12 @@ static int map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel,
  */
 int map_mem(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace)
 {
-	return map_memory_block(startaddr, endaddr, is_kernel, is_writable_from_userspace, g_current_directory);
+	return map_memory_block(startaddr, endaddr, is_kernel, is_writable_from_userspace, (page_directory_t*) g_current_directory);
+}
+
+int remap_mem(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace)
+{
+	return remap_memory_block(startaddr, endaddr, is_kernel, is_writable_from_userspace, (page_directory_t*) g_current_directory);
 }
 
 
