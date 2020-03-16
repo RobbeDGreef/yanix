@@ -102,7 +102,7 @@ ssize_t vfs_read(struct file *file, void *buf, size_t amount)
  */
 static ssize_t _vfs_write(struct file_descriptor *fd_struct, const void *buf, size_t amount)
 {
-	if (fd_struct->node->write != 0)
+	if (fd_struct->node && fd_struct->node->write)
 		return fd_struct->node->write(fd_struct->node, fd_struct->seek, buf, amount);
 	
 	else
