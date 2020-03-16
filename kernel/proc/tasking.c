@@ -545,8 +545,6 @@ void* sbrk(intptr_t incr)
 		// this will alocate a frame if the frame has not already been set 
 		if (alloc_frame(get_page(i, 1, get_current_task()->directory), kernel, kernel?0:1) == -2) 
 		{
-			// TODO: should also deallocate the frame 
-			errno = ENOMEM;
 			return (void*) -1;
 		}
 
