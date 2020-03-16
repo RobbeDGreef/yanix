@@ -5,6 +5,7 @@
 #include <fs/filedescriptor.h>
 #include <config/font.h>
 #include <drivers/video/video.h>
+#include <proc/tasking.h>
 
 /**
  * A tty device is going to be a file that can be written to
@@ -15,7 +16,7 @@
 
 
 unsigned int g_current_tty = 0;
-tty_ctrl_t *tty_control_struct;
+tty_ctrl_t *tty_control_struct = 0;
 
 void init_tty_stdin(void);
 

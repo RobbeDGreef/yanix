@@ -11,17 +11,20 @@ extern vfs_node_t *g_vfs_root;
 
 /* Debugging */
 
+#include <debug.h>
+#include <mm/paging.h>
+
 /**
  * @brief      Kernel main loop
  */
 void kernel_main()
 {
 	printk(KERN_INFO "kernel boot up procedure completed\n");
-	
+
 	char **envvars = make_envvars();
 	const char **args = (const char **) make_args(2, "/bin/figlet", "Hello world");
 
-	int ret = execve_user("/bin/print", args, envvars);
+	int ret = execve_user("/bin/figlet", args, envvars);
 
 	if (ret)
 		printk(KERN_WARNING "Main execve returned, error was thrown: %i errno: %i\n", ret, errno);

@@ -45,7 +45,7 @@ page_directory_t *get_kernel_dir()
 
 page_directory_t *get_current_dir()
 {
-	return g_current_directory;
+	return (page_directory_t*) g_current_directory;
 }
 
 extern void page_fault(registers_t *);
@@ -311,8 +311,8 @@ page_t *get_page(uint32_t virtual_address, int make_page_table, page_directory_t
  */
 static void copy_page(size_t addr, page_directory_t *newdir)
 {
-	page_t *page_to_copy_ref = get_page(addr, 1, g_current_directory);
-	page_t *buffer_page 	 = get_page(PAGE_BUFFER_LOCATION, 1, g_current_directory);
+	page_t *page_to_copy_ref = get_page(addr, 1, (page_directory_t*) g_current_directory);
+	page_t *buffer_page 	 = get_page(PAGE_BUFFER_LOCATION, 1, (page_directory_t*) g_current_directory);
 	page_t *new_page  		 = get_page(addr, 1, newdir);
 	
 	alloc_frame(new_page, page_to_copy_ref->user?0:1, page_to_copy_ref->rw);
@@ -520,7 +520,7 @@ int init_paging()
 	offset_t end_of_memory = 0x20000000;				// for now we set end at 512 mb (really shouldn't be statically typed)
 	g_nframes 			   = end_of_memory / 0x1000; // each page frame coveres 4kib bytes
 
-	g_frames = (offset_t*) kmalloc_base(g_nframes / 32, 1, 0);
+	g_frames = kmalloc_base(g_nframes / 32, 1, 0);
 	memset(g_frames, 0, g_nframes / 32);
 
 	g_kernel_directory = (page_directory_t*) kmalloc_base(sizeof(page_directory_t), 1, 0);
@@ -562,7 +562,7 @@ int init_paging()
 
 	// switch the page directory and by doing this activate paging
 	g_current_directory	= duplicate_current_page_directory();
-	init_page_directory(g_current_directory);
+	init_page_directory((page_directory_t*) g_current_directory);
 
 	return 0;
 }
