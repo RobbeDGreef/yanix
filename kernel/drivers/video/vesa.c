@@ -5,6 +5,7 @@
 #include <libk/bit.h>
 #include <libk/string.h>
 #include <mm/paging.h>
+#include <mm/heap.h>
 
 #include <stdint.h>
 #include <stddef.h>
@@ -39,7 +40,7 @@ static const uint32_t VGA_TO_FULL[] = {
 char *VESA_DRIVER_NAME = "yanix_vesa_driver";
 char *VESA_CARD_NAME   = "vesa_card";
 
-vesa_ctrl_t g_display;	// @todo: multiple monitor support
+vesa_ctrl_t *g_display;	// @todo: multiple monitor support
 
 /**
  * @brief      This is an inline function for drawing a pixel in videomemory
@@ -65,11 +66,12 @@ inline static void vesa_draw_pixel_inline(char *videomem, unsigned int offset, i
  */
 void init_vesa(void *physicallfb, unsigned int width, unsigned int height, unsigned int bpp)
 {
+	g_display = kmalloc(sizeof(vesa_ctrl_t));
 	// Save all our variables in an handy struct
-	g_display.physicalLFB   = (void*) physicallfb;
-	g_display.s_width		= width;
-	g_display.s_height 		= height;
-	g_display.bpp			= bpp;
+	g_display->physicalLFB  = (void*) physicallfb;
+	g_display->s_width		= width;
+	g_display->s_height 	= height;
+	g_display->bpp			= bpp;
 
 	//unsigned int buffer_size = width * height * bpp;
 
@@ -85,7 +87,7 @@ void init_vesa(void *physicallfb, unsigned int width, unsigned int height, unsig
  */
 void vesa_draw_pixel_at_offset(unsigned int offset, int color)
 {
-	void *videomem = ((void*)(g_display.physicalLFB));
+	void *videomem = ((void*)(g_display->physicalLFB));
 	vesa_draw_pixel_inline(videomem, offset, color);
 }
 
@@ -98,7 +100,7 @@ void vesa_draw_pixel_at_offset(unsigned int offset, int color)
  */
 void vesa_draw_pixel(int x, int y, int color)
 {
-	unsigned int location = (y * g_display.s_width + x) * g_display.bpp;
+	unsigned int location = (y * g_display->s_width + x) * g_display->bpp;
 	vesa_draw_pixel_at_offset(location, color);
 }
 
@@ -166,7 +168,7 @@ void vesa_draw_char(char character, int x, int y, int frgcolor, int bgcolor)
 
 void vesa_clear_screen_()
 {
-	memset(g_display.physicalLFB, 0, g_display.bpp * g_display.s_width * g_display.s_height);
+	memset(g_display->physicalLFB, 0, g_display->bpp * g_display->s_width * g_display->s_height);
 }
 
 /**
@@ -189,10 +191,10 @@ void hook_vesa_to_video(video_driver_t *driver)
 	driver->vga_to_full   = &vesa_vga_to_full;
 
 	/* And fill in all the extra data */
-	driver->screen_width  	  = g_display.s_width;
-	driver->screen_height 	  = g_display.s_height;
-	driver->screen_bpp		  = g_display.bpp;
-	driver->screen_fb		  = (unsigned int) g_display.physicalLFB;
+	driver->screen_width  	  = g_display->s_width;
+	driver->screen_height 	  = g_display->s_height;
+	driver->screen_bpp		  = g_display->bpp;
+	driver->screen_fb		  = (unsigned int) g_display->physicalLFB;
 	driver->video_driver_name = VESA_DRIVER_NAME;	
 	driver->video_card_name	  = VESA_CARD_NAME;		/* This should actually be done by the PCI driver */
 }

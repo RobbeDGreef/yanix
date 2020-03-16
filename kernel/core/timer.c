@@ -4,20 +4,22 @@
 #include <proc/tasking.h>
 #include <kernel.h>
 #include <stdint.h>
+#include <debug.h>
+#include <mm/heap.h>
 
 #define TIMER_FREQ 250
 
 /**
  * @brief      Timer value structure
  */
-typedef struct timer_s
+struct time_info
 {
 	volatile unsigned long 	ticks_since_boot;
 	unsigned long 			period;				/* 1000 / frequency, milliseconds */
 	unsigned long			frequency;
-} timer_t;
+};
 
-timer_t timer_info;
+struct time_info *timer_info;
 
 /**
  * @brief      Standard timer callback
@@ -27,7 +29,7 @@ timer_t timer_info;
 static void timer_callback(registers_t *regs)
 {
 	(void) (regs);
-	timer_info.ticks_since_boot++;
+	timer_info->ticks_since_boot++;
 
 	schedule(regs);
 }
@@ -39,7 +41,7 @@ static void timer_callback(registers_t *regs)
  */
 unsigned long timer_get_period()
 {
-	return timer_info.period;
+	return timer_info->period;
 }
 
 /**
@@ -49,7 +51,7 @@ unsigned long timer_get_period()
  */
 unsigned long timer_get_frequency()
 {
-	return timer_info.frequency;
+	return timer_info->frequency;
 }
 
 /**
@@ -59,9 +61,8 @@ unsigned long timer_get_frequency()
  */
 unsigned long timer_get_cur_ticks()
 {
-	return timer_info.ticks_since_boot;
+	return timer_info->ticks_since_boot;
 }
-
 
 /**
  * @brief      Initializes the timer.
@@ -70,9 +71,10 @@ void init_timer()
 {
 	arch_init_timer(TIMER_FREQ, timer_callback);
 
-	memset(&timer_info, 0, sizeof(timer_t));
+	timer_info = kmalloc(sizeof(struct time_info));
+	memset(timer_info, 0, sizeof(struct time_info));
 
-	timer_info.frequency = arch_timer_get_frequency();
-	timer_info.period    = 1000 / arch_timer_get_frequency();
+	timer_info->frequency = arch_timer_get_frequency();
+	timer_info->period    = 1000 / arch_timer_get_frequency();
 
 }
