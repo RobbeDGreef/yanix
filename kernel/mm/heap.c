@@ -80,7 +80,13 @@ void *kmalloc_base(size_t size, int align, phys_addr_t *physical_address)
 
 		if (physical_address)
 		{
-			page_t *page = get_page((offset_t) addr, 0, get_current_task()->directory);
+			page_t *page = get_page((offset_t) addr, 1, get_kernel_dir());
+
+			/* Sometimes the page won't be initialised yet 
+			 * so we'll do that here */
+			if (!page->frame)
+				alloc_frame(page, 1, 0);
+
 			*physical_address = page->frame * 0x1000 + ((offset_t) addr & 0xFFF);
 		}
 
@@ -106,10 +112,16 @@ void *kmalloc_user_base(size_t size, int align, phys_addr_t *physical_address)
 	}
 
 	if (physical_address)
-	{
-		page_t *page = get_page((offset_t) addr, 0, get_current_task()->directory);
-		*physical_address = page->frame * 0x1000 + ((offset_t) addr & 0xFFF);
-	}
+		{
+			page_t *page = get_page((offset_t) addr, 1, get_kernel_dir());
+
+			/* Sometimes the page won't be initialised yet 
+			 * so we'll do that here */
+			if (!page->frame)
+				alloc_frame(page, 0, 1);
+
+			*physical_address = page->frame * 0x1000 + ((offset_t) addr & 0xFFF);
+		}
 
 	return addr;
 }
