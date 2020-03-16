@@ -313,6 +313,7 @@ static task_t *create_task(task_t *new_task, int kernel_task, page_directory_t *
 	new_task->directory = dir;
 	new_task->state = TASK_RUNNING;
 	new_task->fds = vector_copy(g_runningtask->fds);
+	new_task->tty = g_runningtask->tty;
 
 	new_task->timeslice = 100;
 
