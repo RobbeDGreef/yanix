@@ -11,7 +11,7 @@ extern void task_switch(uint32_t ip, uint32_t sp, uint32_t bp, uint32_t cr3);
  */
 void arch_jump_userspace(uint32_t eip, uint32_t argc, uint32_t argv)
 {
-	tss_set_kernel_stack(get_current_task()->kernel_stack + KERNEL_STACK_SIZE);
+	tss_set_kernel_stack(get_current_task()->kernel_stack);
 	jmp_userspace(eip, argc, argv);
 }
 
