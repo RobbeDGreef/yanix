@@ -52,7 +52,7 @@ int init_tty_devices()
 	}
 
 	// calculate the tty device buffer size
-	int tty_buf_size = cols * rows * sizeof(colorbit_t);
+	int tty_buf_size = cols * rows * (sizeof(colorbit_t) + sizeof(char));
 	
 	// allocate the tty control structure
 	tty_control_struct = kmalloc(sizeof(tty_ctrl_t));
