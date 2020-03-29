@@ -33,6 +33,7 @@ typedef struct page_directory {
 
 page_directory_t *get_kernel_dir();
 page_directory_t *get_current_dir();
+void set_current_dir(page_directory_t *new);
 
 /**
  * @brief      Alocates a frame from a page struct
