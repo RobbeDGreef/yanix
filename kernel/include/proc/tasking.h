@@ -14,19 +14,19 @@ typedef void (*notify_fpointer) (int signal);
 typedef struct task_control_block_s
 {
 	/* Registers used for switching */
-	uint32_t 			eip;
-	uint32_t 			esp;
-	uint32_t 			ebp;
-	uint32_t			eflags;
+	reg_t				eip;
+	reg_t				esp;
+	reg_t				ebp;
+	reg_t				eflags;
 	page_directory_t 	*directory;			/* Program page directory */
 
 	/* Program information */
-	uint32_t			program_start; 		/* The start of the program */
-	uint32_t			program_break;		/* Program break */
-	uint32_t	 		stacktop;			/* Program's stack top */
-	uint32_t			stack_size;			/* Program's stack size */
+	offset_t			program_start; 		/* The start of the program */
+	offset_t			program_break;		/* Program break */
+	offset_t	 		stacktop;			/* Program's stack top */
+	offset_t			stack_size;			/* Program's stack size */
 
-	uint32_t 			kernel_stack;		/* Kernel stack (same as stacktop if this is a kernel task) */
+	offset_t 			kernel_stack;		/* Kernel stack (same as stacktop if this is a kernel task) */
 
 	/* Task information */
 	char 				*name;
@@ -47,7 +47,7 @@ typedef struct task_control_block_s
 	unsigned long 		timeused;			/* The total amount of cpu time this task has used */
 	unsigned long 		sliceused;			/* The current amount of cpu time the task is using */
 	int 				priority;			/* The priority of the task */
-	int 				spawned;			/* Whether the task was already spawned or not */
+	//int 				spawned;			/* Whether the task was already spawned or not */
 
 	/* Linked list next identifier */
 	struct task_control_block_s *next;
