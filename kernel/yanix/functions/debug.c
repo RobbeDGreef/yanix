@@ -295,7 +295,7 @@ void debug_printk(const char* __restrict fmt, ...)
 
 int random_complex_calc(int x)
 {
-	int y = 0;
+	float y = -1.0;
 
 	for (int i = 0; i < x; i++)
 	{
