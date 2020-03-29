@@ -1807,6 +1807,23 @@ static const uint8_t MonospaceFont_16_bitmap[] =
   0x00,  //....... 
   0x00,  //....... 
 
+  
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0xFF,
+  0xFF,
+  0xFF,
+  0xFF,
+  0xFF,
+  0xFF,
+  0xFF,
+  0xFF,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
 
 };
 
@@ -1913,6 +1930,7 @@ static const font_bitmap_data MonospaceFont_16_data[] =
   {.width = 1, .index = 1488}, /*Unicode: U+007c (|)*/
   {.width = 5, .index = 1504}, /*Unicode: U+007d (})*/
   {.width = 7, .index = 1520}, /*Unicode: U+007e (~)*/
+  {.width = 8, .index = 1536}  /* Debugging */
 };
 
 
@@ -1932,7 +1950,7 @@ uint8_t* font_getchar(unsigned char character) {
     /**
      * This check will make sure the requisted character is printable
      */
-    if ((character < 32) | (character > 127)) {
+    if ((character < 32) | (character > 128)) {
         return 0;
     }
     return (uint8_t*) &MonospaceFont_16_bitmap[font_getchar_index(character)];
