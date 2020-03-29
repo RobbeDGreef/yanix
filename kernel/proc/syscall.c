@@ -239,20 +239,10 @@ int init_syscalls()
  * @param      regs  The pushed registers
  */
 static void syscall_handler(registers_t *regs){
-    //printk(KERN_INFO "Syscall: %i with %x %x %x\n", regs->eax, regs->ebx, regs->ecx, regs->edx);
+    debug_printk(KERN_INFO "Syscall: %i with %x %x %x\n", regs->eax, regs->ebx, regs->ecx, regs->edx);
 
     if (regs->eax >= NUMER_OF_SYSCALLS)
 		return;
-
-    if (regs->eax != 4)
-    {
-            //printk(KERN_INFO "Syscall: %i with %x %x %x\n", regs->eax, regs->ebx, regs->ecx, regs->edx);
-    
-        //printk("Trying to write: '");
-        //for (unsigned int i = 0; i < regs->edx; i++)
-        //    printk("%x ", ((char*)regs->ecx)[i] & 0xFF);
-        //printk("'\n");
-    }
 
     void *location = (void*) syscalls[regs->eax];
     if (location == 0) 
