@@ -24,8 +24,12 @@ void kernel_main()
 	char **envvars = make_envvars();
 	const char **args = (const char **) make_args(2, "/bin/figlet", "Hello world");
 
-	int ret = execve_user("/bin/figlet", args, envvars);
+	if (fork() == 0)
+	{
+		printk("Executing exeve\n");
+		int ret = execve_user("/bin/fork", args, envvars);
+		if (ret)
+			printk(KERN_WARNING "Main execve returned, error was thrown: %i errno: %i\n", ret, errno);
+	}
 
-	if (ret)
-		printk(KERN_WARNING "Main execve returned, error was thrown: %i errno: %i\n", ret, errno);
 }
