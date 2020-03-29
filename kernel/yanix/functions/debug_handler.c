@@ -28,7 +28,7 @@ void debug_handler(registers_t *regs)
 	if (regs == 0)
 	{
 		printk("No register data was provided\n");
-		goto stacktrace;
+		goto taskinfo;
 	}
 
 	printk("Interrupt number: %i (0x%x) and error number %i (0x%x)\n", regs->int_no, regs->int_no, regs->err_code, regs->err_code);
@@ -38,9 +38,7 @@ void debug_handler(registers_t *regs)
 	printk("ESP: %08x EBP: %08x ESI: %08x EDI: %08x\n", regs->esp, regs->ebp, regs->esi, regs->edi);
 	printk("EIP: %08x CR3: %08x\n", regs->eip, g_current_directory->physicalAddress);
 
-stacktrace:;
-	printk("----------------- STACKTRACE -----------------\n");
-	dump_stacktrace();
+taskinfo:;
 	printk("----------------  TASK INFO  -----------------\n");
 	task_t *curtask = get_current_task();
 
@@ -51,6 +49,9 @@ stacktrace:;
 	printk("Task ring: %i, id: %i\n", curtask->ring, curtask->pid);
 	printk("Program start: %08x program break %08x\n", curtask->program_start, curtask->program_break);
 	printk("Stacktop %08x stacksize %08x kernel stack %08x\n", curtask->stacktop, curtask->stack_size, curtask->kernel_stack);
+
+	printk("----------------- STACKTRACE -----------------\n");
+	dump_stacktrace();
 
 end:;
 	printk("============       DEBUG END      ============\n");
