@@ -1,6 +1,16 @@
 [extern isr_handler]
 [extern irq_handler]
 
+[global enable_interrupts]
+[global disable_interrupts]
+enable_interrupts:
+    sti
+    ret
+
+disable_interrupts:
+    cli
+    ret
+
 isr_common_stub:
     pusha           ; pushes edi, esi, ebp, esp, ebx, edx, ecx, eax
     mov     ax, ds
