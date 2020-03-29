@@ -330,42 +330,26 @@ void debug_print_phys_frame(offset_t virt_addr, size_t size, page_directory_t *d
  */
 static void copy_page(size_t addr, page_directory_t *newdir)
 {
+	printk("addr: %x\n", addr);
+	//printk("\n\n");
 	page_t *page_to_copy_ref = get_page(addr, 1, (page_directory_t*) g_current_directory);
-	page_t *buffer_page 	 = get_page(PAGE_BUFFER_LOCATION, 1, (page_directory_t*) g_current_directory);
+	page_t *buffer_page 	 = get_page(PAGE_BUFFER_LOCATION+1, 1, (page_directory_t*) g_current_directory);
 	page_t *new_page  		 = get_page(addr, 1, newdir);
 	
+	int bufframe = buffer_page->frame;
+
 	alloc_frame(new_page, page_to_copy_ref->user?0:1, page_to_copy_ref->rw);
 
 	buffer_page->frame = new_page->frame;
 	memcpy((void*) PAGE_BUFFER_LOCATION, (void*) addr, 0x1000);
-	//printk("Page now%x: %x %x\n", addr, get_page(addr, 0, newdir), *get_page(addr, 0, newdir));
-}
 
-/**
- * @brief      Copies the stack to the new address space
- *
- * @param      newdir  The new address space
- */
-void copy_stack_to_new_addressspace(page_directory_t *newdir)
-{
-	copy_page(DISIRED_STACK_LOCATION-STACK_SIZE, newdir);
+	buffer_page->frame = bufframe;
+	
+	//void *ptr = kmalloc(804);
+	//kfree(ptr);
 }
 
 
-/**
- * @brief      Determines if address in stackrange.
- *
- * @param[in]  addr  The address
- *
- * @return     True if address in stackrange, False otherwise.
- */
-static int is_addr_in_stackrange(size_t addr)
-{
-	if (addr >= DISIRED_STACK_LOCATION-STACK_SIZE && addr < DISIRED_STACK_LOCATION) {
-		return 1;
-	}
-	return 0;
-}
 
 /**
  * @brief      Duplicates the current page directory
@@ -374,31 +358,37 @@ static int is_addr_in_stackrange(size_t addr)
  */
 page_directory_t *duplicate_current_page_directory()
 {
+	//debug_printk("Gonna copy\n");
 	phys_addr_t phys = 0;
 	page_directory_t *newdir = (page_directory_t*) kmalloc_base(sizeof(page_directory_t), 1, &phys);
 	memset(newdir, 0, sizeof(page_directory_t));
 
 	newdir->physicalAddress = ((uint32_t) phys) + (((uint32_t)newdir->tablesPhysical) - ((uint32_t) newdir));
 
-	// first loop over all the page tables
-	for (size_t tableiter = 0; tableiter < AMOUNT_OF_PAGE_TABLES_PER_DIR; tableiter++) {
-		if (g_current_directory->tablesPhysical[tableiter] != 0) {
-			// if the table is used
-			if (g_current_directory->tables[tableiter] == g_kernel_directory->tables[tableiter]) {
-				// if the page is the same as in the kernel directory, then we should link it
+	/* loop over all the page tables */
+	for (size_t tableiter = 0; tableiter < AMOUNT_OF_PAGE_TABLES_PER_DIR; tableiter++) 
+	{
+		if (g_current_directory->tablesPhysical[tableiter])
+		{
+			/* if the table is used and allocated */
+			if (g_current_directory->tables[tableiter] == g_kernel_directory->tables[tableiter])
+			{
+				/* if the page is the same as in the kernel directory, then we should link it */
 				newdir->tables[tableiter] = g_current_directory->tables[tableiter];
 				newdir->tablesPhysical[tableiter] = g_current_directory->tablesPhysical[tableiter];
 
-			} else {
-				// copy the page table 
+			}
+			else
+			{
+				/* copy the page table */ 
 				newdir->tables[tableiter] = (page_table_t*) kmalloc_base(sizeof(page_table_t), 1, &phys);
 				memset(newdir->tables[tableiter], 0, sizeof(page_table_t));
 				newdir->tablesPhysical[tableiter] = (uint32_t) phys | (g_current_directory->tablesPhysical[tableiter] & 0xF); // copy the flags over too
 
-				// loop over evey page and copy the contents if it exists
-				for (size_t pageiter = 0; pageiter < AMOUNT_OF_PAGES_PER_TABLE; pageiter++) {
-					if (g_current_directory->tables[tableiter]->pages[pageiter].present && 
-						!is_addr_in_stackrange((tableiter*AMOUNT_OF_PAGES_PER_TABLE+pageiter)*0x1000)) 
+				/* loop over evey page and copy the contents if it exists */
+				for (size_t pageiter = 0; pageiter < AMOUNT_OF_PAGES_PER_TABLE; pageiter++)
+				{
+					if (g_current_directory->tables[tableiter]->pages[pageiter].present) 
 					{
 						copy_page((tableiter*AMOUNT_OF_PAGES_PER_TABLE+pageiter)*0x1000, newdir);
 					}
@@ -406,8 +396,7 @@ page_directory_t *duplicate_current_page_directory()
 			}
 		}
 	}
-
-	//printk_hd(get_page(0x804ab97, 0, newdir), 200);
+	printk("New dir: %x %x", newdir, newdir->physicalAddress);
 	return newdir;
 }
 
