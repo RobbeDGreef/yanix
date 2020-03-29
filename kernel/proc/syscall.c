@@ -20,10 +20,11 @@ char **environ = __env;
 
 void _exit() 
 {
+    debug_printk("Kill\n");
     send_sig(SIGKILL);
+    debug_printk("Current address: %x\n", get_current_task());
+    debug_printk("Trying to kill task %s %i\n", get_current_task()->name, get_current_task()->pid);
     kill_proc((task_t*)get_current_task());
-    task_yield();
-
     /* This is a safety to handle the very slight change of there not being any task to yield to (i might change this in the future) */
     for(;;);
 }
