@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <cpu/cpu.h>
 #include <signal.h>
+#include <yanix/stack.h>
 
 #include <errno.h>
 #include <debug.h>
@@ -38,6 +39,7 @@ void error_message(offset_t addr, registers_t *regs, int present, int rw, int us
 		if (rw) 	  printk("read write, ");
 		if (us) 	  printk("user-mode, ");
 		if (reserved) printk("reserved, ");
+		printk("\n");
 		debug_handler(regs);
 		send_sig(SIGKILL);
 		for(;;);
@@ -55,6 +57,8 @@ void page_fault(registers_t *regs)
 	int us = regs->err_code & 0x4;			/* processor in ring 3 */
 	int reserved = regs->err_code & 0x8;	/* Overwritten CPU-reserved bits of a page entry */
 
+	task_t *curtask = get_current_task();
+
 	/* Check wheter it was part of a heap and should be zero'd out */
 	struct heap *heap = is_addr_in_heap(faulting_address);
 	
@@ -65,8 +69,14 @@ void page_fault(registers_t *regs)
 
 		/* Check wheter it was part of the user space program running
 		 * with the program break and zero it out */
-		else if (faulting_address >= get_current_task()->program_start && faulting_address <= get_current_task()->program_break)
-			zero_page(faulting_address, get_current_dir(), get_current_task()->ring);
+		else if (faulting_address >= curtask->program_start && faulting_address <= curtask->program_break)
+			zero_page(faulting_address, get_current_dir(), curtask->ring);
+
+		else if (faulting_address >= curtask->stacktop - curtask->stack_size && faulting_address <= curtask->stacktop)
+			zero_page(faulting_address, get_current_dir(), curtask->ring);
+
+		else if (faulting_address >= curtask->kernel_stack - KERNEL_STACK_SIZE && faulting_address <= curtask->kernel_stack)
+			zero_page(faulting_address, get_current_dir(), curtask->ring);
 
 		/* Otherwise call the error message */
 		else
