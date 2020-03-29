@@ -48,6 +48,11 @@ page_directory_t *get_current_dir()
 	return (page_directory_t*) g_current_directory;
 }
 
+void set_current_dir(page_directory_t *new)
+{
+	g_current_directory = new;
+}
+
 extern void page_fault(registers_t *);
 
 /**
@@ -200,7 +205,7 @@ int map_frame(page_t *page, unsigned int addr, int remap, int is_kernel, int is_
 	if (page->frame != 0 && remap == 0) {
 		return -1;
 	} else {
-		set_frame(addr & 0xFFFFF000);	// just to be certain the right frame is mapped
+		set_frame(addr);	// just to be certain the right frame is mapped
 		page->present = 1;
 		page->rw = (is_writable_from_userspace)?1:0;
 		page->user = (is_kernel)?0:1;
@@ -545,7 +550,7 @@ int map_physical_to_virtual(phys_addr_t *physical_address, void *virtual_address
 int init_paging()
 {
 	// @todo: get end of memory
-	offset_t end_of_memory = 0x20000000;				// for now we set end at 512 mb (really shouldn't be statically typed)
+	offset_t end_of_memory = 0xFFFFFFFF;
 	g_nframes 			   = end_of_memory / 0x1000; // each page frame coveres 4kib bytes
 
 	g_frames = kmalloc_base(g_nframes / 32, 1, 0);
