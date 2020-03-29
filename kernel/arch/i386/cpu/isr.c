@@ -5,6 +5,7 @@
 #include <cpu/io.h>
 #include <kernel.h>
 #include <stdint.h>
+#include <debug.h>
 
 /**
  * The i386 architechture has 256 interrupts
@@ -173,6 +174,7 @@ void isr_handler(registers_t *r){
         } else {
             printk(exception_messages[num]);
         }
+        debug_handler(r);
         printk("\nProcessor halted...");
         for (;;);
     } else {
@@ -180,8 +182,6 @@ void isr_handler(registers_t *r){
     }
 
 }
-
-    
 
 void arch_register_interrupt_handler(uint8_t n, isr_callback_t handler) {
     interrupt_handlers[n] = handler;
