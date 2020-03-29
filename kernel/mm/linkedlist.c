@@ -66,8 +66,10 @@ void add_to_used(struct ll_node *node, struct linkedlist *list)
 		return;
 	}
 
-	while (tmp->next)
+	while (tmp->next){
+		//debug_printk("Next: %x and loc %x\n", tmp->next, &tmp->next);
 		tmp = tmp->next;
+	}
 
 	tmp->next = node;
 	node->prev = tmp;

@@ -42,6 +42,8 @@ char *VESA_CARD_NAME   = "vesa_card";
 
 vesa_ctrl_t *g_display;	// @todo: multiple monitor support
 
+#include <debug.h>
+#include <mm/paging.h>
 /**
  * @brief      This is an inline function for drawing a pixel in videomemory
  *
@@ -123,8 +125,6 @@ int vesa_vga_to_full(int color)
 	return 0;
 }
 
-#include <debug.h>
-
 /**
  * @brief      Draws a character on desired location on screen
  *
@@ -154,7 +154,7 @@ void vesa_draw_char(char character, int x, int y, int frgcolor, int bgcolor)
 		for (size_t b = 0; b < FONTWIDTH; b++) {
 			// looping over every pixel
 			int indent = (FONTWIDTH - font_getchar_width(character)) / 2;
-			if (getbit(cpointer[l], b)) {
+			if (getbit((unsigned int) cpointer[l], b)) {
 				vesa_draw_pixel(x+(FONTWIDTH-b)+indent, y+l, frgcolor);
 			} else {
 				if (bgcolor != -1) {
