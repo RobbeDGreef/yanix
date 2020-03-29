@@ -30,8 +30,7 @@ static void timer_callback(registers_t *regs)
 {
 	(void) (regs);
 	timer_info->ticks_since_boot++;
-
-	schedule(regs);
+	schedule();
 }
 
 /**
