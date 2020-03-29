@@ -63,7 +63,8 @@ static int _execve(int kernel, const char *filename, const char *argv[], char *c
 	}
 
 	argv = (const char **) combine_args_env((char**) argv, (char**) envp);
-
+	get_current_task()->name = (char*) filename;
+	
 	printk(KERN_INFO "Executing execve\n");
 
 	if (kernel)
@@ -81,13 +82,8 @@ static int _execve(int kernel, const char *filename, const char *argv[], char *c
 		/* First disable interrupts because we are working on the stack (not sure if it's necesairy but it wont hurt) */
 		cli();
 
-		/* And allocate a new stack */
-		get_current_task()->stacktop = (uint32_t) kmalloc_user_base(USER_STACK_SIZE, 1, 0) + USER_STACK_SIZE;
-		get_current_task()->stack_size = USER_STACK_SIZE;
-		
-		/* We memset stack so that we are certain that all pages are allocated
-		 * and no triple faults will occur */
-		memset((void*) get_current_task()->stacktop - USER_STACK_SIZE, 0, USER_STACK_SIZE);
+		/* Sets up a user stack */
+		set_user_stack();
 
 		asm volatile("movl %0, %%eax; \
 					  movl %1, %%ebx; \
