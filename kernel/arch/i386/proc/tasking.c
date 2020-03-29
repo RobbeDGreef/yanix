@@ -4,7 +4,7 @@
 #include <debug.h>
 /* Asm jump to userspace function */
 extern void jmp_userspace(uint32_t eip, uint32_t argc, uint32_t argv);
-extern void task_switch(uint32_t ip, uint32_t sp, uint32_t bp, uint32_t cr3);
+extern void do_task_switch(reg_t *previous_esp, reg_t next_esp, reg_t cr3);
 
 /**
  * @brief      Architechture dependend jump to userspace function 
@@ -25,8 +25,8 @@ void arch_jump_userspace(uint32_t eip, uint32_t argc, uint32_t argv)
  * @param[in]  cr3   The paging register
  * @param      tmp   The task
  */	
-void arch_task_switch(task_t *task, unsigned long ip, unsigned long sp, unsigned long bp, unsigned long cr3)
+void arch_task_switch(task_t *next, task_t *prev)
 {
-	tss_set_kernel_stack(task->kernel_stack+KERNEL_STACK_SIZE);
-	task_switch(ip, sp, bp, cr3);
+	tss_set_kernel_stack(next->kernel_stack);
+	do_task_switch(&prev->esp, next->esp, next->directory->physicalAddress);
 }

@@ -58,9 +58,11 @@ typedef struct task_control_block_s
 task_t *get_current_task();
 
 /**
- * @brief      yields control of task
+ * @brief      Switches tasks
+ *
+ * @param      next  The next task
  */
-void task_yield();
+void switch_task(task_t *next);
 
 /**
  * @brief      Schedule function (simple round robin)

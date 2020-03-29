@@ -3,19 +3,54 @@ get_eip:
 	pop eax
 	jmp	eax
 
-[GLOBAL task_switch]
-task_switch: ;task_switch(eip, esp, ebp, cr3)
+[global arch_spawn_task]
+[extern duplicate_current_page_directory]
+; void arch_spawn_task(reg_t *esp, page_directory_t **dir)
+arch_spawn_task:
 	cli
-	mov ecx, [esp+4]  ; eip
-	mov eax, [esp+16] ; cr3
-	mov ebp, [esp+12] ; ebp
-	mov esp, [esp+8]  ; esp
-	mov cr3, eax      ; load esp
-	mov eax, 0
-	sti
-	jmp ecx 		  ; jump to eip
+	
+	pusha
 
-[GLOBAL jmp_userspace]
+	; Save esp
+	mov 	eax, [esp + (8 + 1) * 4]
+	mov 	[eax], esp
+	
+	; Now create a new address space and thus copy the stack
+	call 	duplicate_current_page_directory
+	mov 	ebx, [esp + (8 + 2) * 4]
+	mov 	[ebx], eax
+
+	; Now clean the stack up
+	popa
+
+	sti
+	ret
+
+
+; so push all registers and put the return address to the given eip
+
+
+[global do_task_switch]
+do_task_switch: ; void do_task_switch(reg_t *previous_esp, reg_t next_esp, reg_t cr3);
+	cli
+	pusha
+
+	
+	; pusha pushed 8 resigesters  
+	mov 	eax, [esp + (8 + 1) * 4]
+	mov 	[eax], esp
+
+	mov 	eax, [esp + (8 + 2) * 4]
+	mov 	ebx, [esp + (8 + 3) * 4]
+	mov 	esp, eax
+	mov 	cr3, ebx
+
+	popa
+	sti
+
+	ret
+
+[global jmp_userspace]
 jmp_userspace: ;jmp_userspace(uint32_t eip, uint32_t argc, uint32_t argv)
 	cli
 	mov 	ebx, [esp+4]	; holds eip

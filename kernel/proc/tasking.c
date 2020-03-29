@@ -1,299 +1,57 @@
-/**
- * mm/tasking.c
- * 
- * Author: Robbe De Greef
- * Date:   29 may 2019
- * 
- * Version 2.2
- */
-
-#include <sys/types.h>
-#include <mm/paging.h>
-#include <mm/heap.h>
-#include <drivers/ps2/mouse.h>
-#include <libk/string.h>
-#include <cpu/cpu.h>
-#include <core/timer.h>
-#include <yanix/stack.h>
-#include <yanix/ds/fd_vector.h>
-
-#include <proc/tasking.h>
 #include <proc/arch_tasking.h>
+#include <proc/tasking.h>
+#include <proc/sched.h>
+#include <sys/types.h>
+#include <yanix/stack.h>
+#include <cpu/interrupts.h>
+#include <mm/heap.h>
+#include <libk/string.h>
 
-#include <errno.h>
-#include <signal.h>
-#include <stdint.h>
-#include <stddef.h>
-
-#define TASK_RUNNING 	0
-#define TASK_ZOMBIE 	1
-#define TASK_SLEEPING 	2
-#define TASK_PAUSED 	3
-
-volatile task_t *g_starttask = 0;
-volatile task_t *g_runningtask = 0;
-volatile task_t *g_blockedtasks = 0;
-
-pid_t PIDS = 1;
-
-// extern page directory refrences
-extern page_directory_t *g_current_directory;
-extern page_directory_t *g_kernel_directory;
-
-// extern assebmly functions
-extern uint32_t get_eip();
-
-task_t *get_current_task()
-{
-	/* Not volatile anymore because it will always be the correct same value for each process */
-	return (task_t*) g_runningtask;
-}
-
-
-/**
- * @brief      Adds a task to the task queue.
- *
- * @param      task_to_add  The task to add
- */
-void add_task_to_queue(task_t *task_to_add)
-{
-	task_t *tmp = (task_t*) get_current_task();
-	while (tmp->next != 0){
-		tmp = tmp->next;
-	}
-	tmp->next = task_to_add;
-}
-
-
-/**
- * @brief      Adds a task to the blocked-task queue.
- *
- * @param      task_to_add  The task to add
- */
-void add_task_to_blocked_queue(task_t *task_to_add)
-{
-	task_t *tmp = (task_t*) g_blockedtasks;
-	while (tmp->next != 0){
-		tmp = tmp->next;
-	}
-	tmp->next = task_to_add;
-}
-
-/**
- * @brief      Removes a task from the task queue.
- *
- * @param      task_to_remove  The task to remove
- *
- * @return     Successcode
- */
-int remove_task_from_queue(task_t *task_to_remove)
-{
-	task_t *tmp = (task_t*) g_starttask;
-	if (tmp == 0) {
-		errno = ESRCH; // no such process
-		return -1;
-	}
-	while (tmp->next != task_to_remove) {
-		if (tmp->next == 0) {
-			errno = ESRCH; // no such process
-			return -1;
-		}
-		tmp = tmp->next;
-	}
-	// tmp now houses the task before the to remove task
-	tmp->next = task_to_remove->next;
-
-	// snipped task out of queue
-	return 0;	
-}
-
-
-/**
- * @brief      Removes a task from the blocked-task queue.
- *
- * @param      task_to_remove  The task to remove
- *
- * @return     Successcode
- */
-int remove_task_from_blocked_queue(task_t *task_to_remove)
-{
-	task_t *tmp = (task_t*) g_blockedtasks;
-	if (tmp == 0) {
-		errno = ESRCH; // no such process
-		return -1;
-	}
-	while (tmp->next != task_to_remove) {
-		if (tmp->next == 0) {
-			errno = ESRCH; // no such process
-			return -1;
-		}
-		tmp = tmp->next;
-	}
-	// tmp now houses the task before the to remove task
-	tmp->next = task_to_remove->next;
-
-	// snipped task out of queue
-	return 0;	
-}
-
-
-/**
- * @brief      Kills a task
- *
- * @param      task  The task to kill
- */
-void kill_proc(task_t *task)
-{
-	remove_task_from_queue(task);
-	/* @TODO: so actually we should really clean up the page directory */
-	/* @TODO: we should change the page directory to kernel directory every time we enter the kernel? */
-	//clear_page_directory(task->directory);
-	kfree((void*) task->directory);
-	kfree((void*) task);
-}
-
-/**
- * @brief      Kills dead processes
- */
-void schedule_killer()
-{
-	// loops over the processes and kills processes that should die
-	
-	task_t *tmp = (task_t*) g_starttask;
-	while (tmp != 0) {
-		if (tmp->state == TASK_ZOMBIE) {
-				kill_proc(tmp);
-				break;
-		}
-		tmp = tmp->next;
-	}
-}
-
-/**
- * @brief      Switches task to the next task
- *
- * @param      nexttask  The next task
- */
-static void switch_task(task_t *nexttask, registers_t *regs)
-{
-	(void) (regs);
-	uint32_t eip, esp, ebp;
-	asm volatile ("mov %%esp, %0" : "=r"(esp));
-	asm volatile ("mov %%ebp, %0" : "=r"(ebp));
-
-	eip = get_eip();
-
-	if (eip == 0) {
-		return;
-	}
-
-	g_runningtask->eip = eip;
-	g_runningtask->ebp = ebp;
-	g_runningtask->esp = esp;
-
-	g_runningtask = nexttask;
-
-	esp = g_runningtask->esp;
-	ebp = g_runningtask->ebp;
-
-	g_current_directory = g_runningtask->directory;
-
-	arch_task_switch((task_t*) g_runningtask, eip, esp, ebp, g_runningtask->directory->physicalAddress);
-}
-
-/**
- * @brief      Block a task
- *
- * @param[in]  pid   The pid
- */
-void block_pid(unsigned int pid)
-{
-	task_t *tmp = (task_t*) g_starttask;
-
-	do
-	{
-		if (tmp->pid == pid)
-		{
-			remove_task_from_queue(tmp);
-			add_task_to_blocked_queue(tmp);
-			return;
-		}
-
-		tmp = tmp->next;
-	} while (tmp->next != 0);
-}
-
-void unblock_pid(unsigned int pid)
-{
-	task_t *tmp = (task_t*) g_blockedtasks;
-	
-	do
-	{
-		if (tmp->pid == pid)
-		{
-			remove_task_from_blocked_queue(tmp);
-			add_task_to_queue(tmp);
-			return;
-		}
-		
-		tmp = tmp->next;
-	} while (tmp->next != 0);
-}
-
-/**
- * @brief      yields control of task
- */
-void task_yield(registers_t *regs)
-{
-
-	schedule_killer();
-
-	task_t *tmp = (task_t*) get_current_task();
-	while (1) {
-		if (tmp->next != 0) {
-			tmp = tmp->next;
-		} else if (tmp != g_starttask) {
-			tmp = (task_t*) g_starttask;
-		} else {
-			// no task
-			return;
-		}
-
-		if (tmp->state != TASK_ZOMBIE && tmp->state != TASK_PAUSED && tmp->state != TASK_SLEEPING) {
-			break;
-		} else {
-			if (tmp->next != 0) {
-				tmp = tmp->next;
-			} else if (tmp != g_starttask) {
-				tmp = (task_t*) g_starttask;
-			} else {
-				// no task
-				return;
-			}
-		}
-	}
-
-	switch_task(tmp, regs);
-}
 #include <debug.h>
 
-/**
- * @brief      Creates a task.
- *
- * @param      dir   The page directory
- *
- * @return     Pointer to the task
- */
+static pid_t PIDS = 0;
+
+int send_task_signal(task_t *task, int sig)
+{
+	if (task)
+	{
+		if (task->notify)
+			task->notify(sig);
+
+		/* @todo: state system / sleeping,  blocking etc */
+	}
+	return 0;
+}
+
+void send_sig(int signal)
+{
+	send_task_signal(get_current_task(), signal);
+}
+
+int send_pid_sig(pid_t pid, int signal)
+{
+	return send_task_signal(find_task_by_pid(pid), signal);
+}
+
+void kill_proc(task_t *task)
+{
+	/* @todo: should set task to zombie and then kill
+	 *  it whenever killer is lauched, after that free all the structures */
+	remove_from_ready_list(task);
+	if (get_current_task() == task)
+	{
+		switch_task(get_next_task());
+	}
+}
+
 static task_t *create_task(task_t *new_task, int kernel_task, page_directory_t *dir)
 {
-	// create fresh kernel stack
-	new_task->kernel_stack = (uint32_t) kmalloc_base(KERNEL_STACK_SIZE, 1, 0);
-	memset((void*) new_task->kernel_stack, 0, KERNEL_STACK_SIZE);
-
+	new_task->kernel_stack = DISIRED_KERNEL_STACK_LOC;
+	
 	/* create fresh normal stack */
 	if (!kernel_task)
 	{
-		new_task->stacktop = ((uint32_t) kmalloc_user_base(USER_STACK_SIZE, 1, 0) ) + USER_STACK_SIZE;
+		new_task->stacktop = DISIRED_USER_STACK_LOC;
 		new_task->stack_size = USER_STACK_SIZE;
 		new_task->ring = 3;
 	}
@@ -303,252 +61,114 @@ static task_t *create_task(task_t *new_task, int kernel_task, page_directory_t *
 		new_task->stack_size = STACK_SIZE;
 		new_task->ring = 0;
 	}
+	new_task->esp = new_task->stacktop;
+
+	task_t *curtask = get_current_task();
 
 	/* set pid and new page directory (addr space) */
 	new_task->pid = PIDS++;
-	new_task->uid = g_runningtask->uid;
-	new_task->gid = g_runningtask->gid;
-	new_task->name = g_runningtask->name;
-	new_task->priority = g_runningtask->priority;
+	new_task->uid = curtask->uid;
+	new_task->gid = curtask->gid;
+	new_task->name = curtask->name;
+	new_task->priority = curtask->priority;
 	new_task->directory = dir;
-	new_task->state = TASK_RUNNING;
-	new_task->fds = vector_copy(g_runningtask->fds);
-	new_task->tty = g_runningtask->tty;
+	//new_task->state = TASK_RUNNING;
+	new_task->fds = vector_copy(curtask->fds);
+	new_task->tty = curtask->tty;
 
+	/* @todo: timeslices should be set in config file */
 	new_task->timeslice = 100;
+
+	debug_printk("New pid: %i\n", new_task->pid);
 
 	return new_task;
 }
-/**
- * @brief      Forks a process 
- *
- * @return     returns the process pid (0 if this process is the child)
- */
+
 pid_t fork()
 {
-	// disable interrupts
-	asm volatile ("cli;");
+#if 0
 
-	// save for later refrence
-	volatile task_t *parent_task = g_runningtask;
+	disable_interrupts();
 
-	// duplicate page directory
+	/* save for later refrence */
+	volatile task_t *parent_task = get_current_task();
+
+	/* duplicate page directory */
 	page_directory_t *copied_dir = duplicate_current_page_directory();
 
-	// create new task struct from parent
+	/* create new task struct from parent */
 	task_t *new_task = (task_t*) kmalloc(sizeof(task_t));
 	memcpy(new_task, (task_t*) parent_task, sizeof(task_t));
 
-	// create a new task with the new address space and task structure
+	/* create a new task with the new address space and task structure */
 	new_task = create_task(new_task, parent_task->ring ? 0:1, copied_dir);
 
-	// copy the stack to the new addr space
-	copy_stack_to_new_addressspace(copied_dir);
+	add_task_to_queue(new_task);
+	arch_spawn_task(&new_task->esp);
 
-
-
-	/* ENTRY POINT FOR CHILD PID */
-	uint32_t eip = get_eip();
-
-	if (g_runningtask == parent_task) {
-
-		add_task_to_queue(new_task);
-
-		uint32_t esp, ebp;
-		asm volatile("mov %%esp, %0" : "=r"(esp));
-		asm volatile("mov %%ebp, %0" : "=r"(ebp));
-		new_task->esp = esp;
-		new_task->ebp = ebp;
-		new_task->eip = eip;
-
-		asm volatile("sti");
-
+	if (get_current_task() == parent_task)
+	{
+		printk("Runningtask is parent task, cool\n");
+		enable_interrupts();
 		return new_task->pid;
-	} else {
+	}
+	else
+	{
+		printk("Child running\n");
 		return 0;
 	}
 
+#endif
+	disable_interrupts();
+
+	task_t *parent_task = (task_t*) get_current_task();
+	task_t *new_task = (task_t*) kmalloc(sizeof(task_t));
+	memcpy(new_task, (task_t*) parent_task, sizeof(task_t));
+	
+	create_task(new_task, parent_task->ring ? 0:1, 0);
+	add_task_to_queue(new_task);
+	
+	printk("Going to spawn task\n");
+	arch_spawn_task(&new_task->esp, &new_task->directory);
+	printk("Spawned\n");
+
+	if (parent_task == get_current_task())
+	{
+		printk("Parent\n");
+		alloc_frame(get_page(new_task->kernel_stack - 0x1000, 1, new_task->directory), 1, 0); 
+		enable_interrupts();
+		return new_task->pid;
+	}
+	else
+	{
+		printk("Wow child\n");
+		return 0;
+	}
 }
 
-
-
-/**
- * @brief      Initializes tasking
- *
- * @return     Successcode
- */
-#include <debug.h>
 int init_tasking()
 {
-	// create new task struct
-	g_starttask = (task_t*) kmalloc(sizeof(task_t));
-	memset((task_t*) g_starttask, 0, sizeof(task_t));
+	/* @todo: this is ugly find a better solution */
 
-	g_starttask->pid 		= PIDS++;
-	g_starttask->directory 	= g_current_directory;
-	g_starttask->state 		= TASK_RUNNING;
-	g_starttask->timeslice 	= 100;
+	/* create new task struct */
+	task_t *mainloop = kmalloc(sizeof(task_t));
+	memset((task_t*) mainloop, 0, sizeof(task_t));
+
+	mainloop->pid 			= PIDS++;
+	mainloop->directory 	= get_current_dir();
+	//mainloop->state 		= TASK_RUNNING;
+	mainloop->timeslice 	= 100;
 	
-	g_starttask->kernel_stack 	= (uint32_t) kmalloc_base(STACK_SIZE, 1, 0) + STACK_SIZE;
-	g_starttask->stacktop 		= DISIRED_STACK_LOCATION;
-	g_starttask->stack_size 	= STACK_SIZE;
+	mainloop->kernel_stack 	= (offset_t) kmalloc_base(STACK_SIZE, 1, 0) + STACK_SIZE;
+	mainloop->stacktop 		= DISIRED_STACK_LOCATION;
+	mainloop->stack_size 	= STACK_SIZE;
 
-	g_starttask->uid = 0;
-	g_starttask->gid = 0;
-	g_starttask->name = "Main kernel loop";
-	g_starttask->priority = 0;
-	g_starttask->fds = vector_create();
+	mainloop->uid = 0;
+	mainloop->gid = 0;
+	mainloop->name = "Main kernel loop";
+	mainloop->priority = 0;
+	mainloop->fds = vector_create();
 
-	g_runningtask = g_starttask;
-
+	init_scheduler(mainloop);
 	return 0;
 }
-
-
-/**
- * @brief      Sends a signal to a task.
- *
- * @param      task    The task
- * @param[in]  signal  The signal
- */
-static void send_task_signal(task_t *task, int signal)
-{
-	if (task != 0) {
-		if (task->notify != 0) {
-			task->notify(signal);
-		}
-
-		switch (signal) {
-			case SIGKILL:
-				task->state = TASK_ZOMBIE;
-				break;
-
-			case SIGILL:
-				task->state = TASK_ZOMBIE;
-				break;
-
-			case SIGTERM:
-				task->state = TASK_ZOMBIE;
-				break;
-
-			case SIGSEGV:
-				task->state = TASK_ZOMBIE;
-				break;
-
-			case SIGSTOP:
-				task->state = TASK_PAUSED;
-				break;
-
-			case SIGCONT:
-				task->state = TASK_RUNNING;
-				break;
-		}
-		
-	}
-}
-
-
-/**
- * @brief      Sends a signal to the current task.
- *
- * @param[in]  signal  The signal
- */
-void send_sig(int signal)
-{
-	send_task_signal(get_current_task(), signal);
-}
-
-/**
- * @brief      Sends a pid a signal.
- *
- * @param[in]  pid   The pid
- * @param[in]  sig   The signal
- *
- * @return     success
- */
-int send_pid_sig(pid_t pid, int sig)
-{
-	task_t *tmp = (task_t*) g_starttask;
-	while (tmp != 0) {
-		if (tmp->pid == pid) {
-			send_task_signal(tmp, sig);
-			return 0;
-		}
-		tmp = tmp->next;
-	}
-	errno = EINVAL;
-	return -1;
-}
-
-/**
- * @brief      Schedule function (simple round robin)
- * 
- */
-void schedule(registers_t *regs)
-{
-	if (g_runningtask != 0)
-	{
-		if (g_runningtask->sliceused < g_runningtask->timeslice)
-		{
-			/* run */
-			g_runningtask->sliceused += timer_get_period();
-		}
-		else
-		{
-			/* switch */
-			g_runningtask->sliceused = 0;
-			task_yield(regs);
-		}
-	}
-	else 
-	{
-		/* exit gracefully because no tasking initialised */
-	}
-}
-
-/**
- * @brief      Jump to userspace
- *
- * @param[in]  eip   Start in usermode at this location
- */
-void jump_userspace(reg_t eip, reg_t argc, reg_t argv)
-{
-	g_runningtask->ring = 3;
-	arch_jump_userspace(eip, argc, argv);
-}
-
-/**
- * @brief      Gets the current PID
- *
- * @return     The current PID
- */
-int getpid()
-{
-	return g_runningtask->pid;
-}
-
-/**
- * @brief      Typical sbrk that will increase the program break
- *
- * @param[in]  incr  The increment value
- *
- * @return     On success the old program break, on failure 0
- */
-void* sbrk(intptr_t incr)
-{
-	int kernel = 1;
-	if (get_current_task()->ring == 3)
-		kernel = 0;
-
-	for (uint32_t i = get_current_task()->program_break; i < get_current_task()->program_break + incr ; i += 0x1000)
-	{
-		// this will alocate a frame if the frame has not already been set 
-		if (alloc_frame(get_page(i, 1, get_current_task()->directory), kernel, kernel?0:1) == -2) 
-		{
-			return (void*) -1;
-		}
-
-	}
-	get_current_task()->program_break += incr;
-	return (void*) (get_current_task()->program_break - incr);
-} 
