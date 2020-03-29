@@ -12,7 +12,7 @@ gdt_flush:
 	mov 	ss, ax
 	jmp 	0x08:.flush 	; 0x08 offset to code segment
 
-.flush 
+.flush:
 	ret
 
 [GLOBAL tss_flush]
