@@ -302,6 +302,25 @@ page_t *get_page(uint32_t virtual_address, int make_page_table, page_directory_t
 	}
 	return &dir->tables[virtual_address/AMOUNT_OF_PAGES_PER_TABLE]->pages[virtual_address % AMOUNT_OF_PAGES_PER_TABLE]; // return the page
 }
+#include <debug.h>
+
+void debug_print_phys_frame(offset_t virt_addr, size_t size, page_directory_t *dir)
+{
+	page_t *toprint = get_page(virt_addr, 0, dir);
+	if (!toprint || !toprint->frame)
+	{
+		printk("No page mapped to print!\n");
+		return;	
+	}
+	printk("Frame that is being read: %x\n", toprint->frame);
+	page_t *buf = get_page(PAGE_BUFFER_LOCATION, 0, (page_directory_t*)g_current_directory);
+	int tmp = buf->frame;
+	buf->frame = toprint->frame;
+	printk_hd((void*)virt_addr, size);
+	printk_hd((void*)PAGE_BUFFER_LOCATION, size);
+	buf->frame = tmp;
+
+}
 
 /**
  * @brief      Copies a page
