@@ -14,11 +14,28 @@
 	  The reason was because of our new page_fault() system, it tried to find
 	  the physical address with the frame address of get_page but the pages
 	  didn't have any pages assigned yet.
-
-
+- [x] For some reason figlet can't run without previous input, i think it has to do
+	  with our vfs system and the stdin file
+- [ ] Another f-ing memory overflow bug, happens when i try to run /bin/fork
+	  See Current bug track for more info
+- [x] Implement a new multitasking system because it is just crap
 
 # Possible reasons for future bugs
 
 - Paging system does not necessairilly allocate continues blocks of real memory
   This can be a problem if the paging system allocates page tables,
   I am not sure though
+
+# Current idea
+
+fork creates a new task space as usual
+
+stack trace
+
+*IRQ happens*
+- irq handler
+- timer
+- scheduler
+- task_yield
+- task_switch
+- task_switch arch
