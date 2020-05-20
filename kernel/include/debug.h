@@ -19,6 +19,7 @@
 #define DEFAULT_STACKTRACE_DEPTH	8
 
 #define DEBUG() (asm volatile ("int $0x3"))
+#define NOTICE_POINT() asm volatile ("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;")
 void printk_hd(void *ptr, size_t size);
 
 #define get_return_address __builtin_return_address
@@ -38,4 +39,5 @@ void print_stack();
 int check_vfs_initialised();
 void debug_print_phys_frame(offset_t virt_addr, size_t size, page_directory_t *dir);
 int random_complex_calc(int x);
+
 #endif

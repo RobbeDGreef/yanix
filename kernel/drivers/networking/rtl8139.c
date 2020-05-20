@@ -116,6 +116,10 @@ static void rtl8139_handler(registers_t *regs)
  */
 int init_rtl8139(pci_device_t *pci_dev)
 {
+
+	// Debugging
+
+	return 0;
 	// allocate the structures
 	networking_device_t *networkdev = kcalloc(sizeof(networking_device_t), 0);
 	rtl8139_dev_t *rtl_dev = kmalloc(sizeof(rtl8139_dev_t));

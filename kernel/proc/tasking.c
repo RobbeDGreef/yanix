@@ -37,10 +37,11 @@ void kill_proc(task_t *task)
 {
 	/* @todo: should set task to zombie and then kill
 	 *  it whenever killer is lauched, after that free all the structures */
-	remove_from_ready_list(task);
+	int r = remove_from_ready_list(task);
 	if (get_current_task() == task)
 	{
-		switch_task(get_next_task());
+		task_t *task = get_next_task();
+		switch_task(task);
 	}
 }
 
@@ -86,51 +87,21 @@ static task_t *create_task(task_t *new_task, int kernel_task, page_directory_t *
 
 pid_t fork()
 {
-#if 0
-
 	disable_interrupts();
-
-	/* save for later refrence */
-	volatile task_t *parent_task = get_current_task();
 
 	/* duplicate page directory */
-	page_directory_t *copied_dir = duplicate_current_page_directory();
-
-	/* create new task struct from parent */
-	task_t *new_task = (task_t*) kmalloc(sizeof(task_t));
-	memcpy(new_task, (task_t*) parent_task, sizeof(task_t));
-
-	/* create a new task with the new address space and task structure */
-	new_task = create_task(new_task, parent_task->ring ? 0:1, copied_dir);
-
-	add_task_to_queue(new_task);
-	arch_spawn_task(&new_task->esp);
-
-	if (get_current_task() == parent_task)
-	{
-		printk("Runningtask is parent task, cool\n");
-		enable_interrupts();
-		return new_task->pid;
-	}
-	else
-	{
-		printk("Child running\n");
-		return 0;
-	}
-
-#endif
-	disable_interrupts();
-
 	task_t *parent_task = (task_t*) get_current_task();
+
 	task_t *new_task = (task_t*) kmalloc(sizeof(task_t));
-	memcpy(new_task, (task_t*) parent_task, sizeof(task_t));
+	memcpy(new_task, parent_task, sizeof(task_t));
 	
 	create_task(new_task, parent_task->ring ? 0:1, 0);
 	add_task_to_queue(new_task);
 	
-	printk("Going to spawn task\n");
+	//printk(KERN_DEBUG "Going to spawn task %x %x\n", new_task->esp, new_task->directory);
 	arch_spawn_task(&new_task->esp, &new_task->directory);
-	printk("Spawned\n");
+	NOTICE_POINT();
+	//printk(KERN_DEBUG "Spawned %x %x\n", new_task->esp, new_task->directory);
 
 	if (parent_task == get_current_task())
 	{
@@ -141,7 +112,7 @@ pid_t fork()
 	}
 	else
 	{
-		printk("Wow child\n");
+		printk("Child\n");
 		return 0;
 	}
 }
@@ -159,7 +130,7 @@ int init_tasking()
 	//mainloop->state 		= TASK_RUNNING;
 	mainloop->timeslice 	= 100;
 	
-	mainloop->kernel_stack 	= (offset_t) kmalloc_base(STACK_SIZE, 1, 0) + STACK_SIZE;
+	mainloop->kernel_stack 	= DISIRED_KERNEL_STACK_LOC;
 	mainloop->stacktop 		= DISIRED_STACK_LOCATION;
 	mainloop->stack_size 	= STACK_SIZE;
 

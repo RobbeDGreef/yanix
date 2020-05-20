@@ -65,6 +65,14 @@ extern void page_fault(registers_t *);
 
 // bitset functions
 
+int get_frame(unsigned int frame_addr)
+{
+	unsigned int frame  = frame_addr / 0x1000;
+	unsigned int index  = INDEX_FROM_BIT(frame); 
+	unsigned int offset = OFFSET_FROM_BIT(frame);
+	return g_frames[index] &= (0x1 << offset);
+}
+
 /**
  * @brief      Sets the frame.
  *
@@ -326,7 +334,7 @@ void debug_print_phys_frame(offset_t virt_addr, size_t size, page_directory_t *d
 	buf->frame = tmp;
 
 }
-
+#include <proc/arch_tasking.h>
 /**
  * @brief      Copies a page
  *
@@ -335,10 +343,10 @@ void debug_print_phys_frame(offset_t virt_addr, size_t size, page_directory_t *d
  */
 static void copy_page(size_t addr, page_directory_t *newdir)
 {
-	printk("addr: %x\n", addr);
 	//printk("\n\n");
+	//printk("-");
 	page_t *page_to_copy_ref = get_page(addr, 1, (page_directory_t*) g_current_directory);
-	page_t *buffer_page 	 = get_page(PAGE_BUFFER_LOCATION+1, 1, (page_directory_t*) g_current_directory);
+	page_t *buffer_page 	 = get_page(PAGE_BUFFER_LOCATION, 1, (page_directory_t*) g_current_directory);
 	page_t *new_page  		 = get_page(addr, 1, newdir);
 	
 	int bufframe = buffer_page->frame;
@@ -350,6 +358,9 @@ static void copy_page(size_t addr, page_directory_t *newdir)
 
 	buffer_page->frame = bufframe;
 	
+	//printk("addr: %x\n", addr);
+	arch_flush_tlb();
+
 	//void *ptr = kmalloc(804);
 	//kfree(ptr);
 }
@@ -367,8 +378,7 @@ page_directory_t *duplicate_current_page_directory()
 	phys_addr_t phys = 0;
 	page_directory_t *newdir = (page_directory_t*) kmalloc_base(sizeof(page_directory_t), 1, &phys);
 	memset(newdir, 0, sizeof(page_directory_t));
-
-	newdir->physicalAddress = ((uint32_t) phys) + (((uint32_t)newdir->tablesPhysical) - ((uint32_t) newdir));
+	newdir->physicalAddress = (uint32_t) phys + ((uint32_t) newdir->tablesPhysical - (uint32_t) newdir);
 
 	/* loop over all the page tables */
 	for (size_t tableiter = 0; tableiter < AMOUNT_OF_PAGE_TABLES_PER_DIR; tableiter++) 
@@ -381,7 +391,6 @@ page_directory_t *duplicate_current_page_directory()
 				/* if the page is the same as in the kernel directory, then we should link it */
 				newdir->tables[tableiter] = g_current_directory->tables[tableiter];
 				newdir->tablesPhysical[tableiter] = g_current_directory->tablesPhysical[tableiter];
-
 			}
 			else
 			{
@@ -401,7 +410,6 @@ page_directory_t *duplicate_current_page_directory()
 			}
 		}
 	}
-	printk("New dir: %x %x", newdir, newdir->physicalAddress);
 	return newdir;
 }
 
@@ -581,7 +589,7 @@ int init_paging()
 	map_memory_block(UHEAP_START, UHEAP_START+UHEAP_INITIAL_SIZE, 0, 1, g_kernel_directory);
 
 	// allocate the page buffer location for page directory cloning
-	map_memory_block(PAGE_BUFFER_LOCATION, PAGE_BUFFER_LOCATION+0x1000, 0, 0, g_kernel_directory);
+	alloc_frame(get_page(PAGE_BUFFER_LOCATION, 1, g_kernel_directory), 1, 0);
 
 	//map_memory_block(ZBuffer, ZBuffer+ (MAXBUFFER * MAXWINDOWS) + 0x1000, 0, 1, g_kernel_directory);
 
@@ -598,4 +606,25 @@ int init_paging()
 	init_page_directory((page_directory_t*) g_current_directory);
 
 	return 0;
+}
+
+
+void debug_paging_print(page_directory_t *dir)
+{
+	/* print important parts of this directory to check if it is corrupted or not */
+	printk("Stack:");
+	for (int i = 10; i >= 0; i--)
+	{
+		int loc = DISIRED_STACK_LOCATION - (i * 0x1000);
+		page_t *page = get_page(loc, 0, dir);
+		printk("loc %x present: %x %i %i\n", loc, page, page ? page->frame : 0, page ? get_frame(page->frame) : 0);
+	}
+}
+
+void debug_paging_buf(page_directory_t *dir)
+{
+	page_t *page = get_page(PAGE_BUFFER_LOCATION, 0, get_current_dir());
+	int frame = get_page(0xFFFF84, 0, dir)->frame;
+	printk("frame: %x %x\n", frame, page->frame);
+	page->frame = frame;
 }

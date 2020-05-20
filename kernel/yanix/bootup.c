@@ -89,11 +89,11 @@ void bootsequence_after_paging()
 	ret = init_char_specials();
 	message("Creating special character files in fs", !ret);
 
-	ret = init_mouse();
-	message("Mouse initialized", !ret);
+	//ret = init_mouse();
+	//message("Mouse initialized", !ret);
 
-	ret = init_keyboard();
-	message("Keyboard initialized", !ret);
+	//ret = init_keyboard();
+	//message("Keyboard initialized", !ret);
 	
 	ret = init_syscalls();
 	message("Syscalls initialized", !ret);

@@ -165,6 +165,7 @@ char *exception_messages[] = {
 
 void isr_handler(registers_t *r){
     unsigned int num = r->int_no & 0xFF;
+
     if (interrupt_handlers[num] == 0) {
         
         printk(":(\nReceived unhandled interrupt: %i (%x) and with error code: %x\n", num, num, r->err_code);

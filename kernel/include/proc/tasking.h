@@ -13,11 +13,7 @@ typedef void (*notify_fpointer) (int signal);
 
 typedef struct task_control_block_s
 {
-	/* Registers used for switching */
-	reg_t				eip;
-	reg_t				esp;
-	reg_t				ebp;
-	reg_t				eflags;
+	reg_t 				esp;
 	page_directory_t 	*directory;			/* Program page directory */
 
 	/* Program information */

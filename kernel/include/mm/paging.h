@@ -31,6 +31,8 @@ typedef struct page_directory {
 	uint32_t 		physicalAddress;
 } page_directory_t;
 
+int get_frame(unsigned int frame_addr);
+
 page_directory_t *get_kernel_dir();
 page_directory_t *get_current_dir();
 void set_current_dir(page_directory_t *new);
@@ -168,5 +170,7 @@ void clear_page_directory(page_directory_t *dir);
  */
 int identity_map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace,
 									 page_directory_t *dir);
+
+void debug_paging_print(page_directory_t *dir);
 
 #endif

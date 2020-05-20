@@ -39,3 +39,27 @@ stack trace
 - task_yield
 - task_switch
 - task_switch arch
+
+# Current bug
+
+So yeah i know what is going on but now why
+so
+the CPU tripple faults and doesn't call any other exception
+for the simple reason that:
+we switch task and load in a corrupted virtual memtable
+and thus the cpu tries to call the exception handler for double
+fault and can't find it
+and thus tripple faults
+my best guess is that we somehow memory overflowed 
+into our virtual memtable (since it is on the heap it could be anything) and thus this is gonna be fun.... NOT
+
+okay so 
+i think we have a "race condition" because 
+the 0xC0059000 task is corrupted and thus the tripple
+fault depends on when it is called
+
+however we gotta figure out why this motherfucker is corrupted
+it is the task created by the user space application but that 
+shouldn't matter
+so i am going to keep looking i guess
+its not like i've been looking for weeks now

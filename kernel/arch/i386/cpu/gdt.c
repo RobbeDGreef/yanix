@@ -131,6 +131,7 @@ static void init_gdt()
 
 void tss_set_kernel_stack(uint32_t stack)
 {
+   tss_entry.ss0 = 0x10;
 	tss_entry.esp0 = stack;
 }
 

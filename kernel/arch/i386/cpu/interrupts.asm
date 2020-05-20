@@ -1,8 +1,10 @@
 [extern isr_handler]
 [extern irq_handler]
+[extern DOUBLE_FAULT_STACK] ; defined in double_fault_stack.asm
 
 [global enable_interrupts]
 [global disable_interrupts]
+
 enable_interrupts:
     sti
     ret
@@ -12,7 +14,7 @@ disable_interrupts:
     ret
 
 isr_common_stub:
-    pusha           ; pushes edi, esi, ebp, esp, ebx, edx, ecx, eax
+    pushad           ; pushes edi, esi, ebp, esp, ebx, edx, ecx, eax
     mov     ax, ds
     push    eax
     mov     ax, 0x10
@@ -32,13 +34,13 @@ isr_common_stub:
     mov     fs, ax
     mov     gs, ax
     
-    popa
+    popad
     add     esp, 8
     sti
     iret
 
 irq_common_stub:
-    pusha
+    pushad
     mov     ax, ds
     push    eax
     mov     ax, 0x10
@@ -58,7 +60,7 @@ irq_common_stub:
     mov     fs, bx
     mov     gs, bx
     
-    popa
+    popad
     add     esp, 8
     sti
     iret
@@ -174,6 +176,9 @@ isr7:
 ; 8: Double Fault Exception (With Error Code!)
 isr8:
     cli
+    jmp $
+    ;mov  ebp, DOUBLE_FAULT_STACK
+    ;mov  esp, DOUBLE_FAULT_STACK
     push byte 8
     jmp isr_common_stub
 
@@ -231,7 +236,6 @@ isr16:
 ; 17: Alignment Check Exception
 isr17:
     cli
-    push byte 0
     push byte 17
     jmp isr_common_stub
 
@@ -259,7 +263,6 @@ isr20:
 ; 21: Reserved
 isr21:
     cli
-    push byte 0
     push byte 21
     jmp isr_common_stub
 

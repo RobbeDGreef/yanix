@@ -597,8 +597,8 @@ int init_ata(pci_device_t *pci_dev)
 			for (size_t i = 0; i < 512; i += 2)
 			{
 				uint16_t data = port_word_in(base + ATA_REG_DATA);
-				ident_buffer[i+0] = data & 0xFFFF;
-				ident_buffer[i+1] = (data >> 8) & 0xFFFF;
+				ident_buffer[i+0] = data & 0xFF;
+				ident_buffer[i+1] = (data >> 8) & 0xFF;
 			}
 
 			/* At this point we can create a drive structure because we are sure it exists */

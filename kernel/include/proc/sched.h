@@ -13,5 +13,6 @@ task_t *find_task_by_pid(pid_t pid);
 
 void jump_userspace(reg_t eip, reg_t argc, reg_t argv);
 int init_scheduler(task_t *mainloop);
+void debug_print_chain();
 
 #endif /* PROC_SCHED_H */

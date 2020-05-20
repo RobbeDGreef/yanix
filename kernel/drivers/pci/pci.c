@@ -295,7 +295,8 @@ void add_pci_device(pci_device_t *dev)
 		g_pcilist = dev;
 	} else {
 		volatile pci_device_t *tmp = g_pcilist;
-		while (tmp->next != 0){tmp = tmp->next;}
+		while (tmp->next != 0)
+			tmp = tmp->next;
 		tmp->next = dev;
 	}
 	g_pci_device_count++;

@@ -15,9 +15,10 @@ RAMDISK_SIZE		= 384K
 ARCH 				= i386
 DISK_SIZE			= 250M
 DISKNAME 			= maindisk.iso
-LOOPD_ROOTFS		= /dev/loop5
-LOOPD_DISK			= /dev/loop4
+LOOPD_ROOTFS		= /dev/loop6
+LOOPD_DISK			= /dev/loop5
 ROOTFS 				= ./rootfs
+USER 				= robbe 
 
 # Easier in sublime
 CC = /usr/share/crosscompiler/bin/i386-elf-gcc
@@ -26,8 +27,8 @@ GDB = gdb
 NASM = nasm
 QEMU = qemu-system-x86_64
 QEMU_DEBUG_FLAGS = -d guest_errors,cpu_reset
-QEMU_FLAGS = $(QEMU_DEBUG_FLAGS) -m 512M -device isa-debug-exit,iobase=0xf4,iosize=0x04 -no-reboot -netdev user,id=u1,hostfwd=tcp::5555-:5454 -device rtl8139,netdev=u1
-QEMU_FLAGS += -object filter-dump,id=f1,netdev=u1,file=networkdump.dat -serial pipe:/serial_output.out
+QEMU_FLAGS = $(QEMU_DEBUG_FLAGS) -m 512M -device isa-debug-exit,iobase=0xf4,iosize=0x04 -netdev user,id=u1,hostfwd=tcp::5555-:5454 -device rtl8139,netdev=u1
+QEMU_FLAGS += -object filter-dump,id=f1,netdev=u1,file=networkdump.dat -serial pipe:/serial_output.out -no-reboot
 
 all:
 	rm -rf kernel.bin kernel.elf
@@ -55,7 +56,7 @@ run: kernel.bin maindisk.iso
 
 debug: kernel.bin maindisk.iso kernel.elf
 	$(QEMU) -s ${QEMU_FLAGS} -hda $(DISKNAME) &
-	$(GDB) -ex "target remote localhost:1234" -ex "symbol-file kernel.elf"
+	$(GDB) -ex "target remote localhost:1234" -ex "symbol-file kernel.elf" -ex "breakpoint DEBUGGER_ENTRY" -ex "directory /home/robbe/Projects/yanix/kernel" -ex "set disassembly-flavor intel"
 
 mount_ramdisk: ramdisk.iso
 	mount -o loop ./ramdisk.iso ./initrd	

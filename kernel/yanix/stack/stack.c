@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <yanix/stack.h>
 #include <mm/paging.h>
+#include <proc/tasking.h>
 
 uint32_t g_inital_esp = 0;
 extern page_directory_t* g_current_directory;
@@ -13,6 +14,19 @@ extern page_directory_t* g_current_directory;
 void init_stack(uint32_t stack_location)
 {
 	g_inital_esp = stack_location;
+}
+
+void set_user_stack()
+{
+	/**
+	 * Stacks always have to be preallocated because if 
+	 * we don't the page fault handler has no stack to 
+	 * run of of and thus would double and then tripple fault the cpu
+	 */
+	for (unsigned int i = DISIRED_USER_STACK_LOC - USER_STACK_SIZE; i < DISIRED_USER_STACK_LOC; i+=0x1000)
+		alloc_frame(get_page(i, 1, get_current_dir()), 0, 1);
+
+	get_current_task()->stacktop = DISIRED_USER_STACK_LOC;
 }
 
 /**

@@ -22,8 +22,7 @@ void _exit()
 {
     debug_printk("Kill\n");
     send_sig(SIGKILL);
-    debug_printk("Current address: %x\n", get_current_task());
-    debug_printk("Trying to kill task %s %i\n", get_current_task()->name, get_current_task()->pid);
+    asm volatile ("sti");
     kill_proc((task_t*)get_current_task());
     /* This is a safety to handle the very slight change of there not being any task to yield to (i might change this in the future) */
     for(;;);
@@ -177,16 +176,43 @@ int sys_munmap(void *addr, size_t length)
     return -EINVAL;
 }
 
+pid_t sys_fork()
+{
+    printk("Fork has been called\n");
+    return fork();
+}
+
+#include <yanix/tty_dev.h>
+
+ssize_t sys_write(int fd, const void *buf, size_t amount)
+{
+    if (fd == 1)
+    {
+        tty_set_color(TTY_LIGHT_BLUE);
+        ssize_t ret = vfs_write_fd(fd, buf, amount);
+        tty_set_color(TTY_WHITE);
+        return ret;
+    }
+
+    return vfs_write_fd(fd, buf, amount);
+}
+
+int sys_close(int fd)
+{
+    return vfs_close_fd(fd);
+    //return -1;
+}
+
 // @TODO: sbrk should be a lib func and not a syscall (should use a brk)
 
 static const void *syscalls[] = {
     /* 0 */           0,
     /* 1 */           &_exit,           /* DONE */
-    /* 2 */           &fork,            /* DONE */
+    /* 2 */           &sys_fork,            /* DONE */
     /* 3 */           &vfs_read_fd,     /* DONE */
-    /* 4 */           &vfs_write_fd,    /* DONE */
+    /* 4 */           &sys_write,    /* DONE */
     /* 5 */           &vfs_open_fd,     /* DONE */
-    /* 6 */           &vfs_close_fd,    /* DONE */
+    /* 6 */           &sys_close,    /* DONE */
     /* 7 */           &wait,            /* NOT DONE */
     /* 8 */           &vfs_creat,       /* DONE */
     /* 9 */           &link,            /* NOT DONE */
@@ -266,5 +292,7 @@ static void syscall_handler(registers_t *regs){
      	pop %%ebx; \
      	pop %%ebx; \
    		" : "=a" (ret) : "r" (regs->edi), "r" (regs->esi), "r" (regs->edx), "r" (regs->ecx), "r" (regs->ebx), "r" (location));
+   
+   /* Return value is generally saved eax */
    regs->eax = ret;
 }

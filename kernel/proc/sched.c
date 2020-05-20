@@ -40,6 +40,21 @@ int getpid()
 	return g_runningtask->pid;
 }
 
+void debug_print_chain()
+{
+	task_t *tmp = ready_list.head;
+
+	printk("Task chain:\n");
+
+	while (tmp)
+	{
+		printk("%x->", tmp);
+		tmp = tmp->next;
+	}
+
+	printk("\n");
+}
+
 void set_list(struct task_list *list, task_t *task)
 {
 	list->next = task;
@@ -52,6 +67,7 @@ void add_to_list(struct task_list *list, task_t *task)
 
 	if (!tmp)
 	{
+		printk(KERN_DEBUG "set list instead of append\n");
 		set_list(list, task);
 		return;
 	}
@@ -60,33 +76,34 @@ void add_to_list(struct task_list *list, task_t *task)
 		tmp = tmp->next;
 	
 	tmp->next = task;
-
 }
 
 int remove_from_list(struct task_list *list, task_t *task)
 {
 	task_t *tmp = list->head;
 
+	printk(KERN_NOTICE "Removing");
 	if (!tmp)
 	{
+		printk(KERN_WARNING "list not initialised ?");
 		return -1;
 	}
 
-	task_t *prev = tmp;
+	task_t *prev = NULL;
+
 	while (tmp)
 	{
 		if (tmp == task)
 		{
-			/* remove */
 			if (prev)
 				prev->next = tmp->next;
 			else
-				list->head = tmp->next;
+				set_list(list, tmp->next);
+			return 0;
 		}
 		prev = tmp;
 		tmp = tmp->next;
 	}
-
 	return -1;
 }
 
@@ -95,11 +112,13 @@ task_t *get_next_from_list(struct task_list *list)
 
 	task_t *next = list->next;
 
-	if (list->next)
+	if (next)
 		list->next = list->next->next;
-
 	else
-		list->next = list->head;
+	{
+		next = list->head;
+		list->next = list->head->next;
+	}
 
 	return next;
 }
@@ -135,17 +154,15 @@ task_t *find_task_by_pid(pid_t pid)
 	task_t *ret = 0;
 	ret = find_task_in_list_by_pid(&ready_list, pid);
 	if (ret)
-		goto end;
+		return ret;
 
 	ret = find_task_in_list_by_pid(&sleep_list, pid);
 	if (ret)
-		goto end;
+		return ret;
 
 	ret = find_task_in_list_by_pid(&blocked_list, pid);
 	if (ret)
-		goto end;
-
-end:;
+		return ret;
 	return ret;
 }
 
@@ -159,20 +176,25 @@ void switch_task(task_t *next)
 	task_t *previous = (task_t*) g_runningtask;
 	
 	if (previous == next)
+	{
 		return;
+	}
 
 	/* I am here to handle the stack that blows the fuck up
 	 * oh yeah also i gotta fix that. */
 	if (!next)
+	{
+		printk(KERN_DEBUG "DUDES WHAT THE HELL MAN");
 		return;
+	}
 
 	g_runningtask = next;
 	g_runningtask->sliceused = 0;
 	/* @todo: maybe i need to set the task state here */
 	
 	set_current_dir(g_runningtask->directory);
-	debug_printk("Arch switch to %x\n", g_runningtask);
-	arch_task_switch((task_t*) g_runningtask, previous);
+	//debug_printk("Arch switch to %x\n", g_runningtask->esp);
+	arch_task_switch(next, previous);
 }
 
 void lock_scheduler()
@@ -211,10 +233,9 @@ void jump_userspace(reg_t eip, reg_t argc, reg_t argv)
 int init_scheduler(task_t *mainloop)
 {
 	set_list(&ready_list, mainloop);
-	set_list(&sleep_list, 0);
-	set_list(&blocked_list, 0);
+	set_list(&sleep_list, NULL);
+	set_list(&blocked_list, NULL);
 
 	g_runningtask = mainloop;
-
 	return 0;
 }

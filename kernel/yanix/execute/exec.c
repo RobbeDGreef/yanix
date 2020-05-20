@@ -18,7 +18,7 @@
 static int _execve(int kernel, const char *filename, const char *argv[], char *const envp[])
 {
 	(void) (envp);
-
+	
 	/* Read the file for reading */
 	struct file *file = vfs_open(filename, 0, 0);
 	if (file == 0) {
@@ -79,8 +79,8 @@ static int _execve(int kernel, const char *filename, const char *argv[], char *c
 	{
 		/* Now we need to switch the task to usermode, i.e. giving it brand new usermode stack */
 
-		/* First disable interrupts because we are working on the stack (not sure if it's necesairy but it wont hurt) */
-		cli();
+		/* First disable interrupts because we are working on the stack (not sure if it's necessary but it wont hurt) */
+		asm volatile("cli;");
 
 		/* Sets up a user stack */
 		set_user_stack();
@@ -91,7 +91,6 @@ static int _execve(int kernel, const char *filename, const char *argv[], char *c
 					  movl %3, %%edx; \
 					  movl %%ebx, %%esp; \
 					  movl %%esp, %%ebp; \
-					  sti; \
 					  pushl %%edx; \
 					  pushl %%ecx; \
 					  pushl %%eax; \

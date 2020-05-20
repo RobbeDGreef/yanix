@@ -14,8 +14,8 @@ volatile uint32_t placement_address = (uint32_t) &end_of_bin;
 /**
  * @brief      Double linked list block heap
  */
-struct heap *kernel_heap  = 0;
-struct heap *user_heap    = 0;
+struct heap *kernel_heap = 0;
+struct heap *user_heap = 0;
 
 /* Simple pointer to the first heap ever created */
 struct heap *heaplist = 0;
