@@ -18,7 +18,7 @@ struct heap
 };
 
 #define KHEAP_START			0xC0000000
-#define KHEAP_MAXSIZE		0x100000
+#define KHEAP_MAXSIZE		0x1000000
 #define KHEAP_INITIAL_SIZE	0x1000
 
 #define UHEAP_START 		0xD0000000
