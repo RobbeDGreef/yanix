@@ -311,3 +311,17 @@ void int_to_string(int n, char* str)
     str[i] = '\0';
     reverse(str);
 }
+
+int strcmp(const char *x, const char *y)
+{
+	while (*x)
+	{
+		if (*x != *y)
+			break;
+
+		x++;
+		y++;
+	}
+
+	return *(const unsigned char *) x - *(const unsigned char *) y;
+}
