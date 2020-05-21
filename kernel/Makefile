@@ -52,7 +52,7 @@ OBJECTS += ${ASMFILES:.asm=.o}
 
 # Custom flags can be used otherwise this will be used
 ifndef CC_FLAGS
-	CC_FLAGS = -g -O0 -Wall -Wextra -Werror -ffreestanding -I $(PWD)/kernel/include -I $(PWD)/kernel/arch/$(ARCH)/include -Wno-unused-variable
+	CC_FLAGS = -g -O0 -Wall -Wextra -Werror -ffreestanding -I $(PWD)/kernel/include -I $(PWD)/kernel/arch/$(ARCH)/include -Wno-unused-variable -Wno-unused-function
 endif
 
 # Custom flags can be used otherwise this will be used
