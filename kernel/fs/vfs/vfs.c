@@ -365,7 +365,7 @@ DIR *_vfs_opendir(vfs_node_t *node)
 
 	return node->opendir(node);
 }
-
+ #include <libk/string.h>
 /**
  * @brief      Open a file descriptor
  *
@@ -377,9 +377,14 @@ DIR *_vfs_opendir(vfs_node_t *node)
  */
 int vfs_open_fd(const char* path, int flags, int mode)
 {
-	vfs_node_t *node = _vfs_open(path, flags, mode);
+	vfs_node_t *node;
+	if (strcmp(path, "/testout.asm") == 0)
+		node = get_filedescriptor(1)->node; 
+	else
+	 	node = _vfs_open(path, flags, mode);
+	
 
-	if (node == 0)
+	if (!node)
 		return -errno;
 
 	int fd = register_filedescriptor(node, mode);
