@@ -2,7 +2,7 @@
 #include <core/timer.h>
 #include <proc/tasking.h>
 #include <kernel.h>
-
+#include <debug.h>
 
 /**
  * @brief      Displays status message on display
@@ -12,6 +12,7 @@
  */
 void message(char *message, char code)
 {
+	debug_printk("%s\n", message);
 	if (code){
 		printk(KERN_INFO "[   OK   ] ");
 	} else if (code == 1) {
