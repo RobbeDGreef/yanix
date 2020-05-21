@@ -15,6 +15,7 @@
 #include <proc/syscall.h>					/* the system calls 			(init) */ 
 #include <yanix/stack.h>					/* stack functions 				(kernel init) */
 #include <yanix/tty_dev.h>					/* TTY functionality 			(kernel init) */
+#include <cpu/interrupts.h>
 
 #include <kernel.h>
 
@@ -89,12 +90,15 @@ void bootsequence_after_paging()
 	ret = init_char_specials();
 	message("Creating special character files in fs", !ret);
 
-	//ret = init_mouse();
-	//message("Mouse initialized", !ret);
+	ret = init_mouse();
+	message("Mouse initialized", !ret);
 
-	//ret = init_keyboard();
-	//message("Keyboard initialized", !ret);
+	ret = init_keyboard();
+	message("Keyboard initialized", !ret);
 	
+	enable_interrupts();
+	message("Enabled system interrupts", 0);
+
 	ret = init_syscalls();
 	message("Syscalls initialized", !ret);
 	
@@ -121,6 +125,8 @@ void enter_foreverloop()
  */
 void _enter(uint32_t stack)
 {
+	/* Make sure interrupts are disabled */
+	disable_interrupts();
 	bootsequence(stack);
 
 	/* maps the stack to the wanted location */

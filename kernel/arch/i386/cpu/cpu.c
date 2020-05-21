@@ -17,7 +17,4 @@ void arch_init()
 	/* Init the GDT */
 	init_descriptor_tables();
 	isr_install();
-
-	/* Enabling interrupts */
-	asm volatile ("sti");
 }
