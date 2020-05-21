@@ -24,8 +24,11 @@ void kernel_main()
 	char **envvars = make_envvars();
 	const char **args = (const char **) make_args(3, "/bin/smlrc", "/etc/hello_nostd.c", "/testout.asm");
 
-	if (fork() == 0)
-	{
-		execve_user("/bin/clear", args, envvars);
-	}
+	char *str = "testing here \e[1;5H homed\n";
+	vfs_write_fd(1, str, strlen(str));
+
+	//if (fork() == 0)
+	//{
+	//	execve_user("/bin/clear", args, envvars);
+	//}
 }

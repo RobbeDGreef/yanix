@@ -18,6 +18,16 @@
 unsigned int g_current_tty = 0;
 tty_ctrl_t *tty_control_struct = 0;
 
+struct escape_seq
+{
+	int iter;
+	int curcol;
+	int currow;
+	int startc;
+	int startr;
+	tty_dev_t *ttydev;
+};
+
 void init_tty_stdin(void);
 
 /**
@@ -137,6 +147,13 @@ void tty_update_display(tty_dev_t *tty_dev, int startcol, int startrow, int endc
 
 			xloc *= video_get_screen_width()  / tty_control_struct->col_max;
 			yloc *= video_get_screen_height() / tty_control_struct->row_max; 
+
+			if (tty_dev->buffer[i] > ' ' && tty_dev->buffer[i] <= '~')
+			{
+				//video_clear_cell(xloc, yloc);
+				video_draw_char(' ', xloc, yloc, color, 0);
+			}
+		
 		}
 
 		video_draw_char(tty_dev->buffer[i], xloc, yloc, color, -1);
@@ -172,6 +189,74 @@ static void _tty_scroll(tty_dev_t *tty_dev)
 	memset(&tty_dev->buffer[ (tty_control_struct->row_max - 1) * rowsize ], 0, rowsize);
 	video_clear_screen();
 	//tty_update_display(tty_dev, 0, 0, tty_control_struct->col_max - 1, tty_control_struct->row_max - 1);
+}
+
+static unsigned int parse_dec_uint(char **str)
+{
+	int num = 0;
+	while (**str)
+	{
+		if (**str < '0' || **str > '9')
+			return num;
+		
+		num *= 10;
+		num += **str - '0';
+		*str += 1;
+	}
+
+	return num;
+}
+
+static void parse_escape_control_sequence(struct escape_seq *es, char *seq)
+{
+	unsigned int param1;
+	unsigned int param2;
+	unsigned int start_seq = (unsigned int) seq;
+
+	switch (*seq)
+	{
+	case 'H': /* Cursor home */
+		es->curcol = 0;
+		es->currow = 0;
+		es->startc = 0;
+		es->startr = 0;
+		es->iter++;
+		return;
+
+	case 'J':
+		es->iter++;
+		tty_clear_buf(es->ttydev);
+		return;
+
+	default:
+		param1 = parse_dec_uint(&seq);
+		seq++;
+		param2 = parse_dec_uint(&seq);
+
+		if (*seq == 'H' || *seq == 'f')
+		{
+			es->curcol = param2 - 1;
+			es->currow = param1 - 1;
+			if (es->curcol < es->startc)
+				es->startc = es->curcol;
+
+			if (es->currow < es->startr)
+				es->startr = es->currow;
+		}
+				
+	}
+	es->iter += (unsigned int) seq - start_seq + 1;
+}
+
+static void parse_escape_sequence(struct escape_seq *es, char *seq)
+{
+	/* See: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797 */
+	switch (*seq)
+	{
+	case '[': /* Control sequence introducer */
+		es->iter++;
+		parse_escape_control_sequence(es, seq + 1);
+	}
 }
 
 /**
@@ -222,8 +307,8 @@ ssize_t tty_write(tty_dev_t *tty_dev, const char *text_to_write, size_t bytes_to
 	size_t i;
 	int dofullupdate = 0; /* A variable for checking if we need to update the whole screen */
 
-	for (i = 0; i < bytes_to_write; i++) {
-
+	for (i = 0; i < bytes_to_write; i++) 
+	{
 		/* So we loop over every byte this means we need to filter out escape characters here */
 		char character = text_to_write[i];
 		if ((character == '\n') | (character == '\r')) {
@@ -235,11 +320,22 @@ ssize_t tty_write(tty_dev_t *tty_dev, const char *text_to_write, size_t bytes_to
 			cur_col += 4;
 		} else if (character == '\033') {
 			/* This will be an ansi escape sequence */
+			struct escape_seq es;
+			es.iter = i;
+			es.startc = startc;
+			es.startr = startr;
+			es.curcol = cur_col;
+			es.currow = cur_row;
+			es.ttydev = tty_dev;
+
+			parse_escape_sequence(&es, (char*) text_to_write + i + 1);
 			
-			/**
-			 * @todo: This needs an implementation 
-			 */
-			
+			i = es.iter;
+			startc = es.startc;
+			startr = es.startr;
+			cur_col = es.curcol;
+			cur_row = es.currow;
+
 		} else {
 			/* Regular character */
 
