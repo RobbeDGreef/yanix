@@ -265,9 +265,9 @@ int init_syscalls()
  *
  * @param      regs  The pushed registers
  */
-static void syscall_handler(registers_t *regs){
-    debug_printk(KERN_INFO "Syscall: %i with %x %x %x\n", regs->eax, regs->ebx, regs->ecx, regs->edx);
-
+static void syscall_handler(registers_t *regs)
+{
+    //printk(KERN_DEBUG "syscall: %i %i %i %i\n", regs->eax, regs->ebx, regs->ecx, regs->edx);
     if (regs->eax >= NUMER_OF_SYSCALLS)
 		return;
 
