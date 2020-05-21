@@ -171,6 +171,17 @@ void vesa_clear_screen_()
 	memset(g_display->physicalLFB, 0, g_display->bpp * g_display->s_width * g_display->s_height);
 }
 
+void vesa_clear_cell(int x, int y)
+{
+	int offset = ((y * FONTHEIGHT) * g_display->s_width + (x * FONTWIDTH)) * g_display->bpp;
+	int line = g_display->s_width * g_display->bpp;
+	for (int i = 0; i < FONTHEIGHT; i++)
+	{
+		//memset((char *) g_display->physicalLFB + offset, 0, FONTWIDTH * g_display->bpp);
+		offset += line;
+	}
+}
+
 /**
  * @brief      This function hooks the vesa driver to the current video driver in use
  *
@@ -187,6 +198,7 @@ void hook_vesa_to_video(video_driver_t *driver)
 	driver->draw_rect  = 0 /* &vesa_draw_rect */;
 	driver->draw_line  = 0 /* &vesa_draw_line */;
 	driver->clear 	   = &vesa_clear_screen_;
+	driver->clear_cell = &vesa_clear_cell;
 
 	driver->vga_to_full   = &vesa_vga_to_full;
 

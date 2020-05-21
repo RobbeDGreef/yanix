@@ -10,7 +10,8 @@ typedef void (*draw_pixel_fpointer)	(int x, int y, int color);
 typedef void (*draw_rect_fpointer)	(int x, int y, int width, int height, int color);
 typedef void (*draw_line_fpointer)	(int x, int y, int x2, int y2, int color);
 typedef void (*clear_fpointer)		();
-typedef void (*updt_cusror_fpointer)(int x, int y);
+typedef void (*clear_cell_fpointer) (int x, int y);
+typedef void (*updt_cursor_fpointer)(int x, int y);
 
 // Extra function pointers 
 typedef int  (*vga_to_full_fpointer)(int color);
@@ -22,7 +23,8 @@ typedef struct video_driver_s {
 	draw_rect_fpointer		draw_rect;
 	draw_line_fpointer 		draw_line;
 	clear_fpointer			clear;
-	updt_cusror_fpointer	update_cursor;
+	clear_cell_fpointer		clear_cell;
+	updt_cursor_fpointer	update_cursor;
 
 	vga_to_full_fpointer	vga_to_full;
 
@@ -125,5 +127,13 @@ void video_update_cursor(int x, int y);
  * @brief      Clears the screen
  */
 void video_clear_screen();
+
+/**
+ * @brief      Clears a single cell
+ *
+ * @param[in]  x     the x location of the cell
+ * @param[in]  y     the y location of the cell
+ */
+void video_clear_cell(int x, int y);
 
 #endif

@@ -152,3 +152,9 @@ void video_update_cursor(int x, int y)
 		g_video_driver->update_cursor(x, y);
 	}
 }
+
+void video_clear_cell(int x, int y)
+{
+	if (g_video_driver && g_video_driver->clear_cell)
+		g_video_driver->clear_cell(x, y);
+}
