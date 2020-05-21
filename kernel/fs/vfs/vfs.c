@@ -641,16 +641,15 @@ vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
 	#endif
 
 	vfs_node_t *tmp = node->dirlist;
-	do
+
+	while (tmp)
 	{
 		if (_strcmpI(name, tmp->name) == 0)
-		{
-			return tmp;
-		}
-	} while ((tmp = tmp->nextnode) != 0);
+			return tmp; 
+		tmp = tmp->nextnode;
+	}
 
 	errno = ENOENT;
-
 	return 0;
 }
 
@@ -715,6 +714,12 @@ vfs_node_t *vfs_find_path(const char *path)
 	size_t bufferiter 	= 0;
 	vfs_node_t *node 	= g_vfs_root;
 
+	if (!node)
+	{
+		printk(KERN_WARNING "vfs not initialized ?\n");
+		return NULL;
+	}
+
 	memset(buffer, 0, pathlength);
 
 	/* iter starts at 1 because 0 is the first '/' character */
@@ -723,7 +728,14 @@ vfs_node_t *vfs_find_path(const char *path)
 		if (path[i] == '/' || path[i] == '\0')
 		{
 			/* @fixme: Whenever we want to find '/' we can't because it looks in the subdirectory of that node anyway we need to fix that */
+			buffer[bufferiter++] = '\0';
 			node = _vfs_path_find(node, buffer);
+
+			if (!node)
+			{
+				kfree(buffer);
+				return 0;
+			}
 
 			if (path[i] == '\0')
 			{
