@@ -135,5 +135,6 @@ int find(char*);
 void int_to_string(int, char*);
 
 int strcmp(const char *x, const char *y);
+char *strdup_user(const char *str);
 
 #endif
