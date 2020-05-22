@@ -64,6 +64,7 @@ void set_list(struct task_list *list, task_t *task)
 void add_to_list(struct task_list *list, task_t *task)
 {
 	task_t *tmp = list->head;
+	task->next = NULL;
 
 	if (!tmp)
 	{
@@ -82,7 +83,6 @@ int remove_from_list(struct task_list *list, task_t *task)
 {
 	task_t *tmp = list->head;
 
-	printk(KERN_NOTICE "Removing");
 	if (!tmp)
 	{
 		printk(KERN_WARNING "list not initialised ?");
@@ -221,7 +221,7 @@ void schedule()
 		switch_task(next);
 	}
 
-	unlock_scheduler();	
+	unlock_scheduler();
 }
 
 void jump_userspace(reg_t eip, reg_t argc, reg_t argv)
