@@ -136,5 +136,8 @@ void int_to_string(int, char*);
 
 int strcmp(const char *x, const char *y);
 char *strdup_user(const char *str);
+char *strdup(const char *str);
+char *strchr(const char *str, char c);
+char *strdup_s(const char *mem, int len);
 
 #endif

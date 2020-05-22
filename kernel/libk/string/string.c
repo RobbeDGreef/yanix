@@ -334,3 +334,31 @@ char *strdup_user(const char *str)
 	memcpy(newstr, str, len);
 	return newstr;
 }
+
+char *strdup(const char *str)
+{
+	int len = strlen(str) + 1;
+	char *newstr = kmalloc_user(len);
+	memcpy(newstr, str, len);
+	return newstr;	
+}
+
+char *strchr(const char *str, char c)
+{
+	while (*str)
+	{
+		if (*str == c)
+			return (char *) str;
+		str++;
+	}
+
+	return NULL;
+}
+
+char *strdup_s(const char *mem, int len)
+{
+	char *new = kmalloc(len + 1);
+	memcpy(new, mem, len);
+	new[len] = '\0';
+	return new;
+}
