@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <yanix/env.h>
 #include <errno.h>
+#include <yanix/user.h>
 
 /**
  * @todo  	Environment variables should not be a hardcoded amount  

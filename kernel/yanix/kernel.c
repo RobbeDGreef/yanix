@@ -14,6 +14,8 @@ extern vfs_node_t *g_vfs_root;
 #include <mm/paging.h>
 #include <debug.h>
 #include <mm/heap.h>
+#include <yanix/user.h>
+#include <libk/stdio.h>
 
 /**
  * @brief      Kernel main loop
@@ -21,11 +23,15 @@ extern vfs_node_t *g_vfs_root;
 void kernel_main()
 {
 	printk(KERN_INFO "kernel boot up procedure completed\n");
-	char **envvars = make_envvars();
-	const char **args = (const char **) make_args(1, "/bin/yash");
-
+	
 	if (fork() == 0)
 	{
-		execve_user("/bin/yash", args, (const char**) envvars);
+		login();
+		
+		char **envvars = make_envvars();
+		char **args = make_args(1, get_current_user()->shell);
+		printk("args: '%s'", args[0]);
+		
+		execve_user(args[0], (const char**) args, (const char**) envvars);
 	}
 }
