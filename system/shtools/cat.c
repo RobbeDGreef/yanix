@@ -31,6 +31,15 @@ int readfile(char *file)
 	return 0;
 }
 
+void readback()
+{
+	char *buf = malloc(BUFSIZ);
+	while (1)
+	{
+		fgets(buf, BUFSIZ, stdin);
+		printf(buf);
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -68,7 +77,6 @@ int main(int argc, char **argv)
 			readfile(argv[optind++]);
 	}
 
-
-
+	readback();
 	return 0;
 }
