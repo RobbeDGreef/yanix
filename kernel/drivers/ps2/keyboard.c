@@ -51,7 +51,7 @@ static void keyboard_callback(registers_t *regs)
 
 	else 
 	{
-		if (scancode < 128)
+		if (scancode < 128 && scancode > 0x7)
 		{
 			unsigned char c = get_key_from_scancode(scancode, shift_currently_enabled, 0);
 			vfs_write_fd(0, &c, 1);
