@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
+#include <mm/heap.h>
 
 /**
  * @brief      Compairs memory from two given locations
@@ -324,4 +325,12 @@ int strcmp(const char *x, const char *y)
 	}
 
 	return *(const unsigned char *) x - *(const unsigned char *) y;
+}
+
+char *strdup_user(const char *str)
+{
+	int len = strlen(str) + 1;
+	char *newstr = kmalloc_user(len);
+	memcpy(newstr, str, len);
+	return newstr;
 }
