@@ -4,6 +4,7 @@
 
 /* all the imports for syscalls */
 #include <proc/tasking.h>
+#include <proc/sched.h>
 #include <fs/vfs.h>
 #include <yanix/exec.h>
 #include <signal.h>
@@ -22,7 +23,6 @@ void _exit()
 {
     debug_printk("Kill\n");
     send_sig(SIGKILL);
-    asm volatile ("sti");
     kill_proc((task_t*)get_current_task());
     /* This is a safety to handle the very slight change of there not being any task to yield to (i might change this in the future) */
     for(;;);
@@ -74,9 +74,14 @@ int unlink(char *name)
 
 int wait(int *status)
 {
-    (void) (status);
-    errno = ECHILD;
-    return -1;
+    if (get_current_task()->childamount)
+    {
+        *status = 0;
+        task_block(getpid());
+        return 0;
+    }
+    else
+        return -ECHILD;
 }
 
 int sys_lseek(int fd, int offset, int mode)
@@ -199,8 +204,17 @@ ssize_t sys_write(int fd, const void *buf, size_t amount)
 
 int sys_close(int fd)
 {
+    // We don't want to close the in, out and err
+    if (fd < 3)
+        return -1;
+
     return vfs_close_fd(fd);
     //return -1;
+}
+
+int sys_execve(const char *filename, const char **argv, char const **envp)
+{
+    return execve(filename, argv, envp);
 }
 
 // @TODO: sbrk should be a lib func and not a syscall (should use a brk)
@@ -208,16 +222,16 @@ int sys_close(int fd)
 static const void *syscalls[] = {
     /* 0 */           0,
     /* 1 */           &_exit,           /* DONE */
-    /* 2 */           &sys_fork,            /* DONE */
+    /* 2 */           &sys_fork,        /* DONE */
     /* 3 */           &vfs_read_fd,     /* DONE */
-    /* 4 */           &sys_write,    /* DONE */
+    /* 4 */           &sys_write,       /* DONE */
     /* 5 */           &vfs_open_fd,     /* DONE */
-    /* 6 */           &sys_close,    /* DONE */
+    /* 6 */           &sys_close,       /* DONE */
     /* 7 */           &wait,            /* NOT DONE */
     /* 8 */           &vfs_creat,       /* DONE */
     /* 9 */           &link,            /* NOT DONE */
     /* 10 */          &unlink,          /* NOT DONE */
-    /* 11 */          &execve,          /* DONE */
+    /* 11 */          &sys_execve,      /* DONE */
     /* 12 */          &sys_kill,        /* DONE */
     /* 13 */          0,
     /* 14 */          &sys_lseek,       /* DONE */
