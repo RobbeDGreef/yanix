@@ -449,7 +449,7 @@ void tty_clear_buf(tty_dev_t *tty_dev)
 		for (size_t j = 0; j < tty_control_struct->row_max; j++)
 		{
 			/* The - 1 at the end is because indexes start at 0 */
-			tty_dev->buffer[(j*tty_control_struct->row_max + i) * 2 - 1] = ' ';
+			tty_dev->buffer[(j*tty_control_struct->col_max + i) * 2 - 1] = ' ';
 		}
 	}
 
