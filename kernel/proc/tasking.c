@@ -9,7 +9,7 @@
 
 #include <debug.h>
 
-static pid_t PIDS = 0;
+static pid_t PIDS = 1;
 
 int send_task_signal(task_t *task, int sig)
 {
@@ -35,12 +35,21 @@ int send_pid_sig(pid_t pid, int signal)
 
 void kill_proc(task_t *task)
 {
+	/* this will return -1 if the task isn't blocked */
+	if (task->parent)
+	{
+		task_t *parent = find_task_by_pid(task->parent);
+		parent->childamount--;
+		task_resume(task->parent);
+	}
+
 	/* @todo: should set task to zombie and then kill
 	 *  it whenever killer is lauched, after that free all the structures */
-	int r = remove_from_ready_list(task);
+	remove_from_ready_list(task);
 	if (get_current_task() == task)
 	{
 		task_t *task = get_next_task();
+		task_t *parent = find_task_by_pid(task->parent);
 		switch_task(task);
 	}
 }
@@ -68,6 +77,7 @@ static task_t *create_task(task_t *new_task, int kernel_task, page_directory_t *
 
 	/* set pid and new page directory (addr space) */
 	new_task->pid = PIDS++;
+	new_task->parent = getpid();
 	new_task->uid = curtask->uid;
 	new_task->gid = curtask->gid;
 	new_task->name = curtask->name;
@@ -80,7 +90,8 @@ static task_t *create_task(task_t *new_task, int kernel_task, page_directory_t *
 	/* @todo: timeslices should be set in config file */
 	new_task->timeslice = 100;
 
-	debug_printk("New pid: %i\n", new_task->pid);
+	task_t *parent = (task_t*) get_current_task();
+	parent->childamount++;
 
 	return new_task;
 }
