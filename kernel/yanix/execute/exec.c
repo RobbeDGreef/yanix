@@ -44,6 +44,19 @@ static int _execve(int jmpuser, const char *filename, const char **argv, char co
 		return -1;
 	}
 
+	/**
+	 * We have to assemble the argument list now because we will
+	 * most likely overwrite the list and more importantly the string 
+	 * while loading the elf file into memory
+	 */
+	size_t amount = 0;
+	while (argv[amount] != 0)
+		amount++;
+
+	argv = (const char **) combine_args_env((char**) argv, (char**) envp);
+	if (!argv)
+		return -1;
+
 	/* Interpret our elf executable and load it into the propper position */
 	uint32_t ret = load_elf_into_mem(buf);
 
@@ -53,24 +66,19 @@ static int _execve(int jmpuser, const char *filename, const char **argv, char co
 	/* Cleanup */
 	vfs_close(file);
 	kfree(buf);
-		
-	/* Count the arguments given */	
-	size_t amount = 0;
-	while (argv[amount] != 0) {
-		amount++;
-	}
-
-	argv = (const char **) combine_args_env((char**) argv, (char**) envp);
+	
 	get_current_task()->name = (char*) filename;
 	
 	printk(KERN_INFO "Executing execve\n");
 
-	if (kernel)
+	if (!jmpuser)
 	{
+		
 		/* Execute the program */
-		int (*program)(int amount, const char * argv[]) = (int (*) (int amount, const char * argv[])) ret;
-		program(amount, argv);
-		kill_proc(get_current_task());	// kill ourselves because we shouldn't ever return
+		asm volatile( "pushl %2; \
+					   pushl %1; \
+					   jmp %0;": : "r" (ret), "r"(amount), "r"(argv));
+		
 		return 0;
 	}
 	else
