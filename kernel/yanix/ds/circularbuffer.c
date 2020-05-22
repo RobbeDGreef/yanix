@@ -31,6 +31,7 @@ struct circular_buffer_s *create_circular_buffer(size_t size, cb_flags_t flags)
 	return circbuf;
 }
 
+#include <debug.h>
 
 /**
  * @brief      Reads from a circular buffer beginning from a given index.
@@ -44,6 +45,9 @@ struct circular_buffer_s *create_circular_buffer(size_t size, cb_flags_t flags)
  */
 ssize_t circular_buffer_read_index(char *buffer, size_t size, unsigned long index, struct circular_buffer_s *circbuf)
 {
+	if (circbuf->lock && circbuf->lock < size)
+		size = circbuf->lock;
+
 	if (circbuf->flags & CIRCULAR_BUFFER_OPTIMIZE_USHORTINT)
 	{
 		/**
@@ -65,8 +69,10 @@ ssize_t circular_buffer_read_index(char *buffer, size_t size, unsigned long inde
 		/**
 		 * @Warning: this implementation will reset the vritual begin every time you read
 		 */
-		circbuf->virtual_begin = index + max + 1;
-		circbuf->virtual_end = index + max + 1;
+		circbuf->virtual_begin = index + max;
+		
+		if (circbuf->lock)
+			circbuf->lock -= size;
 
 		return max;
 	}
@@ -116,11 +122,13 @@ ssize_t circular_buffer_write_index(char *buffer, size_t size, unsigned long ind
 		
 		for (size_t i = 0; i < size; i++)
 		{
-			circbuf->buffer_start[ind++] = buffer[i];
+			if (buffer[i] == '\n')
+				circbuf->lock = circbuf->virtual_begin + ind;
+
+			circbuf->buffer_start[ind++] = buffer[i];			
 		}
 
 		circbuf->virtual_end = index + size;
-
 		return size;
 	}
 	else
@@ -130,7 +138,6 @@ ssize_t circular_buffer_write_index(char *buffer, size_t size, unsigned long ind
 		return -1;
 	}
 }
-#include <debug.h>
 
 /**
  * @brief      Writes to the start location of a circular buffer
@@ -148,5 +155,12 @@ ssize_t circular_buffer_write(char *buffer, size_t size, struct circular_buffer_
 
 void circular_buffer_block(struct circular_buffer_s *circbuf)
 {
-	while (circbuf->buffer_start[circbuf->virtual_end - 1] != '\n');
+	debug_printk("lock: %i\n", circbuf->lock);
+	while (!circbuf->lock);
+}
+
+void circbuf_buffer_flush(struct circular_buffer_s *circbuf)
+{
+	circbuf->virtual_begin = circbuf->virtual_end;
+	circbuf->lock = 0;
 }
