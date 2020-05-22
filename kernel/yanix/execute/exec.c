@@ -29,7 +29,6 @@ static int _execve(int jmpuser, const char *filename, const char **argv, char co
 	if (buf == 0) {
 		/* Cleanup */
 		vfs_close(file);
-		
 		return -1;
 	}
 
