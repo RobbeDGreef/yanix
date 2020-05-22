@@ -27,6 +27,8 @@ typedef struct task_control_block_s
 	/* Task information */
 	char 				*name;
 	pid_t 				pid;
+	pid_t 				parent;
+	pid_t 				childamount;
 	uid_t				uid;
 	gid_t				gid;
 	int 				ring;
