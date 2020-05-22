@@ -44,7 +44,6 @@ struct circular_buffer_s *create_circular_buffer(size_t size, cb_flags_t flags)
  */
 ssize_t circular_buffer_read_index(char *buffer, size_t size, unsigned long index, struct circular_buffer_s *circbuf)
 {
-
 	if (circbuf->flags & CIRCULAR_BUFFER_OPTIMIZE_USHORTINT)
 	{
 		/**
@@ -54,8 +53,11 @@ ssize_t circular_buffer_read_index(char *buffer, size_t size, unsigned long inde
 		 * yes but it is very very efficient.
 		 */
 		unsigned short int ind = index;
-		
-		for (size_t i = 0; i < size; i++)
+		size_t max = size;
+		if (max > circbuf->virtual_end - circbuf->virtual_begin)
+			max = circbuf->virtual_end - circbuf->virtual_begin;
+
+		for (size_t i = 0; i < max; i++)
 		{
 			buffer[i] = circbuf->buffer_start[ind++];
 		}
@@ -63,9 +65,10 @@ ssize_t circular_buffer_read_index(char *buffer, size_t size, unsigned long inde
 		/**
 		 * @Warning: this implementation will reset the vritual begin every time you read
 		 */
-		circbuf->virtual_begin = index + size;
+		circbuf->virtual_begin = index + max + 1;
+		circbuf->virtual_end = index + max + 1;
 
-		return size;
+		return max;
 	}
 	else
 	{
@@ -127,6 +130,7 @@ ssize_t circular_buffer_write_index(char *buffer, size_t size, unsigned long ind
 		return -1;
 	}
 }
+#include <debug.h>
 
 /**
  * @brief      Writes to the start location of a circular buffer
@@ -140,4 +144,9 @@ ssize_t circular_buffer_write_index(char *buffer, size_t size, unsigned long ind
 ssize_t circular_buffer_write(char *buffer, size_t size, struct circular_buffer_s *circbuf)
 {
 	return circular_buffer_write_index(buffer, size, circbuf->virtual_end, circbuf);	
+}
+
+void circular_buffer_block(struct circular_buffer_s *circbuf)
+{
+	while (circbuf->buffer_start[circbuf->virtual_end - 1] != '\n');
 }

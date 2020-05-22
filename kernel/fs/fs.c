@@ -123,6 +123,7 @@ int index;
 
 static ssize_t tty_stdinwrite(vfs_node_t *node, unsigned int offset, const void *buffer, size_t size)
 {
+	#if 0
 	char *buf = (char*) buffer;
 	for (unsigned int i = 0; i < size; i++)
 	{
@@ -139,6 +140,8 @@ static ssize_t tty_stdinwrite(vfs_node_t *node, unsigned int offset, const void 
 			index = 0;
 		}
 	}
+	#endif
+	pipe_write(node, offset, buffer, size);
 	tty_stdoutwrite(0, 0, buffer, size);
 	return size;
 }

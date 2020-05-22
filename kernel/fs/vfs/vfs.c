@@ -310,7 +310,6 @@ int _vfs_stat(vfs_node_t *node, mode_t mode, struct stat *statbuf)
 	statbuf->st_blksize = node->fs_info->block_size;
 	statbuf->st_blocks = roundup(node->filelength, 512);
 	/* @todo: access times in stat struct */
-
 	return 0;
 }
 

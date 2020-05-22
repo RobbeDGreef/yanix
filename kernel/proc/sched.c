@@ -239,3 +239,37 @@ int init_scheduler(task_t *mainloop)
 	g_runningtask = mainloop;
 	return 0;
 }
+
+int task_block(pid_t pid)
+{
+	lock_scheduler();
+	task_t *task = find_task_in_list_by_pid(&ready_list, pid);
+	if (!task)
+		return -1;
+
+	if (remove_from_list(&ready_list, task) == -1)
+		return -1;
+
+	add_to_list(&blocked_list, task);
+	unlock_scheduler();
+
+	schedule();
+
+	return 0;
+}
+
+int task_resume(pid_t pid)
+{
+	lock_scheduler();
+	task_t *task = find_task_in_list_by_pid(&blocked_list, pid);
+	if (!task)
+		return -1;
+
+	if (remove_from_list(&blocked_list, task) == -1)
+		return -1;
+
+	add_to_list(&ready_list, task);
+	unlock_scheduler();
+	return 0;
+}
+

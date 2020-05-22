@@ -5,6 +5,7 @@
 #include <fs/vfs_node.h>
 #include <fs/pipe.h>
 
+#include <cpu/interrupts.h>
 #include <mm/heap.h>
 #include <errno.h>
 
@@ -20,7 +21,8 @@
 int pipe_close(vfs_node_t *node)
 {
 	kfree((void*) ((struct pipe_s*) node->offset)->circbuf);
-	return kfree((void*) node->offset);
+	kfree((void*) node->offset);
+	return 0;
 }
 
 /**
@@ -51,9 +53,9 @@ ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer, size_t si
 	else
 	{
 		/* waiting for a process to write to the pipe */
-		asm volatile("sti;");
-		while (pipe->circbuf->virtual_begin == pipe->circbuf->virtual_end);
-		asm volatile("cli;");
+		enable_interrupts();
+		circular_buffer_block(pipe->circbuf);
+		disable_interrupts();
 	}
 	
 	return circular_buffer_read((char*) buffer, size, pipe->circbuf);
@@ -89,10 +91,10 @@ ssize_t pipe_write(vfs_node_t *node, unsigned int offset, const void *buffer, si
 struct pipe_s *pipe_create()
 {
 	struct pipe_s *pipe = kmalloc(sizeof(struct pipe_s));
-	
 	if (!pipe)
 		return 0;
 
+	memset(pipe, 0, sizeof(struct pipe_s));
 	struct circular_buffer_s *circbuf = create_circular_buffer(0, CIRCULAR_BUFFER_OPTIMIZE_USHORTINT);
 	
 	if (!circbuf)
