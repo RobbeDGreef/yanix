@@ -15,10 +15,8 @@
 #include <libk/string.h>
 #include <debug.h>
 
-static int _execve(int kernel, const char *filename, const char *argv[], char *const envp[])
+static int _execve(int jmpuser, const char *filename, const char **argv, char const **envp)
 {
-	(void) (envp);
-	
 	/* Read the file for reading */
 	struct file *file = vfs_open(filename, 0, 0);
 	if (file == 0) {
@@ -100,12 +98,12 @@ static int _execve(int kernel, const char *filename, const char *argv[], char *c
 	}
 }
 
-int execve_user(const char *filename, const char *argv[], char *const envp[])
-{
-	return _execve(0, filename, argv, envp);
-}
-
-int execve(const char *filename, const char * argv[], char *const envp[])
+int execve_user(const char *filename, const char **argv, char const **envp)
 {
 	return _execve(1, filename, argv, envp);
+}
+
+int execve(const char *filename, const char **argv, char const **envp)
+{
+	return _execve(0, filename, argv, envp);
 }
