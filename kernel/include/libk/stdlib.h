@@ -22,7 +22,8 @@ int abs(int);										// returns absolute value
 long int labs(long int);
 
 int rand(void);										// returns pseudo random number from 0 to RAND_MAX
-void srand(unsigned int seed)						// this function seeds the random number generator
+void srand(unsigned int seed);						// this function seeds the random number generator
+int atoi(const char *str);
 
 //@todo: a lot of other functions should be implemented
 
