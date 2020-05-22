@@ -1,12 +1,14 @@
 #ifndef _STDLIB_H
 #define _STDLIB_H 1
 
-#include <sys/cdefs.h>
+//#include <sys/cdefs.h>
 #include <limits.h>
 
 // standard library
 
+#ifndef NULL
 #define NULL 			0
+#endif
 #define EXIT_FAILURE	0
 #define EXIT_SUCCESS	1
 #define RAND_MAX		UINT_MAX	// this is defined in limits.h	
