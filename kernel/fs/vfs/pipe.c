@@ -38,7 +38,6 @@ int pipe_close(vfs_node_t *node)
 ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer, size_t size)
 {
 	offset = node->offset;
-
 	if (!offset)
 	{
 		errno = EPIPE;
@@ -46,18 +45,15 @@ ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer, size_t si
 	}
 	
 	struct pipe_s *pipe = (struct pipe_s*) offset;
-
-	if (pipe->circbuf->virtual_begin == pipe->circbuf->virtual_end && pipe->flags & NON_BLOCK)
-		return 0;
 	
-	else
+	if (!(pipe->flags & NON_BLOCK))
 	{
 		/* waiting for a process to write to the pipe */
 		enable_interrupts();
 		circular_buffer_block(pipe->circbuf);
 		disable_interrupts();
 	}
-	
+
 	return circular_buffer_read((char*) buffer, size, pipe->circbuf);
 }
 
