@@ -449,14 +449,10 @@ void clear_page_directory(page_directory_t *dir)
  */
 static int map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace, page_directory_t *dir)
 {
-	int ret;
 	/* this loop uses startaddr as an iterator */
 	while (startaddr <= endaddr) {
 		/* alocates a frame for every page that is in this memory block */
-		ret = alloc_frame(get_page(startaddr, 1, dir), is_kernel, is_writable_from_userspace);
-		if (ret != 0) {
-			return ret;
-		}
+		alloc_frame(get_page(startaddr, 1, dir), is_kernel, is_writable_from_userspace);
 		startaddr += 0x1000;
 	}
 	return 0;
@@ -464,14 +460,10 @@ static int map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel,
 
 static int remap_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel, int is_writable_from_userspace, page_directory_t *dir)
 {
-	int ret;
 	/* this loop uses startaddr as an iterator */
 	while (startaddr <= endaddr) {
 		/* alocates a frame for every page that is in this memory block */
-		ret = realloc_frame(get_page(startaddr, 1, dir), is_kernel, is_writable_from_userspace);
-		if (ret != 0) {
-			return ret;
-		}
+		realloc_frame(get_page(startaddr, 1, dir), is_kernel, is_writable_from_userspace);
 		startaddr += 0x1000;
 	}
 	return 0;
