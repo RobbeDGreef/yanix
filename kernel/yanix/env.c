@@ -19,18 +19,27 @@ size_t env_size(char **vars)
 
 char *make_userstring(char *string)
 {
-	char *us = kmalloc_user(sizeof(string));
+	char *us = kmalloc_user(strlen(string) + 1);
 	memcpy(us, string, strlen(string));
+	return us;
+}
+#include <debug.h>
+char *make_uservar(char *string1, char *string2)
+{
+	char *us = kmalloc_user(strlen(string1) + strlen(string2) + 1);
+	memcpy(us, string1, strlen(string1));
+	memcpy(us + strlen(string1), string2, strlen(string2));
 	return us;
 }
 
 char **make_envvars()
 {
+	struct user *curuser = get_current_user();
 	char **env = kmalloc_user(sizeof(char*)*ENVIRONMENT_AMOUNT);
 	memset(env, 0, sizeof(char*) * ENVIRONMENT_AMOUNT);
-	env[0] = make_userstring("USER=root");
-	env[1] = make_userstring("PATH=/bin");
-	env[2] = make_userstring("HOME=/root");
+	env[0] = make_uservar("USER=", curuser->name);
+	env[1] = make_uservar("HOME=", curuser->home);
+	env[2] = make_userstring("PATH=/bin");
 	return env;
 }
 
