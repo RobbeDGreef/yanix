@@ -1,6 +1,8 @@
 #include <libk/string.h>
 #include <mm/heap.h>
 #include <stdarg.h>
+#include <yanix/env.h>
+#include <errno.h>
 
 /**
  * @todo  	Environment variables should not be a hardcoded amount  
@@ -60,11 +62,31 @@ char **make_args(int amount, ...)
 
 char **combine_args_env(char **argv, char **env)
 {
-	/* @todo: This is crap please find a better solution for arguments and environment vars */
-	char **new = kmalloc_user(sizeof(char*) * ENVIRONMENT_AMOUNT);
-	memset(new, 0, sizeof(char*) * ENVIRONMENT_AMOUNT);
-	memcpy(new, argv, env_size(argv) * sizeof(char*));
-	memcpy(new + env_size(argv)-1, env, env_size(env) * sizeof(char*));
+	int argvsize = env_size(argv);
+	if (argvsize > EXECVE_MAX_ARGS)
+	{
+		errno = E2BIG;
+		return NULL;
+	}
+
+	int envsize = env_size(env);
+	if (envsize > EXECVE_MAX_ENV)
+	{
+		errno = E2BIG;
+		return NULL;
+	}
+
+	int paramsize = argvsize + envsize;
+	char **new = kmalloc_user(paramsize * sizeof(char*));
+	memset(new, 0, paramsize * sizeof(char*));
+
+	int i;
+	for (i = 0; i < argvsize; i++)
+		new[i] = strdup_user(argv[i]);
+	i--;
+	
+	for (int j = 0; j < envsize; j++)
+		new[i++] = strdup_user(env[j]);
 
 	return new;
 }
