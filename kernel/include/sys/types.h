@@ -53,5 +53,6 @@ typedef unsigned short mode_t;
 typedef unsigned int flags_t;
 
 typedef uint32_t reg_t;
+typedef unsigned int uint;
 
 #endif
