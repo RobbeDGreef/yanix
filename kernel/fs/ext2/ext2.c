@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <const.h>
 #include <drivers/disk.h>
+#include <debug.h>
 
 #include <kernel.h>
 
@@ -92,6 +93,11 @@ static inline unsigned int ext2_block_size(ext2_superblock_t *superblock)
 ssize_t ext2_disk_read(unsigned long offset, void *buf, size_t size, filesystem_t *fs_info)
 {
 	return disk_read(offset + fs_info->partstart, buf, size, fs_info->disk_info);
+}
+
+ssize_t ext2_disk_write(unsigned long offset, void *buf, size_t size, filesystem_t *fs_info)
+{
+	return disk_write(offset + fs_info->partstart, buf, size, fs_info->disk_info);
 }
 
 /**
@@ -365,7 +371,6 @@ unsigned int _ext2_get_inode_data_offset(ext2_inode_t *inode, unsigned int  bloc
  */
 unsigned int _ext2_read_inode_block(ext2_inode_t *inode, unsigned int block_to_read, void *buf, filesystem_t *fs_info)
 {
-
 	unsigned int data_offset = _ext2_get_inode_data_offset(inode, block_to_read, fs_info);
 	if (data_offset == 0)
 	{
@@ -377,9 +382,22 @@ unsigned int _ext2_read_inode_block(ext2_inode_t *inode, unsigned int block_to_r
 	return ext2_disk_read(data_offset, buf, fs_info->block_size, fs_info);
 }
 
+unsigned int _ext2_write_inode_block(ext2_inode_t *inode, unsigned int block_to_read, void *buf, filesystem_t *fs_info)
+{
+	unsigned int data_offset = _ext2_get_inode_data_offset(inode, block_to_read, fs_info);
+	if (data_offset == 0)
+	{
+		/* I don't know any better errno value for this */
+		errno = EFBIG;
+		return 0;
+	}
+
+	return ext2_disk_write(data_offset, buf, fs_info->block_size, fs_info);
+}
+
 ssize_t _ext2_write_block(unsigned int block, void *buf, filesystem_t *fs_info)
 {
-	return disk_write(block * fs_info->block_size, buf, fs_info->block_size, fs_info->disk_info);
+	return ext2_disk_write(block * fs_info->block_size, buf, fs_info->block_size, fs_info);
 }
 
 /**
@@ -393,7 +411,7 @@ ssize_t _ext2_write_block(unsigned int block, void *buf, filesystem_t *fs_info)
  */
 ssize_t _ext2_write_inode(ext2_inode_t *inode_ref, ino_t inode, filesystem_t *fs_info)
 {
-	return disk_write(_ext2_get_inode_offset(inode, fs_info), inode_ref, _ext2_get_inode_size(fs_info), fs_info->disk_info);
+	return ext2_disk_write(_ext2_get_inode_offset(inode, fs_info), inode_ref, _ext2_get_inode_size(fs_info), fs_info);
 }
 
 
@@ -462,11 +480,22 @@ ssize_t ext2_write_file(ino_t inode, unsigned int offset, const void *buf, size_
 	return ret;
 }
 
+int ext2_update_blkcnt(ext2_inode_t *inode_ref, int inode, int newcount,
+					  filesystem_t *fs_info)
+{
+	inode_ref->disk_sectors = newcount;
+	return _ext2_write_inode(inode_ref, inode, fs_info);
 }
 
-ssize_t ext2_vfs_read_from_file(vfs_node_t *vfs_node, unsigned int offset, void *buf, size_t count)
+int ext2_update_node(vfs_node_t *new)
 {
-	return ext2_read_from_file(vfs_node->offset, offset, buf, count, vfs_node->fs_info);
+	ext2_inode_t *inode_ref = _ext2_get_inode_ref(new->offset, new->fs_info);
+	
+	if (!inode_ref)
+		return -1;
+
+	inode_ref->size = new->filelength;
+	return _ext2_write_inode(inode_ref, new->offset, new->fs_info);
 }
 
 /**
@@ -724,7 +753,7 @@ ino_t _ext2_alloc_inode(filesystem_t *fs_info)
 		{
 			if (inode_bitmap[i] != 0xFFFFFFFF)
 			{
-				/* Empty block spotted */
+				/* Empty inode spotted */
 				for (size_t j = 0; j < 32; j++)
 				{
 					if (getbit(inode_bitmap[i], j) == 0)
@@ -736,14 +765,15 @@ ino_t _ext2_alloc_inode(filesystem_t *fs_info)
 						/* Write the found block back to the block bitmap */
 						disk_write(block_bitmap_location, inode_bitmap, fs_info->block_size, fs_info->disk_info);
 
-						goto block_found;
+						/* Jump out of loops */
+						goto inode_found;
 					}
 				}
 			}
 		}
 	}
 
-block_found:
+inode_found:
 
 	/* Cleanup */
 	kfree(inode_bitmap);
@@ -769,8 +799,10 @@ int ext2_add_dir(uint32_t parent_inode, uint32_t inode, char *name, uint16_t typ
 
 
 
-ino_t _ext2_create_inode(ino_t parent_inode, char *name, uint16_t type, uint16_t permissions, uint16_t uid, 
-								 uint16_t gid, uint16_t size, uint16_t flags, void *buf, filesystem_t *fs_info)
+ino_t _ext2_create_inode(ino_t parent_inode, char *name, uint16_t type, 
+						 uint16_t permissions, uint16_t uid, uint16_t gid,
+						 uint16_t size, uint16_t flags, void *buf,
+						 filesystem_t *fs_info)
 {
 	/* First allocate a new inode structure */
 	ino_t new_inode = _ext2_alloc_inode(fs_info);
@@ -828,6 +860,7 @@ ino_t _ext2_create_inode(ino_t parent_inode, char *name, uint16_t type, uint16_t
 }
 
 
+
 /**
  * @brief      Creates a inode in the system
  *
@@ -837,7 +870,7 @@ ino_t _ext2_create_inode(ino_t parent_inode, char *name, uint16_t type, uint16_t
  *
  * @return     Offset (inode index)
  */
-offset_t ext2_create_node_vfs(vfs_node_t *node, char *name, uint16_t flags)
+int ext2_create_node(vfs_node_t *node, char *name, flags_t flags)
 {
 	return _ext2_create_inode(node->parent->offset, name, _ext2_vfs_type_to_inode_type((unsigned char) node->type), node->permissions,
 							  node->uid, node->gid, 0, flags, 0, node->fs_info);
@@ -879,16 +912,16 @@ vfs_node_t *ext2_vfs_entry(uint32_t inode, char *name, uint32_t id, filesystem_t
 	node->gid 			= inode_ref->gid;
 	node->id  			= id;
 	node->offset 		= inode;
-	node->filelength 	= inode_ref->size ;
+	node->filelength 	= inode_ref->size;
 	node->fs_info 		= fs_info;
 	node->open 			= 0;
 	node->close 		= 0;
-	node->read 			= &ext2_vfs_read_from_file;
+	node->read 			= 0;
 	node->write 		= 0;
-	node->creat 		= &ext2_create_node_vfs;
-	node->opendir 		= &ext2_vfs_open_dir_stream;
-	node->closedir 		= &ext2_close_dir_stream;
-	node->readdir 		= &ext2_read_dir;
+	node->creat 		= 0;
+	node->opendir 		= 0;
+	node->closedir 		= 0;
+	node->readdir 		= 0;
 
 	/* Cleanup */	
 	kfree(inode_ref);
@@ -925,8 +958,10 @@ filesystem_t *init_ext2_filesystem(char *name, unsigned int ext2_start, disk_t *
 	ret->disk_info = disk_info;
 	ret->start = EXT2_ROOT_INODE;
 	ret->partstart = ext2_start;
-	ret->file_read = &ext2_read_from_file;
-	ret->file_write = 0;
+	ret->block_read = &ext2_read_file;
+	ret->block_write = &ext2_write_file;
+	ret->create_node = &ext2_create_node;
+	ret->update_node = &ext2_update_node;
 	ret->dir_open = &ext2_open_dir_stream;
 	ret->dir_close = &ext2_close_dir_stream;
 	ret->dir_read = &ext2_read_dir;
