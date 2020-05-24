@@ -27,8 +27,13 @@ GDB = gdb
 NASM = nasm
 QEMU = qemu-system-x86_64
 QEMU_DEBUG_FLAGS = -d guest_errors,cpu_reset
-QEMU_FLAGS = $(QEMU_DEBUG_FLAGS) -m 512M -device isa-debug-exit,iobase=0xf4,iosize=0x04 -netdev user,id=u1,hostfwd=tcp::5555-:5454 -device rtl8139,netdev=u1
-QEMU_FLAGS += -object filter-dump,id=f1,netdev=u1,file=networkdump.dat -serial pipe:/serial_output.out -no-reboot
+QEMU_FLAGS = $(QEMU_DEBUG_FLAGS) -m 512M 
+QEMU_FLAGS += -device isa-debug-exit,iobase=0xf4,iosize=0x04 
+QEMU_FLAGS += -netdev user,id=u1,hostfwd=tcp::5555-:5454 -device rtl8139,netdev=u1
+QEMU_FLAGS += -object filter-dump,id=f1,netdev=u1,file=networkdump.dat 
+QEMU_FLAGS += -serial pipe:/serial_output.out 
+QEMU_FLAGS += -no-reboot #-enable-kvm
+# Kvm actually slow the os down on some parts (like the ata driver)
 
 all:
 	rm -rf kernel.bin kernel.elf
@@ -75,9 +80,6 @@ unmount_disk:
 
 	losetup -d $(LOOPD_ROOTFS)
 	losetup -d $(LOOPD_DISK)
-
-	# just to be sure
-	umount maindisk.iso
 
 backup:
 	make clean
