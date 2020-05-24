@@ -543,8 +543,6 @@ int vfs_close_fd(int fd)
 	
 	else if (node->close != 0)
 		node->close(node);
-
-	kfree(node);
 	
 	return close_filedescriptor(fd);
 }
