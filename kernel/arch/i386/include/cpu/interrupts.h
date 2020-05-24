@@ -3,5 +3,6 @@
 
 void enable_interrupts();
 void disable_interrupts();
+void end_of_interrupt();
 
 #endif /* ARCH_I386_INTERRUPTS_H */
