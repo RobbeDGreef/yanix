@@ -176,128 +176,109 @@ static int _get_type(int mode)
 	}
 }
 
+static vfs_node_t *_find_dir_path(const char *nodepath)
+{
+	char *path = kmalloc(strlen(nodepath) + 1);
+	memcpy(path, nodepath, strlen(nodepath) + 1);
+
+	/* Strip off trailing / */
+	if (path[strlen(path) - 1] == '/')
+		path[strlen(path) - 1] = '\0';
+
+	char *cutoff = strchr_r(path, '/');
+	*cutoff = '\0';
+
+	vfs_node_t *dir = vfs_find_path(path);
+	kfree(path);
+
+	return dir;
+}
+
 static vfs_node_t *_create_node(const char *nodepath, int flags, mode_t mode)
 {
-	//@todo: see creat(); (we need to take into account flags parameter)
+	/* @todo: see creat(); (we need to take into account flags parameter) */
 	(void) (flags);
 
-	char *path = (char*) kmalloc(sizeof(char) * (strlen(nodepath)+1));
-	memcpy(path, nodepath, sizeof(char) * (strlen(nodepath)+1));
+	printk("Trying to create: %s\n", nodepath);
 
-	/* if the path ends on '/' snip it of */
-	if (path[strlen(path)-1] == '/')
-		path[strlen(path)-1] = '\0';
-	
+	vfs_node_t *dir = _find_dir_path(nodepath);
+	if (dir == NULL)
+		return NULL;
 
-	vfs_node_t *dir = 0;
-	// snip of path at last '/' in other words get directory of node
-	for (int i = strlen(path); i >= 0; i--) {
-		// if the path ends on / and this is not the first char in the path snip it of 
-		if (path[i] == '/') {
-			if (i == 0) {
-				path[i+1] = '\0';
-			} else {
-				path[i] = '\0';
-			}
-
-			// dir path created, now try to find the directory
-			dir = vfs_find_path(path);
-
-			// otherwise continue
-			break;
-		}
-	}
-
-	// if directory doesn't exist return with error
-	if (dir == 0) {
-		errno = ENOENT;
-		return 0;
-	}
-
-	// created new node in memory
-	vfs_node_t *node = (vfs_node_t*) kmalloc(sizeof(vfs_node_t));
+	vfs_node_t *node = kmalloc(sizeof(vfs_node_t));
 	memset(node, 0, sizeof(vfs_node_t));
-
-	// set all the values
 
 	node->type = _get_type(mode);
 	// @todo: permissions, uid, gid
 	node->id = g_nodecount++;
 	node->fs_info = dir->fs_info;
 	
-
-	if (node->type == VFS_FILE || node->type == VFS_DIRECTORY)
-	{
-		node->open = dir->open;
-		node->close = dir->close;
-		node->read = dir->read;
-		node->write = dir->write;
-		node->creat = dir->creat;
-		node->opendir = dir->opendir;
-		node->closedir = dir->closedir;
-		node->readdir = dir->readdir;
-	}
-	
 	/* Connect the node into the directory */
 	node->parent = dir;
+
 	vfs_node_t *tmp = dir->dirlist;
-	
-	while (tmp->nextnode != 0)
+	while (tmp->nextnode)
 		tmp = tmp->nextnode;
 	
 	tmp->nextnode = node;
-	kfree(path);
-
 	return node;
 }
 
 vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 {
-	/* find node */
 	vfs_node_t *node = vfs_find_path(path);
-	int node_already_exists = 1;
+	int node_created = 0;
 
 	/* if node was not found check if O_CREAT flag is set */
-	if (node == 0 && (flags & O_CREAT) != 0)
+	if (!node && flags & O_CREAT)
 	{
 		/*create the node */
 		node = _create_node(path, flags, mode);
-		node_already_exists = 0;
+		node_created = 1;
 
-		// if node was not created return with error
-		if (node == 0)
-			return 0;
+		if (!node)
+			return NULL;
+
+		printk("node created\n");
 		
-		if (node->creat != 0)
+		if (node->creat || (node->fs_info && node->fs_info->create_node))
 		{
 			int i;
-			for (i = strlen(path); i >= 0; i--) {
-				if (path[i] == '/' && (unsigned int) i != strlen(path)){
+			for (i = strlen(path); i >= 0; --i)
+			{
+				if (path[i] == '/' && (unsigned) i != strlen(path))
 					break;
-				}
 			}
-			char *newpath = (char*) kmalloc(sizeof(char) * (strlen(path)-(unsigned int)i));
-			memcpy(newpath, &path[i+1], strlen(path)-i);
-			if (newpath[strlen(newpath)] == '/') {
+
+			char *newpath = kmalloc(strlen(path) - i);
+			memcpy(newpath, path + i + 1, strlen(path) - i);
+
+			if (newpath[strlen(newpath)] == '/')
 				newpath[strlen(newpath)] = '\0';
+			
+			int ret;
+			if (node->creat)
+				ret = node->offset = node->creat(node, newpath, flags);
+			else
+				ret = fs_creat(node, newpath, flags);
+
+			if (ret == -1)
+			{
+				kfree(node);
+				node = NULL;
 			}
-			node->offset = node->creat(node, newpath, mode);
+
 			kfree(newpath);
 		}
 	}
-	else if (node == 0)
+	else if (!node)
 	{
-		return 0;
-	} 
-
-	if (node->open != 0) 
-	{
-		if (node->open(node, node_already_exists, flags, mode) == -1) 
-		{
-
-			return 0;
-		}
+		printk("Not found %s\n", path);
+		return NULL;
 	}
+ 
+	if (node->open && node->open(node, !node_created, flags, mode) == -1) 
+		return NULL;
 
 	return node;
 }
