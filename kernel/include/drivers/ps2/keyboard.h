@@ -8,7 +8,7 @@ typedef void (*keyhook_fpointer)(uint8_t);
 /**
  * @brief      Initialize keyboard function
  */
-int init_keyboard();
+int init_ps2_keyboard();
 
 /**
  * @brief      Registers a keyboard hook
