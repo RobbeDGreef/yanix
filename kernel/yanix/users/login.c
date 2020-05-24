@@ -28,6 +28,6 @@ int login()
 		printk("Incorrect, please try again\n");
 	}
 
-	printk("welcome\n");
+	printk("Welcome %s\n", get_current_user()->name);
 	return 1;
 }
