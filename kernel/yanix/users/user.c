@@ -21,16 +21,19 @@ int evalpasswd(char *given, char *correct)
 int user_login(char *name, char *passwd)
 {
 	char *filebuf = kmalloc(BUFSIZ);
-	char line[LOGIN_LEN];
+	char *line = kmalloc(LOGIN_LEN);
 	int namelen = strlen(name);
 
 	struct file *fp = vfs_open(USERFILE_LOCATION, 0, 0);
 	if (!fp)
+	{
+		kfree(filebuf);
+		kfree(line);
 		return -1;
+	}
 
 	vfs_read_fd(fp->filedescriptor, filebuf, BUFSIZ);
 
-	
 	int seek = 0;
 	int ret = 0;
 	while ((ret = readline(filebuf + seek, BUFSIZ - seek, line, LOGIN_LEN)) != EOF)
@@ -41,6 +44,9 @@ int user_login(char *name, char *passwd)
 			if (evalpasswd(passwd, buf + namelen+1))
 			{
 				errno = EACCES;
+				kfree(filebuf);
+				kfree(line);
+				vfs_close(fp);
 				return -1;
 			}
 
@@ -59,12 +65,19 @@ int user_login(char *name, char *passwd)
 			g_current_user->home = strdup_s(buf, strchr(buf, ':') - buf);
 			buf = strchr(buf, ':') + 1;
 			g_current_user->shell = strdup(buf);
+			
+			kfree(filebuf);
+			kfree(line);
+			vfs_close(fp);
 			return 0;
 		}
 		
 		seek += ret;
 	}
-
+	
+	kfree(filebuf);
+	kfree(line);
+	vfs_close(fp);
 	return -1;
 }
 
