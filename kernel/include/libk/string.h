@@ -140,5 +140,6 @@ char *strdup(const char *str);
 char *strchr(const char *str, char c);
 char *strdup_s(const char *mem, int len);
 char *strchr_r(const char *str, char c);
+int strcpy_s(char *dest, const char *str, int max);
 
 #endif
