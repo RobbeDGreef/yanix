@@ -129,4 +129,6 @@ void *sbrk(intptr_t incr);
  */
 void kill_proc(task_t *task);
 
+int task_wait(int *status);
+
 #endif // TASKING_H_

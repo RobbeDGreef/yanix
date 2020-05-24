@@ -154,3 +154,18 @@ int init_tasking()
 	init_scheduler(mainloop);
 	return 0;
 }
+
+int task_wait(int *status)
+{
+    if (get_current_task()->childamount)
+    {
+        *status = 0;
+        task_block(getpid());
+        return 0;
+    }
+    else
+   	{
+   		errno = ECHILD;
+   		return -1;
+   	}
+}

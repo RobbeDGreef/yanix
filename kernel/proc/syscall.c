@@ -72,16 +72,13 @@ int unlink(char *name)
     return -1;
 }
 
-int wait(int *status)
+int sys_wait(int *status)
 {
-    if (get_current_task()->childamount)
-    {
-        *status = 0;
-        task_block(getpid());
+    if (!task_wait(status))
         return 0;
-    }
+
     else
-        return -ECHILD;
+        return -errno;
 }
 
 int sys_lseek(int fd, int offset, int mode)
