@@ -35,5 +35,6 @@ ssize_t circular_buffer_write_index(char *buffer, size_t size, unsigned long ind
 ssize_t circular_buffer_write(char *buffer, size_t size, struct circular_buffer_s *circbuf);
 void circular_buffer_block(struct circular_buffer_s *circbuf);
 void circbuf_buffer_flush(struct circular_buffer_s *circbuf);
+int circular_buffer_remove(int location, struct circular_buffer_s *circbuf);
 
 #endif // CIRC_BUF

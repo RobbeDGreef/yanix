@@ -164,3 +164,29 @@ void circbuf_buffer_flush(struct circular_buffer_s *circbuf)
 	circbuf->virtual_begin = circbuf->virtual_end;
 	circbuf->lock = 0;
 }
+
+int circular_buffer_remove(int location, struct circular_buffer_s *circbuf)
+{
+	if (!(circbuf->virtual_end - circbuf->virtual_begin))
+		return -1;
+	
+	if (circbuf->flags & CIRCULAR_BUFFER_OPTIMIZE_USHORTINT)
+	{	
+		uint16_t base = (uint16_t) circbuf->virtual_end - location - 1;
+		/* shift the bytes */
+		for (int i = 0; i < location - 1; i++)
+		{
+			circbuf->buffer_start[base + i] = circbuf->buffer_start[base + i + 1];
+		}
+		
+		circbuf->buffer_start[circbuf->virtual_end] = '\0';
+		circbuf->virtual_end--;
+		return 0;
+	}
+	else
+	{
+		// @todo: other implmementations should be supported aswell
+		errno = ENOSYS;
+		return -1;
+	}
+}
