@@ -200,6 +200,12 @@ ssize_t sys_write(int fd, const void *buf, size_t amount)
         debug_printk("Error, stderr lock for newlib bug called, write did not go through\n");
         return 0;
     }
+
+    int ret;
+    if ((ret = vfs_write_fd(fd, buf, amount)) == -1)
+        return -errno;
+
+    return ret;
 }
 
 int sys_close(int fd)
@@ -208,13 +214,17 @@ int sys_close(int fd)
     if (fd < 3)
         return -1;
 
-    return vfs_close_fd(fd);
-    //return -1;
+    int ret;
+    if ((ret = vfs_close_fd(fd)) == -1)
+        return -errno;
+
+    return ret;
 }
 
 int sys_execve(const char *filename, const char **argv, char const **envp)
 {
-    return execve(filename, argv, envp);
+    execve(filename, argv, envp);
+    return -errno;
 }
 
 // @TODO: sbrk should be a lib func and not a syscall (should use a brk)
@@ -227,7 +237,7 @@ static const void *syscalls[] = {
     /* 4 */           &sys_write,       /* DONE */
     /* 5 */           &vfs_open_fd,     /* DONE */
     /* 6 */           &sys_close,       /* DONE */
-    /* 7 */           &wait,            /* NOT DONE */
+    /* 7 */           &sys_wait,        /* NOT DONE */
     /* 8 */           &vfs_creat,       /* DONE */
     /* 9 */           &link,            /* NOT DONE */
     /* 10 */          &unlink,          /* NOT DONE */
@@ -273,7 +283,7 @@ int init_syscalls()
 	arch_register_interrupt_handler(0x80, &syscall_handler);
     return 0;
 }
-
+#include <cpu/interrupts.h>
 /**
  * @brief      The syscall handler (reroutes the syscall to kernel functions)
  *
@@ -281,7 +291,7 @@ int init_syscalls()
  */
 static void syscall_handler(registers_t *regs)
 {
-    //printk(KERN_DEBUG "syscall: %i %i %i %i\n", regs->eax, regs->ebx, regs->ecx, regs->edx);
+    //debug_printk(KERN_DEBUG "syscall: %i '%i' '%i' '%i'\n", regs->eax, regs->ebx, regs->ecx, regs->edx);
     if (regs->eax >= NUMER_OF_SYSCALLS)
 		return;
 
@@ -291,6 +301,9 @@ static void syscall_handler(registers_t *regs)
         printk(KERN_WARNING "SYSCALL %i NOT IMPLEMENTED\n", regs->eax);
         return;
     }
+
+    end_of_interrupt();
+    enable_interrupts();
 
 	int ret;
 	asm volatile (" \
@@ -305,7 +318,7 @@ static void syscall_handler(registers_t *regs)
      	pop %%ebx; \
      	pop %%ebx; \
      	pop %%ebx; \
-   		" : "=a" (ret) : "r" (regs->edi), "r" (regs->esi), "r" (regs->edx), "r" (regs->ecx), "r" (regs->ebx), "r" (location));
+        " : "=a" (ret) : "r" (regs->edi), "r" (regs->esi), "r" (regs->edx), "r" (regs->ecx), "r" (regs->ebx), "r" (location));
    
    /* Return value is generally saved eax */
    regs->eax = ret;
