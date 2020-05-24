@@ -578,26 +578,6 @@ DIR *vfs_opendir(const char *filepath)
 	return _vfs_opendir(node);
 }
 
-
-/**
- * @brief      A wrong strcmp function
- * 
- * @todo       should create working strcmp function in libc
- * 
- * @param      a     
- * @param      b     
- *
- * @return     0 when equal
-**/
-int _strcmpI(char *a, char *b)
-{
-	if (strlen(a) == strlen(b)) {
-		return memcmp(a, b, strlen(a));
-	} else {
-		return -1;
-	}
-}
-
 /**
  * @brief      Function to find specific node by name in the vfs system
  *
@@ -644,8 +624,9 @@ vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
 
 	while (tmp)
 	{
-		if (_strcmpI(name, tmp->name) == 0)
-			return tmp; 
+		debug_printk("node: %x %x %c\n", tmp, tmp->name);
+		if (!strcmp(name, tmp->name))
+			return tmp;
 		tmp = tmp->nextnode;
 	}
 
@@ -844,7 +825,7 @@ void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, f
 				prevnode->nextnode = node;
 			}
 
-			if (node->type == VFS_DIRECTORY && (_strcmpI(dir->d_name, ".") != 0 && _strcmpI("..", dir->d_name) != 0)) {
+			if (node->type == VFS_DIRECTORY && (strcmp(dir->d_name, ".") && strcmp("..", dir->d_name))) {
 				/* Recursive function */
 				loop_over_filesystem(node->offset, 0, node, fs_info);
 			}
