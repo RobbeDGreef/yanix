@@ -196,3 +196,129 @@ void register_filesystem(char *name, int type, fs_read_file_fpointer readfile,
 	g_current_fs->fs_makenode = makenode;
 }
 
+ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
+{
+	char *buf = _buf;
+
+	ssize_t ret = 0;
+	unsigned int blocksize = node->fs_info->block_size;
+	
+	unsigned int blockiter = seek / blocksize; /* the startblock*/
+	
+	unsigned int s_rest = seek % blocksize;
+	unsigned int e_rest = (amount + s_rest) % blocksize;
+
+	int blkcnt = amount / blocksize;
+
+	if (s_rest)
+	{
+		char *tmp = kmalloc(blocksize);
+		node->fs_info->block_read(node->offset, blockiter++, tmp, 1, node->fs_info);
+
+		size_t size = blocksize - s_rest;
+		if (amount < size)
+		{
+			size = amount;
+			e_rest = 0;
+		}
+
+		memcpy(buf, tmp + s_rest, size);
+		ret += size;
+		buf += size;
+		kfree(tmp);
+		
+		if (blkcnt)
+			blkcnt--;
+	}
+	if (blkcnt)
+	{
+		int blks = node->fs_info->block_read(node->offset, blockiter, buf, blkcnt, 
+									   node->fs_info);
+		ret += blks * blocksize;
+		buf += blks * blocksize;
+		blockiter += blkcnt;
+
+		if (blks != blkcnt)
+			return ret;
+	}
+	if (e_rest)
+	{
+		char *tmp = kmalloc(blocksize);
+		node->fs_info->block_read(node->offset, blockiter, tmp, 1, node->fs_info);
+		memcpy(buf, tmp, e_rest);
+		kfree(tmp);
+		ret += e_rest;
+	}
+
+	return ret;
+}
+
+ssize_t fs_write(vfs_node_t *node, int seek, const void *_buf, size_t amount)
+{
+	const char *buf = _buf;
+
+	ssize_t ret = 0;
+	unsigned int blocksize = node->fs_info->block_size;
+
+	unsigned int blockiter = seek / blocksize;
+	unsigned int s_rest = seek % blocksize;
+	unsigned int e_rest = (amount + s_rest) % blocksize;
+	filesystem_t *fs_info = node->fs_info;
+
+	int blkcnt = amount / blocksize;
+
+	if (s_rest)
+	{
+		char *tmp = kmalloc(blocksize);
+		fs_info->block_read(node->offset, blockiter, tmp, 1, fs_info);
+		
+		size_t size = blocksize - s_rest;
+		if (amount < size)
+		{
+			e_rest = 0;
+			size = amount;
+		}
+
+		memcpy(tmp + s_rest, buf, size);
+		
+		fs_info->block_write(node->offset, blockiter++, tmp, 1, fs_info);
+		ret += size;
+		buf += size;
+		kfree(tmp);
+
+		if (blkcnt)
+			blkcnt--;
+	}
+	if (blkcnt)
+	{
+		int blks = fs_info->block_write(node->offset, blockiter, buf, blkcnt, fs_info);
+
+		blockiter += blks;
+		buf += blks * blocksize;
+		ret += blks * blocksize;
+
+		if (blks != blkcnt)
+			return ret;
+	}
+	if (e_rest)
+	{
+		char *tmp = kmalloc(blocksize);
+		fs_info->block_read(node->offset, blockiter, tmp, 1, fs_info);
+		memcpy(tmp, buf, e_rest);
+		
+		fs_info->block_write(node->offset, blockiter, tmp, 1, fs_info);
+		
+		kfree(tmp);
+		ret += e_rest;
+	}
+
+	node->filelength = ret + seek;
+
+	fs_info->update_node(node);
+	return ret;
+}
+
+int fs_creat(vfs_node_t *node, char *path, flags_t flags)
+{
+	return node->fs_info->create_node(node, path, flags);
+}
