@@ -731,9 +731,8 @@ vfs_node_t *vfs_find_path(const char *path)
 			}
 		}
 		else
-		{
 			buffer[bufferiter++] = path[i];
-		}
+		
 	}
 
 	errno = ENOENT;
