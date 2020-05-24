@@ -75,6 +75,7 @@ int main(int argc, char **argv)
 	{
 		while (optind < argc)
 			readfile(argv[optind++]);
+		return 0;
 	}
 
 	readback();
