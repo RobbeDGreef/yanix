@@ -375,3 +375,24 @@ char *strchr_r(const char *str, char c)
 
 	return NULL;
 }
+
+int strcpy_s(char *dest, const char *str, int max)
+{
+	int i = 0;
+
+	while (*str)
+	{
+		if (i == max-1)
+			return i;
+
+		*dest = *str;
+
+		dest++;
+		str++;
+		i++;
+	}
+
+	*dest = '\0';
+
+	return i;
+}
