@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <mm/paging.h>
 #include <yanix/ds/fd_vector.h>
+#include <signal.h>
 
 #include <stddef.h>
 #include <stdint.h>

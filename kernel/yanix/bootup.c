@@ -17,6 +17,7 @@
 #include <yanix/tty_dev.h>					/* TTY functionality 			(kernel init) */
 #include <cpu/interrupts.h>					/* interrupt enable/disable 	(kernel init) */
 #include <yanix/user.h>						/* User system 					(init) */
+#include <drivers/keyboard.h>
 
 #include <kernel.h>
 

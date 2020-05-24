@@ -318,7 +318,7 @@ ssize_t tty_write(tty_dev_t *tty_dev, const char *text_to_write, size_t bytes_to
 	{
 		/* So we loop over every byte this means we need to filter out escape characters here */
 		char character = text_to_write[i];
-		if ((character == '\n') | (character == '\r')) {
+		if (character == '\n' || character == '\r') {
 			/* newline / carriage return */
 			cur_col = 0;
 			cur_row++;
