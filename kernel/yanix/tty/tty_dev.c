@@ -259,6 +259,13 @@ static void parse_escape_sequence(struct escape_seq *es, char *seq)
 	}
 }
 
+static void tty_clear_cell(tty_dev_t *tty_dev, int col, int row)
+{
+	int l = (row * tty_control_struct->col_max + col) * 2;
+	tty_dev->buffer[l+1] = ' ';
+	tty_update_display(tty_dev, col, row, col+1, row);
+}
+
 /**
  * @brief      This function will write bytes to a tty device buffer
  *
@@ -335,6 +342,13 @@ ssize_t tty_write(tty_dev_t *tty_dev, const char *text_to_write, size_t bytes_to
 			startr = es.startr;
 			cur_col = es.curcol;
 			cur_row = es.currow;
+
+		} else if (character == 0x8) {
+			if (cur_col)
+			{
+				tty_clear_cell(tty_dev, cur_col - 1, cur_row);
+				cur_col--;
+			}
 
 		} else {
 			/* Regular character */

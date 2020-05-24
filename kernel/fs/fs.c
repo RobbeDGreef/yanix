@@ -123,26 +123,17 @@ int index;
 
 static ssize_t tty_stdinwrite(vfs_node_t *node, unsigned int offset, const void *buffer, size_t size)
 {
-	#if 0
-	char *buf = (char*) buffer;
-	for (unsigned int i = 0; i < size; i++)
+	/* @todo: we need to properly parse the stdin */
+	if (* (char*) buffer == 0x8)
 	{
-		if (buf[i] == 0x8)
-			stdinbuffer[--index] = '\0';
-		else
-			stdinbuffer[index++] = buf[i];
-
-		if (buf[i] == '\n' || index == BUFSIZ)
-		{
-			stdinbuffer[index] = '\0';
-			pipe_write(node, offset, stdinbuffer, index);
-
-			index = 0;
-		}
+		if (!pipe_remove(node, offset, 1))
+			tty_stdoutwrite(0, 0, buffer, size);
+		return 0;
 	}
-	#endif
+	
 	pipe_write(node, offset, buffer, size);
 	tty_stdoutwrite(0, 0, buffer, size);
+
 	return size;
 }
 
