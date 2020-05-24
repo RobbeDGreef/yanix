@@ -362,3 +362,16 @@ char *strdup_s(const char *mem, int len)
 	new[len] = '\0';
 	return new;
 }
+
+char *strchr_r(const char *str, char c)
+{
+	int end = strlen(str);
+
+	for (int i = end; i >= 0; --i)
+	{
+		if (str[i] == c)
+			return (char *) str + i;
+	}
+
+	return NULL;
+}
