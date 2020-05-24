@@ -6,6 +6,7 @@
 #include <cpu/interrupts.h>
 #include <mm/heap.h>
 #include <libk/string.h>
+#include <errno.h>
 
 #include <debug.h>
 
@@ -109,21 +110,17 @@ pid_t fork()
 	create_task(new_task, parent_task->ring ? 0:1, 0);
 	add_task_to_queue(new_task);
 	
-	//printk(KERN_DEBUG "Going to spawn task %x %x\n", new_task->esp, new_task->directory);
 	arch_spawn_task(&new_task->esp, &new_task->directory);
-	NOTICE_POINT();
-	//printk(KERN_DEBUG "Spawned %x %x\n", new_task->esp, new_task->directory);
 
 	if (parent_task == get_current_task())
 	{
-		printk("Parent\n");
 		alloc_frame(get_page(new_task->kernel_stack - 0x1000, 1, new_task->directory), 1, 0); 
 		enable_interrupts();
 		return new_task->pid;
 	}
 	else
 	{
-		printk("Child\n");
+		//printk("Child\n");
 		return 0;
 	}
 }

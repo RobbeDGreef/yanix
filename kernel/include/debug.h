@@ -15,6 +15,7 @@
 #include <fs/vfs.h>
 #include <drivers/serial.h>
 #include <cpu/cpu.h>
+#include <core/timer.h>
 
 #define DEFAULT_STACKTRACE_DEPTH	8
 

@@ -19,9 +19,8 @@ static int _execve(int jmpuser, const char *filename, const char **argv, char co
 {
 	/* Read the file for reading */
 	struct file *file = vfs_open(filename, 0, 0);
-	if (file == 0) {
+	if (file == 0)
 		return -1;
-	}
 	
 	/* Allocate a buffer for the file contents */
 	void *buf = (void*) kmalloc(file->filesize);

@@ -180,7 +180,6 @@ int sys_munmap(void *addr, size_t length)
 
 pid_t sys_fork()
 {
-    printk("Fork has been called\n");
     return fork();
 }
 

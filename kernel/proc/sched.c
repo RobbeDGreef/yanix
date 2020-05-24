@@ -68,7 +68,6 @@ void add_to_list(struct task_list *list, task_t *task)
 
 	if (!tmp)
 	{
-		printk(KERN_DEBUG "set list instead of append\n");
 		set_list(list, task);
 		return;
 	}

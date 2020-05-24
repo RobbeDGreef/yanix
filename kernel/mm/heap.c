@@ -175,10 +175,7 @@ struct heap *is_addr_in_heap(offset_t addr)
 {
 	struct heap *tmp = heaplist;
 
-	if (!tmp)
-		return 0;
-
-	while (tmp != 0)
+	while (tmp)
 	{
 		if (addr > tmp->start && addr < tmp->start+tmp->maxsize)
 			return tmp;

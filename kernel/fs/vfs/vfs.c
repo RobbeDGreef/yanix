@@ -620,6 +620,7 @@ vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
 
 	#endif
 
+	debug_printk("finding: '%s'\n", name);
 	vfs_node_t *tmp = node->dirlist;
 
 	while (tmp)
