@@ -396,114 +396,71 @@ ssize_t _ext2_write_inode(ext2_inode_t *inode_ref, ino_t inode, filesystem_t *fs
 	return disk_write(_ext2_get_inode_offset(inode, fs_info), inode_ref, _ext2_get_inode_size(fs_info), fs_info->disk_info);
 }
 
-/**
- * @brief      Reads data from a file into a given buffer
- *
- * @param[in]  inode       The inode
- * @param      buf         The buffer
- * @param[in]  byte_count  The byte count
- * @param      fs_info     The file system information
- *
- * @return     The actual amount of bytes written.
- */
-ssize_t ext2_read_from_file(ino_t inode, unsigned int offset, void *buf, size_t byte_count, filesystem_t *fs_info)
-{
-	/* The return value, this will be the amount of bytes copied */
-	unsigned int ret = 0;
 
-	/* Calculate the amount of blocks and extra bytes needed to copy */
-	unsigned int block_count  = byte_count / fs_info->block_size;
-	unsigned int byte_rest 	  = byte_count % fs_info->block_size;
+ssize_t ext2_read_file(ino_t inode, unsigned int offset, void *buf, size_t block_count, filesystem_t *fs_info)
+{
+	unsigned int ret = 0;
+	char *buffer = (char*) buf;
 
 	/* Get a reference to the wanted inode */
 	ext2_inode_t *inode_ref = _ext2_get_inode_ref(inode, fs_info);
 
-	/* Error check */
-	if (inode_ref == 0)
-	{
+	if (!inode_ref)
 		return -1;
-	}
 
-	unsigned int startblock = offset / fs_info->block_size;
-	unsigned int start_rest = offset % fs_info->block_size;
-
-	if (start_rest)
-	{
-		void *tmp_buf = kmalloc(fs_info->block_size);
-
-		if (tmp_buf == 0)
-			return -1;
-
-		if (_ext2_read_inode_block(inode_ref, startblock, tmp_buf, fs_info) == 0)
-		{
-			printk(KERN_DEBUG "Error reading inode block\n");
-			return -1;
-		}
-
-		memcpy(buf, (void*) ((unsigned int) tmp_buf + offset), fs_info->block_size - start_rest);
-
-		kfree(tmp_buf);
-
-		ret += fs_info->block_size - start_rest;
-
-		startblock++;
-	}
+	unsigned int startblock = offset;
 
 	/**
 	 * loop over those blocks and copy them 
 	 */
-	for (size_t i = startblock; i < block_count+startblock; i ++)
+	for (size_t i = startblock; i < block_count+startblock; i++)
 	{
-		if (_ext2_read_inode_block(inode_ref, i, (void*) ((unsigned int) buf + ret) , fs_info) == 0)
+		if (_ext2_read_inode_block(inode_ref, i, buffer, fs_info) == 0)
 		{
 			/* Error occurred, we tried to read more blocks then there are */
-			printk("Error, tried to read block: %u addr: %08x errno: %i\n", i, (char*)buf + i * fs_info->block_size, errno);
+			debug_printk("Error, tried to read block: %u addr: %08x errno: %i\n", i, buffer, errno);
 
 			/* Cleanup */
 			kfree(inode_ref);
 
 			return ret;
 		}
+
 		/* Copied a block successfully so update our return value */
-		ret += fs_info->block_size;
-	}
-
-	/** 
-	 * If we have a byte rest we need to copy one more block 
-	 * but we have to make sure we don't overwrite the buffer
-	 */
-	if (byte_rest)
-	{
-		/* Create a temporally buffer */
-		void *tmp_buf = kmalloc(fs_info->block_size);
-			
-		if (tmp_buf == 0)
-		{
-			return -1;
-		}
-
-		/* Copy the data */
-		if (_ext2_read_inode_block(inode_ref, block_count, tmp_buf, fs_info) == 0)
-		{
-			printk(KERN_DEBUG "error reading inode block errno %i\n", errno);
-			return -1;
-		}
-
-		
-		/* Now copy the correct amount into the real buffer */
-		memcpy((void*) ((unsigned int) buf + ret), tmp_buf, byte_rest);
-
-		/* Cleanup */
-		kfree(tmp_buf);
-
-		/* Update written byte var */
-		ret += byte_rest;
+		buffer += fs_info->block_size;
+		ret++;
 	}
 
 	/* Cleanup */
 	kfree(inode_ref);
-
 	return ret;
+}
+
+ssize_t ext2_write_file(ino_t inode, unsigned int offset, const void *buf, size_t block_count, filesystem_t *fs_info)
+{
+	unsigned int ret = 0;
+	char *buffer = (char *) buf;
+
+	ext2_inode_t *inode_ref = _ext2_get_inode_ref(inode, fs_info);
+
+	if (!inode_ref)
+		return -1;
+
+	for (size_t i = offset; i < block_count + offset; i++)
+	{
+		if (!_ext2_write_inode_block(inode_ref, i, buffer, fs_info))
+		{
+			printk("Error trying to write\n");
+			kfree(inode_ref);
+			return ret;
+		}
+		buffer += fs_info->block_size;
+		ret++;
+	}
+
+	kfree(inode_ref);
+	return ret;
+}
 
 }
 
