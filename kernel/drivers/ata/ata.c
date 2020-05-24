@@ -470,6 +470,7 @@ ssize_t _atapio_write(ata_drive_t *drive, unsigned long lba, const void *buffer,
 		for (size_t i = 0; i < 256; i++)
 		{
 			port_word_out(drive->base + ATA_REG_DATA, buf[i]);
+			port_word_out(drive->base + ATA_REG_CMD, ATA_CMD_CACHE_FLUSH);
 		}
 
 		buf = (uint16_t*) (((unsigned int) buf) + 512);
