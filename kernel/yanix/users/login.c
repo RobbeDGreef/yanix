@@ -2,6 +2,7 @@
 #include <fs/vfs.h>
 #include <kernel.h>
 #include <libk/string.h>
+#include <proc/tasking.h>
 
 char *getline()
 {
@@ -27,6 +28,8 @@ int login()
 
 		printk("Incorrect, please try again\n");
 	}
+
+	get_current_task()->cwd = strdup(get_current_user()->home);
 
 	printk("Welcome %s\n", get_current_user()->name);
 	return 1;
