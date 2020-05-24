@@ -13,17 +13,27 @@ extern int errno;
  * just to have something without porting too much stuff
 */
 
-#define MAXARGS 16
+#define MAXARGS 32
+#define PATHLEN 256
 #define SIZE(x) (sizeof x / sizeof x[0])
 
 int 	g_running = 1;
 char 	g_buffer[BUFSIZ];
+char 	g_curpath[PATHLEN];
 char 	*g_args[MAXARGS];
 
 int builtin_exit(char *const *args)
 {
 	printf("Goodbye\n");
 	exit(0);
+}
+
+int changedir(char *const *args)
+{
+	if (!chdir(args[1]))
+		memcpy(g_curpath, args[1], strlen(args[1])+1);
+	else
+		printf("Error, unknown directory '%s'\n", args[1]);
 }
 
 typedef int (*builtin_fpointer) (char *const *args);
@@ -35,7 +45,8 @@ struct builtin_lookup
 
 const struct builtin_lookup builtins[] = 
 {
-	{"exit", &builtin_exit}
+	{"exit", &builtin_exit},
+	{"cd", &changedir}
 };
 
 int builtin(char *const *args)
@@ -118,7 +129,7 @@ void mainloop()
 	char **args = NULL;
 	while (1)
 	{
-		printf("yash > ");
+		printf("%s > ", g_curpath);
 		fflush(stdout);
 		fgets(g_buffer, BUFSIZ, stdin);
 		args = split_command(g_buffer);
@@ -130,6 +141,7 @@ void mainloop()
 
 int main()
 {
+	getcwd(g_curpath, PATHLEN);
 	printf("Hi :)\n");
 	mainloop();
 	return 0;
