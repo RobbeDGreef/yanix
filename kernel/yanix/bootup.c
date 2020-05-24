@@ -94,9 +94,12 @@ void bootsequence_after_paging()
 	ret = init_mouse();
 	message("Mouse initialized", !ret);
 
-	ret = init_keyboard();
+	ret = init_ps2_keyboard();
 	message("Keyboard initialized", !ret);
 	
+	ret = init_keyboard();
+	message("keyboard init", !ret);
+
 	enable_interrupts();
 	message("Enabled system interrupts", 0);
 
