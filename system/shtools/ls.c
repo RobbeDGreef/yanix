@@ -31,7 +31,14 @@ int main(int argc, char **argv)
 	else
 	{
 		char *buf = malloc(BUFSIZ);
-		lsdir(getcwd(buf, BUFSIZ));
+		
+		if (getcwd(buf, BUFSIZ))
+		{
+			free(buf);
+			return -1;
+		}
+
+		lsdir(buf);
 		free(buf);
 	}
 
