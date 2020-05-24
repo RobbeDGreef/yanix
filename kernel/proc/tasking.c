@@ -93,6 +93,7 @@ static task_t *create_task(task_t *new_task, int kernel_task, page_directory_t *
 
 	task_t *parent = (task_t*) get_current_task();
 	parent->childamount++;
+	new_task->cwd = strdup(parent->cwd);
 
 	return new_task;
 }
