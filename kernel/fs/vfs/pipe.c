@@ -50,6 +50,7 @@ ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer, size_t si
 	{
 		/* waiting for a process to write to the pipe */
 		enable_interrupts();
+		end_of_interrupt();
 		circular_buffer_block(pipe->circbuf);
 		disable_interrupts();
 	}
