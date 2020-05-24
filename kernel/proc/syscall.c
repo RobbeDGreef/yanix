@@ -12,6 +12,8 @@
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <debug.h>
+#include <mm/heap.h>
+#include <libk/string.h>
 
 static void syscall_handler(registers_t *regs);
 
@@ -129,12 +131,19 @@ int sys_getdents(int fd, struct dirent* dirp, int count)
 
 int sys_chdir(const char *path)
 {
-    (void) (path);
-    return -1;
+    if (vfs_find_path(path))
+    {
+        kfree(get_current_task()->cwd);
+        get_current_task()->cwd = strdup(path);
+
+        return 0;
+    }
+    return -ENOENT;
 }
 
-int sys_getcwd()
+int sys_getcwd(char *s, int max)
 {
+    strcpy_s(s, get_current_task()->cwd, max);
     return 0;
 }
 
@@ -227,6 +236,21 @@ int sys_execve(const char *filename, const char **argv, char const **envp)
     return -errno;
 }
 
+int sys_getwd(char *buf)
+{
+    return 0;
+}
+
+int sys_chown(char *pathname, uid_t owner, gid_t group)
+{
+    return 0;
+}
+
+int sys_sysinfo()
+{
+    return 0;
+}
+
 // @TODO: sbrk should be a lib func and not a syscall (should use a brk)
 
 static const void *syscalls[] = {
@@ -257,12 +281,12 @@ static const void *syscalls[] = {
     /* 24 */          &sys_pipe,        /* NOT DONE */
     /* 25 */          &sys_mkdir,       /* NOT DONE */
     /* 26 */          &sys_fcntl,       /* NOT DONE */
-    /* 27 */          0,
+    /* 27 */          &sys_getwd,       /* NOT DONE */
     /* 28 */          &sys_fstat,       /* DONE */
     /* 29 */          &sys_mmap,        /* NOT DONE */
     /* 30 */          &sys_munmap,      /* NOT DONE */
-    /* 31 */          0,
-    /* 32 */          0,
+    /* 31 */          &sys_chown,       /* NOT DONE */
+    /* 32 */          &sys_sysinfo,     /* NOT DONE */
     /* 33 */          0,
     /* 34 */          0,
     /* 35 */          0,
