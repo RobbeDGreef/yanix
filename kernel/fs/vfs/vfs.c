@@ -16,24 +16,22 @@
 #include <libk/math.h>
 #include <debug.h>
 
-vfs_node_t	   *g_vfs_root;
-unsigned long 	g_nodecount;
+vfs_node_t	   *g_vfs_root  = NULL;
+unsigned long 	g_nodecount = 0;
 
-/**
- * @brief      Reads from a vfs_node
- *
- * @param      node    The node to read from
- * @param      buf     The buffer to write to
- * @param[in]  amount  The amount of bytes to read
- *
- * @return     amount of bytes read
- */
 static ssize_t _vfs_read(struct file_descriptor* fd_struct, void *buf, size_t amount)
 {
 	ssize_t ret = 0;
-	if (fd_struct->node->read != 0)
+	vfs_node_t *node = fd_struct->node;
+	if (node->read != 0)
 	{
-		ret = fd_struct->node->read(fd_struct->node, fd_struct->seek, buf, amount);	
+		ret = node->read(node, fd_struct->seek, buf, amount);
+		fd_struct->seek += ret;
+		return ret;
+	}
+	else if (node->fs_info->block_read)
+	{
+		ret = fs_read(node, fd_struct->seek, buf, amount);
 		fd_struct->seek += ret;
 		return ret;
 	}
@@ -102,9 +100,20 @@ ssize_t vfs_read(struct file *file, void *buf, size_t amount)
  */
 static ssize_t _vfs_write(struct file_descriptor *fd_struct, const void *buf, size_t amount)
 {
-	if (fd_struct->node && fd_struct->node->write)
-		return fd_struct->node->write(fd_struct->node, fd_struct->seek, buf, amount);
-	
+	ssize_t ret = 0;
+	vfs_node_t *node = fd_struct->node;
+	if (node->write != 0)
+	{
+		ret = node->write(node, fd_struct->seek, buf, amount);
+		fd_struct->seek += ret;
+		return ret;
+	}
+	else if (node->fs_info->block_write)
+	{
+		ret = fs_write(node, fd_struct->seek, buf, amount);
+		fd_struct->seek += ret;
+		return ret;
+	}
 	else
 	{
 		errno = EUNATCH;
@@ -358,11 +367,19 @@ off_t vfs_lseek(int fd, off_t offset, int whence)
 
 DIR *_vfs_opendir(vfs_node_t *node)
 {
-	if (node == 0 || node->opendir == 0)
+	if (!node)
 		return 0;
 
+	if (node->opendir)
+	{
+		return node->opendir(node);
+	}
+	else if (node->fs_info && node->fs_info->dir_open)
+	{
+		return node->fs_info->dir_open(node->offset, node->fs_info);
+	}
 
-	return node->opendir(node);
+	return 0;
 }
  #include <libk/string.h>
 /**

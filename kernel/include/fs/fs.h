@@ -23,6 +23,9 @@ typedef ssize_t 		(*fs_write_file_fpointer) (ino_t inode, unsigned int offset, c
 typedef DIR*   			(*fs_open_dir_fpointer)   (ino_t inode, filesystem_t *fs_info);
 typedef int 		    (*fs_close_dir_fpointer)  (DIR* dirp);
 typedef struct dirent  *(*fs_read_dir_fpointer)   (DIR* dirp);
+typedef int 		    (*fs_update_fpointer)	  (vfs_node_t *newinfo);
+
+typedef int (*fs_creat_fpointer) (vfs_node_t *node, char *name, flags_t flags);
 
 typedef vfs_node_t 	*(*fs_make_node) (offset_t offset, char *name, id_t id, filesystem_t *fs_info);
 
@@ -38,12 +41,15 @@ struct filesystem_s {
 	offset_t 			*blockgroup_list; 		// linked list
 	offset_t 			start;					// depending on implementation this could be an inode, a directory ...
 	offset_t 			partstart;
-	fs_read_file_fpointer 	file_read;
-	fs_write_file_fpointer 	file_write;
+	fs_read_file_fpointer 	block_read;
+	fs_write_file_fpointer 	block_write;
+	fs_creat_fpointer 		create_node;
+	fs_update_fpointer 		update_node;
 	fs_open_dir_fpointer 	dir_open;
 	fs_close_dir_fpointer 	dir_close;
 	fs_read_dir_fpointer 	dir_read;
 	fs_make_node 			fs_makenode;
+
 };
 
 extern filesystem_t *g_current_fs;
@@ -63,7 +69,11 @@ extern filesystem_t *g_current_fs;
  * @param[in]  makenode   The make vfs node function pointer
  */
 void register_filesystem(char *name, int type, fs_read_file_fpointer readfile,
-						 fs_write_file_fpointer writefile, fs_open_dir_fpointer opendir, fs_read_dir_fpointer readdir, fs_make_node makenode);
+						 fs_write_file_fpointer writefile, 
+						 fs_open_dir_fpointer opendir,
+						 fs_read_dir_fpointer readdir,
+						 fs_make_node makenode, fs_creat_fpointer creat,
+						 fs_update_fpointer update);
 
 
 int init_char_specials();
@@ -71,4 +81,6 @@ int getdents(int fd, struct dirent *dir, int count);
 
 ssize_t fs_read(vfs_node_t *node, int seek, void *buf, size_t amount);
 ssize_t fs_write(vfs_node_t *node, int seek, const void *buf, size_t amount);
+int fs_creat(vfs_node_t *node, char *path, flags_t flags);
+
 #endif /* drivers/fs/fs.h */

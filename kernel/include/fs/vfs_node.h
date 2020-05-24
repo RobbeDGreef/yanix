@@ -57,6 +57,7 @@ struct vfs_node_s {
 										// depending on implementation) basically any way to refrence a file
 	nlink_t 			nlink;			/* Number of hard links */
 
+	/* These pointers are normally only used to override fs functions */
 	open_fpointer		open;			// open file descriptor
 	close_fpointer		close;			// close file descriptor
 
@@ -67,6 +68,7 @@ struct vfs_node_s {
 	open_dir_fpointer 	opendir;
 	close_dir_fpointer 	closedir;
 	read_dir_fpointer	readdir;		// returns amount of files
+
 	vfs_node_t			*ptr;			// for mountpoints and symlinks
 	vfs_node_t 			*nextnode;		// linked list next node
 	vfs_node_t 			*dirlist; 		// if this is a directory this will point to a linked list of vfs_node_t contents of this dir

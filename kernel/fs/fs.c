@@ -107,7 +107,7 @@ static ssize_t tty_stderrwrite(vfs_node_t *node, unsigned int offset, const void
 {
 	(void) (node);
 	(void) (offset);
-
+	debug_printk("size: %i\n", size, buffer);
 	for (unsigned int i = 0; i < size; i++)
 		serial_put(((char*)buffer)[i]);
 
@@ -184,15 +184,20 @@ int init_char_specials()
  * @param[in]  makenode   The make vfs node function pointer
  */
 void register_filesystem(char *name, int type, fs_read_file_fpointer readfile,
-						 fs_write_file_fpointer writefile, fs_open_dir_fpointer opendir, fs_read_dir_fpointer readdir, fs_make_node makenode)
+						 fs_write_file_fpointer writefile, 
+						 fs_open_dir_fpointer opendir, 
+						 fs_read_dir_fpointer readdir, fs_make_node makenode,
+						 fs_creat_fpointer creat, fs_update_fpointer update)
 {
 	g_current_fs->name = name;
 	g_current_fs->type = type;
 
-	g_current_fs->file_read   = readfile;
-	g_current_fs->file_write  = writefile;
+	g_current_fs->block_read  = readfile;
+	g_current_fs->block_write = writefile;
 	g_current_fs->dir_open    = opendir;
 	g_current_fs->dir_read    = readdir;
+	g_current_fs->create_node = creat;
+	g_current_fs->update_node = update;
 	g_current_fs->fs_makenode = makenode;
 }
 
