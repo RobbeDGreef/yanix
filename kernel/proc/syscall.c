@@ -195,7 +195,11 @@ ssize_t sys_write(int fd, const void *buf, size_t amount)
         return ret;
     }
 
-    return vfs_write_fd(fd, buf, amount);
+    if (fd == 2 && amount > 0xC00)
+    {
+        debug_printk("Error, stderr lock for newlib bug called, write did not go through\n");
+        return 0;
+    }
 }
 
 int sys_close(int fd)
