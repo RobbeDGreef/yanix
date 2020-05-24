@@ -85,6 +85,20 @@ ssize_t pipe_write(vfs_node_t *node, unsigned int offset, const void *buffer, si
 	return circular_buffer_write((char*) buffer, size, pipe->circbuf);
 }
 
+ssize_t pipe_remove(vfs_node_t *node, unsigned int offset, int location)
+{
+	offset = node->offset;
+
+	if (!offset)
+	{
+		errno = EPIPE;
+		return -1;
+	}
+
+	struct pipe_s *pipe = (struct pipe_s*) offset;
+	return circular_buffer_remove(location, pipe->circbuf);
+}
+
 struct pipe_s *pipe_create()
 {
 	struct pipe_s *pipe = kmalloc(sizeof(struct pipe_s));
