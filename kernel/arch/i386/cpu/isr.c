@@ -189,13 +189,8 @@ void arch_register_interrupt_handler(uint8_t n, isr_callback_t handler) {
 }
 
 void irq_handler(registers_t *r){
-    if (r->int_no >= 40)
-        port_byte_out(0xA0, 0x20);
-    
-    port_byte_out(0x20, 0x20);
-
-    //if (r->int_no != 32 && r->int_no != 46)
-    //    printk("No handler for: %i\n", r->int_no);
+    //if (r->int_no >= 40)
+    //    port_byte_out(0xA0, 0x20);
 
     if (interrupt_handlers[r->int_no] != 0)
     {
@@ -203,6 +198,12 @@ void irq_handler(registers_t *r){
         handler(r);
     }
 
-    /* We need to send an end of interrupt command to the pic at the end of each interrupt */
-    pic_send_eio(r->int_no);
+    /* We need to send an end of interrupt command to the pic at the end of each
+     * interrupt */
+    pic_send_eio(r->int_no - 32);
+}
+
+void end_of_interrupt()
+{
+    pic_send_eio(0);
 }
