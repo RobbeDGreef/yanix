@@ -380,9 +380,8 @@ int vfs_open_fd(const char* path, int flags, int mode)
 	else
 	 	node = _vfs_open(path, flags, mode);
 	
-
 	if (!node)
-		return -errno;
+		return -1;
 
 	int fd = register_filedescriptor(node, mode);
 
