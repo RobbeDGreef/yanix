@@ -1,84 +1,92 @@
-#include <drivers/pci.h>
 #include <cpu/io.h>
+#include <drivers/pci.h>
 #include <mm/heap.h>
 
 #include <libk/string.h>
 
-#include <stdint.h>
-#include <stddef.h>
-#include <kernel.h>
 #include <debug.h>
+#include <kernel.h>
+#include <stddef.h>
+#include <stdint.h>
 
 // drivers
-#include <drivers/networking/rtl8139.h>
 #include <drivers/ata.h>
+#include <drivers/networking/rtl8139.h>
 
-#define CONFIG_ADDRESS 	0xCF8
-#define CONFIG_DATA 	0xCFC
+#define CONFIG_ADDRESS 0xCF8
+#define CONFIG_DATA    0xCFC
 /**
  * System to easily insert known devices with driver
  */
 
-typedef int (*device_driver_fpointer) (pci_device_t *);
+typedef int (*device_driver_fpointer)(pci_device_t *);
 
-typedef struct known_device_s {
-	unsigned int 			vendor_id;
-	unsigned int 			device_id;
-	
-	device_driver_fpointer	driver;
-	char 					*device_name;
+typedef struct known_device_s
+{
+	unsigned int vendor_id;
+	unsigned int device_id;
+
+	device_driver_fpointer driver;
+	char *                 device_name;
 } known_device_t;
 
 typedef struct generic_device_s
 {
-	unsigned int 			class_code;
-	unsigned int 			subclass;
-	int 					prog_if;
+	unsigned int class_code;
+	unsigned int subclass;
+	int          prog_if;
 
-	device_driver_fpointer	driver;
-	char 					*device_name;
+	device_driver_fpointer driver;
+	char *                 device_name;
 } generic_device_t;
-
 
 /* Add entries these this lists */
 const known_device_t known_devices[] = {
-	{.vendor_id = 0x10EC, .device_id = 0x8139, .driver = &init_rtl8139, .device_name = "rtl8139 ethernet card"}
-};
+	{.vendor_id   = 0x10EC,
+     .device_id   = 0x8139,
+     .driver      = &init_rtl8139,
+     .device_name = "rtl8139 ethernet card"}};
 
-const generic_device_t generic_devices[] = {
-	{.class_code = 0x01, .subclass = 0x01, .prog_if = -1, .driver = &init_ata, .device_name = "PATA hard drive"}
-};
+const generic_device_t generic_devices[] = {{.class_code  = 0x01,
+                                             .subclass    = 0x01,
+                                             .prog_if     = -1,
+                                             .driver      = &init_ata,
+                                             .device_name = "PATA hard drive"}};
 
-const size_t known_device_amount   = sizeof(known_devices)   / sizeof(known_device_t);
-const size_t generic_device_amount = sizeof(generic_devices) / sizeof(generic_device_t);
-
+const size_t known_device_amount =
+	sizeof(known_devices) / sizeof(known_device_t);
+const size_t generic_device_amount =
+	sizeof(generic_devices) / sizeof(generic_device_t);
 
 /* Global variabels for the linked list of pci devices */
 pci_device_t *g_pcilist;
-unsigned int g_pci_device_count = 0;
+unsigned int  g_pci_device_count = 0;
 
-static uint32_t make_pci_addr(uint16_t bus, uint16_t slot, uint16_t func, uint16_t offset)
+static uint32_t make_pci_addr(uint16_t bus, uint16_t slot, uint16_t func,
+                              uint16_t offset)
 {
-	uint32_t lbus =  (uint32_t) bus;
+	uint32_t lbus  = (uint32_t) bus;
 	uint32_t lslot = (uint32_t) slot;
 	uint32_t lfunc = (uint32_t) func;
 
-	return  (uint32_t) ((lbus << 16) | (lslot << 11) | (lfunc << 8) | (offset & 0xFC) | ((uint32_t)0x80000000));
+	return (uint32_t)((lbus << 16) | (lslot << 11) | (lfunc << 8)
+	                  | (offset & 0xFC) | ((uint32_t) 0x80000000));
 }
 
-
-uint16_t pci_read_word(uint16_t bus, uint16_t slot, uint16_t func, uint16_t offset)
+uint16_t pci_read_word(uint16_t bus, uint16_t slot, uint16_t func,
+                       uint16_t offset)
 {
-        uint32_t lbus =  (uint32_t) bus;
-        uint32_t lslot = (uint32_t) slot;
-        uint32_t lfunc = (uint32_t) func;
+	uint32_t lbus  = (uint32_t) bus;
+	uint32_t lslot = (uint32_t) slot;
+	uint32_t lfunc = (uint32_t) func;
 
-        uint16_t tmp;
-        uint32_t addr = (uint32_t) ((lbus << 16) | (lslot << 11) | (lfunc << 8)| (offset & 0xFC) | ((uint32_t)0x80000000));
+	uint16_t tmp;
+	uint32_t addr = (uint32_t)((lbus << 16) | (lslot << 11) | (lfunc << 8)
+	                           | (offset & 0xFC) | ((uint32_t) 0x80000000));
 
-        port_line_out(0xCF8, addr);
-        tmp = (uint16_t)((port_line_in(0xCFC) >> ((offset & 2) * 8)) & 0xFFFF);
-        return tmp;
+	port_line_out(0xCF8, addr);
+	tmp = (uint16_t)((port_line_in(0xCFC) >> ((offset & 2) * 8)) & 0xFFFF);
+	return tmp;
 }
 
 #if 0
@@ -108,14 +116,15 @@ uint16_t pci_read_word(uint16_t bus, uint16_t slot, uint16_t func, uint16_t offs
  * @param[in]  offset    The offset
  * @param[in]  value     The value
  */
-void pci_write_dword(uint16_t bus, uint16_t slot, uint16_t function, uint16_t offset, uint32_t value) 
+void pci_write_dword(uint16_t bus, uint16_t slot, uint16_t function,
+                     uint16_t offset, uint32_t value)
 {
 	port_line_out(CONFIG_ADDRESS, make_pci_addr(bus, slot, function, offset));
 	port_line_out(CONFIG_DATA, value);
 }
 
 /**
- * @brief      Reads a word from a pcidevice 
+ * @brief      Reads a word from a pcidevice
  *
  * @param      pcidev  The pcidev
  * @param[in]  offset  The offset
@@ -138,12 +147,14 @@ uint16_t pci_read(pci_device_t *pcidev, uint32_t offset)
  */
 uint16_t pci_get_vendor_id(uint16_t bus, uint16_t device, uint16_t function)
 {
-	return (uint16_t) pci_read_word(bus, device, function, PCI_VENDOR_OFFSET); // 0
+	return (uint16_t) pci_read_word(bus, device, function,
+	                                PCI_VENDOR_OFFSET); // 0
 }
 
 uint16_t pci_get_command(uint16_t bus, uint16_t device, uint16_t function)
 {
-	return (uint16_t) pci_read_word(bus, device, function, PCI_COMMAND_OFFSET); // 10
+	return (uint16_t) pci_read_word(bus, device, function,
+	                                PCI_COMMAND_OFFSET); // 10
 }
 
 /**
@@ -157,7 +168,8 @@ uint16_t pci_get_command(uint16_t bus, uint16_t device, uint16_t function)
  */
 uint16_t pci_get_device_id(uint16_t bus, uint16_t device, uint16_t function)
 {
-	return (uint16_t) pci_read_word(bus, device, function, PCI_DEVICE_ID_OFFSET); // 2
+	return (uint16_t) pci_read_word(bus, device, function,
+	                                PCI_DEVICE_ID_OFFSET); // 2
 }
 
 /**
@@ -171,9 +183,9 @@ uint16_t pci_get_device_id(uint16_t bus, uint16_t device, uint16_t function)
  */
 uint16_t pci_get_class_id(uint16_t bus, uint16_t device, uint16_t function)
 {
-	return (((uint16_t) pci_read_word(bus, device, function, 0xA)) & ~0x00FF ) >> 8;
+	return (((uint16_t) pci_read_word(bus, device, function, 0xA)) & ~0x00FF)
+		   >> 8;
 }
-
 
 /**
  * @brief      Get the pci subclass id
@@ -200,7 +212,8 @@ uint16_t pci_get_subclass_id(uint16_t bus, uint16_t device, uint16_t function)
  */
 uint16_t pci_get_prog_if(uint16_t bus, uint16_t device, uint16_t function)
 {
-	return (((uint16_t) pci_read_word(bus, device, function, 0x8)) & ~0x00FF ) >> 8;
+	return (((uint16_t) pci_read_word(bus, device, function, 0x8)) & ~0x00FF)
+		   >> 8;
 }
 
 /**
@@ -213,38 +226,46 @@ uint16_t pci_get_prog_if(uint16_t bus, uint16_t device, uint16_t function)
  *
  * @return     The value of the requested base address
  */
-uint16_t pci_get_base_address(uint16_t bus, uint16_t device, uint16_t function, int address)
+uint16_t pci_get_base_address(uint16_t bus, uint16_t device, uint16_t function,
+                              int address)
 {
-	uint32_t tmp = ((uint32_t) pci_read_word(bus, device, function, 0xf + address*4)) << 16;
-	tmp |= (uint32_t) ((uint16_t) pci_read_word(bus, device, function, 0xf + address*4 + 2));
+	uint32_t tmp =
+		((uint32_t) pci_read_word(bus, device, function, 0xf + address * 4))
+		<< 16;
+	tmp |= (uint32_t)(
+		(uint16_t) pci_read_word(bus, device, function, 0xf + address * 4 + 2));
 	return tmp;
 }
 
-uint16_t pci_get_header_type(uint16_t bus, uint16_t device, uint16_t function) 
+uint16_t pci_get_header_type(uint16_t bus, uint16_t device, uint16_t function)
 {
-	return (((uint16_t) pci_read_word(bus, device, function, 0xE)) & ~0xFF00 );
+	return (((uint16_t) pci_read_word(bus, device, function, 0xE)) & ~0xFF00);
 }
 
-uint16_t pci_get_rev_id(uint16_t bus, uint16_t device, uint16_t function) 
+uint16_t pci_get_rev_id(uint16_t bus, uint16_t device, uint16_t function)
 {
 	return ((uint16_t) pci_read_word(bus, device, function, 0x8)) & ~0xFF00;
 }
 
-
-
-void *pci_parse_header(uint16_t bus, uint16_t slot, uint16_t function, uint16_t header_type)
+void *pci_parse_header(uint16_t bus, uint16_t slot, uint16_t function,
+                       uint16_t header_type)
 {
-	if (header_type == 0x00) {
+	if (header_type == 0x00)
+	{
 		pci_common_header_t *header = kcalloc(sizeof(pci_common_header_t), 0);
-		for (size_t i = 0; i < 6; i++) {
+		for (size_t i = 0; i < 6; i++)
+		{
 			header->BAR[i] = pci_get_base_address(bus, slot, function, i);
 		}
 		// @TODO: a lot of other values should be set (they are 0 for now)
-		header->interrupt_pin  = pci_read_word(bus, slot, function, PCI_INTERRUPT_PIN_OFFSET);
-		header->interrupt_line = pci_read_word(bus, slot, function, PCI_INTERRUPT_LINE_OFFSET);
-		return (void*) header;
-	
-	} else {
+		header->interrupt_pin =
+			pci_read_word(bus, slot, function, PCI_INTERRUPT_PIN_OFFSET);
+		header->interrupt_line =
+			pci_read_word(bus, slot, function, PCI_INTERRUPT_LINE_OFFSET);
+		return (void *) header;
+	}
+	else
+	{
 		// @TODO: implement the other types of headers too
 		return 0;
 	}
@@ -260,7 +281,7 @@ void *pci_parse_header(uint16_t bus, uint16_t slot, uint16_t function, uint16_t 
  */
 uint32_t pci_get_bar_by_index(pci_device_t *pcidev, uint32_t index)
 {
-	return (((pci_common_header_t*) pcidev->header)->BAR[index]);
+	return (((pci_common_header_t *) pcidev->header)->BAR[index]);
 }
 
 /**
@@ -274,9 +295,11 @@ uint32_t pci_get_bar_by_index(pci_device_t *pcidev, uint32_t index)
 uint32_t pci_get_bar_by_type(pci_device_t *pcidev, uint8_t type)
 {
 	uint32_t bar = 0;
-	for (size_t i = 0; i < 6; i++) {
-		bar = ((pci_common_header_t*) pcidev->header)->BAR[i];
-		if ((bar & 0x1) == type) {
+	for (size_t i = 0; i < 6; i++)
+	{
+		bar = ((pci_common_header_t *) pcidev->header)->BAR[i];
+		if ((bar & 0x1) == type)
+		{
 			return bar;
 		}
 	}
@@ -289,11 +312,14 @@ uint32_t pci_get_bar_by_type(pci_device_t *pcidev, uint8_t type)
  *
  * @param      dev   The device
  */
-void add_pci_device(pci_device_t *dev) 
+void add_pci_device(pci_device_t *dev)
 {
-	if (g_pcilist == 0) {
+	if (g_pcilist == 0)
+	{
 		g_pcilist = dev;
-	} else {
+	}
+	else
+	{
 		volatile pci_device_t *tmp = g_pcilist;
 		while (tmp->next != 0)
 			tmp = tmp->next;
@@ -309,37 +335,50 @@ void add_pci_device(pci_device_t *dev)
  */
 static void _pci_find_brute()
 {
-	for (size_t bus = 0; bus < 256; bus++) {
-		for (size_t slot = 0; slot < 32; slot++) {
-			for(size_t function = 0; function < 8; function++) {
+	for (size_t bus = 0; bus < 256; bus++)
+	{
+		for (size_t slot = 0; slot < 32; slot++)
+		{
+			for (size_t function = 0; function < 8; function++)
+			{
 				uint16_t vendor_id = pci_get_vendor_id(bus, slot, function);
-				if (vendor_id == 0xffff) {
+				if (vendor_id == 0xffff)
+				{
 					continue;
 				}
 				// found a device so now creating the structures
-				pci_device_t *pcidev = (pci_device_t *) kcalloc(sizeof(pci_device_t), 0); // future proof, if i add entries to the struct and forget them they will automattically be 0
-				
+				pci_device_t *pcidev = (pci_device_t *) kcalloc(
+					sizeof(pci_device_t),
+					0); // future proof, if i add entries to the struct and
+				        // forget them they will automattically be 0
+
 				// setting the values
-				pcidev->bus = bus;
-				pcidev->device = slot;
-				pcidev->function = function;
-				pcidev->vendor_id = vendor_id;
-				pcidev->device_id = pci_get_device_id(bus, slot, function);
-				pcidev->command = pci_get_command(bus, slot, function);
-				pcidev->class_code = pci_get_class_id(bus, slot, function);
-				pcidev->subclass = pci_get_subclass_id(bus, slot, function);
-				pcidev->prog_if = pci_get_prog_if(bus, slot, function);
+				pcidev->bus         = bus;
+				pcidev->device      = slot;
+				pcidev->function    = function;
+				pcidev->vendor_id   = vendor_id;
+				pcidev->device_id   = pci_get_device_id(bus, slot, function);
+				pcidev->command     = pci_get_command(bus, slot, function);
+				pcidev->class_code  = pci_get_class_id(bus, slot, function);
+				pcidev->subclass    = pci_get_subclass_id(bus, slot, function);
+				pcidev->prog_if     = pci_get_prog_if(bus, slot, function);
 				pcidev->header_type = pci_get_header_type(bus, slot, function);
-				pcidev->header = pci_parse_header(bus, slot, function, pcidev->header_type);
+				pcidev->header =
+					pci_parse_header(bus, slot, function, pcidev->header_type);
 				pcidev->rev_id = pci_get_rev_id(bus, slot, function);
-				pcidev->name = "Unknown pci device";
+				pcidev->name   = "Unknown pci device";
 				add_pci_device(pcidev);
 
-				printk(KERN_DEBUG "PCI device classcode: %i subclass %i prog if %i\n", pcidev->class_code, pcidev->subclass, pcidev->prog_if);
+				printk(KERN_DEBUG
+				       "PCI device classcode: %i subclass %i prog if %i\n",
+				       pcidev->class_code, pcidev->subclass, pcidev->prog_if);
 
 				/* and now check if it is present in the drivers list */
-				for (size_t i = 0; i < known_device_amount; i++) {
-					if (known_devices[i].vendor_id == pcidev->vendor_id && known_devices[i].device_id == pcidev->device_id) {
+				for (size_t i = 0; i < known_device_amount; i++)
+				{
+					if (known_devices[i].vendor_id == pcidev->vendor_id
+					    && known_devices[i].device_id == pcidev->device_id)
+					{
 						// found a device
 						pcidev->driver = known_devices[i].driver;
 						pcidev->name   = known_devices[i].device_name;
@@ -348,11 +387,13 @@ static void _pci_find_brute()
 
 				for (size_t i = 0; i < generic_device_amount; i++)
 				{
-					if (generic_devices[i].class_code == pcidev->class_code && generic_devices[i].subclass == pcidev->subclass)
+					if (generic_devices[i].class_code == pcidev->class_code
+					    && generic_devices[i].subclass == pcidev->subclass)
 					{
-						if (generic_devices[i].prog_if == -1 || generic_devices[i].prog_if == pcidev->prog_if)
+						if (generic_devices[i].prog_if == -1
+						    || generic_devices[i].prog_if == pcidev->prog_if)
 						{
-							pcidev->name = generic_devices[i].device_name;
+							pcidev->name   = generic_devices[i].device_name;
 							pcidev->driver = generic_devices[i].driver;
 						}
 					}
@@ -368,17 +409,18 @@ static void _pci_find_brute()
 int init_pci_devices()
 {
 	pci_device_t *tmp = g_pcilist;
-	
+
 	if (tmp == 0)
 		return 0;
 
 	int ret = 0;
-	do 
+	do
 	{
 		if (tmp->driver != 0)
 		{
 			ret = tmp->driver(tmp);
-			printk("[ PCI ] Initialisation of %s", (char*)tmp->name); printk(ret?" failed\n":" succeeded\n");
+			printk("[ PCI ] Initialisation of %s", (char *) tmp->name);
+			printk(ret ? " failed\n" : " succeeded\n");
 		}
 	} while ((tmp = tmp->next) != 0);
 	return 0;
@@ -400,16 +442,17 @@ pci_device_t *pci_find_by_class(int classcode, int subclass, int prog_if)
 		return 0;
 
 	pci_device_t *tmp = g_pcilist;
-	do 
+	do
 	{
-		if (tmp->class_code == classcode && tmp->subclass == subclass && tmp->prog_if == prog_if)
-			return tmp; 
-		
+		if (tmp->class_code == classcode && tmp->subclass == subclass
+		    && tmp->prog_if == prog_if)
+			return tmp;
+
 		tmp = tmp->next;
 	} while (tmp != 0);
 
 	/* pci device not found returning 0 */
-	return 0; 
+	return 0;
 }
 
 /**
@@ -427,16 +470,16 @@ pci_device_t *pci_find_by_vendor(int vendor, int device)
 		return 0;
 
 	pci_device_t *tmp = g_pcilist;
-	do 
+	do
 	{
 		if (tmp->vendor_id == vendor && tmp->device_id == device)
 			return tmp;
-		
+
 		tmp = tmp->next;
 	} while (tmp != 0);
-	
+
 	/* pci device not found returning 0 */
-	return 0; 
+	return 0;
 }
 
 /**
@@ -445,8 +488,8 @@ pci_device_t *pci_find_by_vendor(int vendor, int device)
 int init_pci()
 {
 	_pci_find_brute();
-	
-	/* Nothing can really go wrong here so we don't need to do any error checking */
-	return 0;
 
+	/* Nothing can really go wrong here so we don't need to do any error
+	 * checking */
+	return 0;
 }

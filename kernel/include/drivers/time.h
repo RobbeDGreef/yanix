@@ -1,7 +1,8 @@
 #ifndef _TIME_H
 #define _TIME_H
 
-struct time_s {
+struct time_s
+{
 	int tm_sec;
 	int tm_min;
 	int tm_hour;

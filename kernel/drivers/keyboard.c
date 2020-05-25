@@ -1,13 +1,13 @@
+#include <debug.h>
 #include <drivers/keyboard.h>
-#include <proc/tasking.h>
 #include <fs/vfs.h>
 #include <libk/string.h>
 #include <mm/heap.h>
-#include <debug.h>
+#include <proc/tasking.h>
 
 char *keymap_normal = NULL;
-char *keymap_shift = NULL;
-char *keymap_altgr = NULL;
+char *keymap_shift  = NULL;
+char *keymap_altgr  = NULL;
 
 struct key_mod g_modifier;
 
@@ -19,8 +19,8 @@ struct key_mod g_modifier;
 #define RSHIFT_D 0x36
 #define RSHIFT_U 0xb6
 
-#define ALTGR_D  22456
-#define ALTGR_U  224184
+#define ALTGR_D 22456
+#define ALTGR_U 224184
 
 #define RETURN_D 0x1C
 #define LCTRL_D  0x1D
@@ -90,7 +90,7 @@ static int getkey(int scancode)
 		return keymap_normal[scancode];
 
 	return 0;
-	//return '?';
+	// return '?';
 }
 
 static int combination(int c)
@@ -136,11 +136,11 @@ int init_keyboard()
 	keymap_normal = kmalloc(KEYMAP_SIZE);
 	keymap_shift  = kmalloc(KEYMAP_SIZE);
 	keymap_altgr  = kmalloc(KEYMAP_SIZE);
-	
+
 	memset(&g_modifier, 0, sizeof(struct key_mod));
 
-	char *keymap = kmalloc(32);
-	struct file *fp = vfs_open(KEYMAP_FILE, 0, 0);
+	char *       keymap = kmalloc(32);
+	struct file *fp     = vfs_open(KEYMAP_FILE, 0, 0);
 	vfs_read(fp, keymap, fp->filesize);
 	vfs_close(fp);
 

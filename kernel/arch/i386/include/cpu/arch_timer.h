@@ -4,7 +4,6 @@
 #include <cpu/cpu.h>
 #include <stdint.h>
 
-
 /**
  * @brief      Initialises the architechture dependand timer
  *

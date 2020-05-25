@@ -1,6 +1,6 @@
 #include <drivers/disk.h>
-#include <mm/heap.h>
 #include <libk/string.h>
+#include <mm/heap.h>
 #include <sys/types.h>
 
 disk_t *disk_list = 0;
@@ -12,7 +12,7 @@ disk_t *disk_list = 0;
  */
 void add_disk(disk_t *disk)
 {
-	if (disk_list == 0) 
+	if (disk_list == 0)
 	{
 		disk_list = disk;
 		return;
@@ -65,7 +65,8 @@ ssize_t disk_read(unsigned long offset, void *buffer, size_t size, disk_t *disk)
 	if (count == 0 && l_rest != 0)
 	{
 		l_size = c_rest;
-		count = 1; /* to make sure when it is reduced by one it doesn't wrap around */
+		count  = 1; /* to make sure when it is reduced by one it doesn't wrap
+		               around */
 		c_rest = 0;
 	}
 	else if (l_rest != 0)
@@ -74,12 +75,10 @@ ssize_t disk_read(unsigned long offset, void *buffer, size_t size, disk_t *disk)
 		c_rest -= l_rest;
 	}
 
-
 	if (l_rest)
 	{
 		/* Create a buffer */
 		void *tmp = kmalloc(disk->block_size);
-
 
 		/* Read the data into the temporary buffer and set lba en count */
 		disk->read(lba, tmp, 1, disk);
@@ -97,7 +96,6 @@ ssize_t disk_read(unsigned long offset, void *buffer, size_t size, disk_t *disk)
 
 		/* Count read bytes */
 		ret += l_size;
-
 	}
 
 	/* Read the main data */
@@ -105,7 +103,6 @@ ssize_t disk_read(unsigned long offset, void *buffer, size_t size, disk_t *disk)
 	{
 		ret += disk->read(lba, buf, count, disk);
 	}
-
 
 	if (c_rest)
 	{
@@ -117,7 +114,7 @@ ssize_t disk_read(unsigned long offset, void *buffer, size_t size, disk_t *disk)
 
 		/* Now copy the wanted data into the real buffer */
 		memcpy(buf + (count * disk->block_size), tmp, c_rest);
-		
+
 		/* Cleanup */
 		kfree(tmp);
 
@@ -130,22 +127,23 @@ ssize_t disk_read(unsigned long offset, void *buffer, size_t size, disk_t *disk)
 
 #include <kernel.h>
 
-ssize_t disk_write(unsigned long offset, const void *_buf, size_t size, disk_t *disk)
+ssize_t disk_write(unsigned long offset, const void *_buf, size_t size,
+                   disk_t *disk)
 {
 	/* @todo: Create disk write function */
 	const char *buf = _buf;
-	
+
 	if (disk->block_size == 0)
 	{
 		return disk->write(offset, buf, size, disk);
 	}
-	
-	ssize_t ret = 0;
+
+	ssize_t      ret       = 0;
 	unsigned int blocksize = disk->block_size;
 
 	unsigned int blockiter = offset / blocksize;
-	unsigned int s_rest = offset % blocksize;
-	unsigned int e_rest = (size + s_rest) % blocksize;
+	unsigned int s_rest    = offset % blocksize;
+	unsigned int e_rest    = (size + s_rest) % blocksize;
 
 	int blkcnt = size / blocksize;
 
@@ -157,7 +155,7 @@ ssize_t disk_write(unsigned long offset, const void *_buf, size_t size, disk_t *
 		size_t memcpy_size = blocksize - s_rest;
 		if (size < memcpy_size)
 		{
-			e_rest = 0;
+			e_rest      = 0;
 			memcpy_size = size;
 		}
 
@@ -165,7 +163,7 @@ ssize_t disk_write(unsigned long offset, const void *_buf, size_t size, disk_t *
 
 		disk->write(blockiter++, tmp, 1, disk);
 		kfree(tmp);
-	
+
 		if (blkcnt)
 			blkcnt--;
 
@@ -189,7 +187,7 @@ ssize_t disk_write(unsigned long offset, const void *_buf, size_t size, disk_t *
 		disk->read(blockiter, tmp, 1, disk);
 		memcpy(tmp, buf, e_rest);
 		disk->write(blockiter, tmp, 1, disk);
-		
+
 		kfree(tmp);
 		ret += e_rest;
 	}

@@ -1,24 +1,24 @@
-#include <stdint.h>
-#include <stddef.h>
 #include <fs/filedescriptor.h>
 #include <fs/fs.h>
+#include <stddef.h>
+#include <stdint.h>
 
+#include <errno.h>
+#include <fs/pipe.h>
 #include <fs/vfs.h>
 #include <fs/vfs_node.h>
-#include <fs/pipe.h>
-#include <yanix/tty_dev.h>
 #include <kernel.h>
-#include <errno.h>
-#include <libk/string.h>
 #include <libk/stdio.h>
+#include <libk/string.h>
 #include <mm/heap.h>
+#include <yanix/tty_dev.h>
 
 #include <drivers/serial.h>
 
 /*
- * This file is the combination of all the pieces of filesystem code that together make one 
- * interface
-*/
+ * This file is the combination of all the pieces of filesystem code that
+ * together make one interface
+ */
 
 // @todo       register filesystem should not register to one global var
 
@@ -31,7 +31,8 @@ filesystem_t *g_current_fs;
  * @param      dir    The dirent buffer
  * @param[in]  count  The size of the dirent buffer
  *
- * @return     On success, the number of bytes read is returned. On failure, -errno is returned
+ * @return     On success, the number of bytes read is returned. On failure,
+ * -errno is returned
  */
 int getdents(int fd, struct dirent *dir, int count)
 {
@@ -40,8 +41,9 @@ int getdents(int fd, struct dirent *dir, int count)
 	if (!fd_struct)
 		return -1;
 
-	/* Whenever a directory is opened, the fd's seek is a pointer to the yanix DIR struct */
-	DIR *dirstream = (DIR*) fd_struct->seek;
+	/* Whenever a directory is opened, the fd's seek is a pointer to the yanix
+	 * DIR struct */
+	DIR *dirstream = (DIR *) fd_struct->seek;
 
 	if (!dirstream)
 	{
@@ -49,26 +51,26 @@ int getdents(int fd, struct dirent *dir, int count)
 		return -1;
 	}
 
-	int i = 0;
-	char *buf = (char*) dir;
+	int            i      = 0;
+	char *         buf    = (char *) dir;
 	struct dirent *dirent = 0;
 
 	while (i < count)
 	{
 		dirent = vfs_readdir(dirstream);
 
-		//printk_hd(dirent, dirent->d_reclen);
+		// printk_hd(dirent, dirent->d_reclen);
 
 		/* The directory is completely read if 0 is returned */
 		if (!dirent)
 			break;
 
 		i += dirent->d_reclen;
-		
+
 		if (i <= count)
 		{
 			memcpy(buf, dirent, dirent->d_reclen);
-			((struct dirent*) buf)->d_off = i;
+			((struct dirent *) buf)->d_off = i;
 			buf += dirent->d_reclen;
 		}
 		else
@@ -91,46 +93,51 @@ int getdents(int fd, struct dirent *dir, int count)
  *
  * @return     { description_of_the_return_value }
  */
-static ssize_t tty_stdoutwrite(vfs_node_t *node, unsigned int offset, const void *buffer, size_t size)
+static ssize_t tty_stdoutwrite(vfs_node_t *node, unsigned int offset,
+                               const void *buffer, size_t size)
 {
 	(void) (node);
 	(void) (offset);
 
 	for (unsigned int i = 0; i < size; i++)
-		serial_put(((char*)buffer)[i]);
+		serial_put(((char *) buffer)[i]);
 
-	return tty_write(tty_get_device(get_current_task()->tty), buffer, size, -1, -1);
+	return tty_write(tty_get_device(get_current_task()->tty), buffer, size, -1,
+	                 -1);
 }
 
 #include <debug.h>
-static ssize_t tty_stderrwrite(vfs_node_t *node, unsigned int offset, const void *buffer, size_t size)
+static ssize_t tty_stderrwrite(vfs_node_t *node, unsigned int offset,
+                               const void *buffer, size_t size)
 {
 	(void) (node);
 	(void) (offset);
 	debug_printk("size: %i\n", size, buffer);
 	for (unsigned int i = 0; i < size; i++)
-		serial_put(((char*)buffer)[i]);
+		serial_put(((char *) buffer)[i]);
 
 	tty_set_color(TTY_RED);
 
-	int ret = tty_write(tty_get_device(get_current_task()->tty), buffer, size, -1, -1);
+	int ret = tty_write(tty_get_device(get_current_task()->tty), buffer, size,
+	                    -1, -1);
 	tty_set_color(TTY_WHITE);
 	return ret;
 }
 
 char *stdinbuffer;
-int index;
+int   index;
 
-static ssize_t tty_stdinwrite(vfs_node_t *node, unsigned int offset, const void *buffer, size_t size)
+static ssize_t tty_stdinwrite(vfs_node_t *node, unsigned int offset,
+                              const void *buffer, size_t size)
 {
 	/* @todo: we need to properly parse the stdin */
-	if (* (char*) buffer == 0x8)
+	if (*(char *) buffer == 0x8)
 	{
 		if (!pipe_remove(node, offset, 1))
 			tty_stdoutwrite(0, 0, buffer, size);
 		return 0;
 	}
-	
+
 	pipe_write(node, offset, buffer, size);
 	tty_stdoutwrite(0, 0, buffer, size);
 
@@ -147,11 +154,14 @@ int init_char_specials()
 	if (node)
 		node->write = &tty_stdinwrite;
 
-	/* @todo: Should actually be a pipe that notifies the tty systems, because we need to be able to read from stdout too */
-	vfs_node_t *stdout = vfs_setupnode("stdout", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, tty_stdoutwrite, 0, 0, 0);
+	/* @todo: Should actually be a pipe that notifies the tty systems, because
+	 * we need to be able to read from stdout too */
+	vfs_node_t *stdout = vfs_setupnode("stdout", VFS_CHARDEVICE, 0, 0, 0, 0, 0,
+	                                   0, 0, 0, 0, tty_stdoutwrite, 0, 0, 0);
 	vfs_link_node_vfs("/dev/stdout", stdout);
 
-	vfs_node_t *stderr = vfs_setupnode("stderr", VFS_CHARDEVICE, 0, 0, 0, 0, 0, 0, 0, 0, 0, tty_stderrwrite, 0, 0, 0);
+	vfs_node_t *stderr = vfs_setupnode("stderr", VFS_CHARDEVICE, 0, 0, 0, 0, 0,
+	                                   0, 0, 0, 0, tty_stderrwrite, 0, 0, 0);
 	vfs_link_node_vfs("/dev/stderr", stderr);
 
 	vfs_open_fd("/dev/stdin", 0, 0);
@@ -175,10 +185,10 @@ int init_char_specials()
  * @param[in]  makenode   The make vfs node function pointer
  */
 void register_filesystem(char *name, int type, fs_read_file_fpointer readfile,
-						 fs_write_file_fpointer writefile, 
-						 fs_open_dir_fpointer opendir, 
-						 fs_read_dir_fpointer readdir, fs_make_node makenode,
-						 fs_creat_fpointer creat, fs_update_fpointer update)
+                         fs_write_file_fpointer writefile,
+                         fs_open_dir_fpointer   opendir,
+                         fs_read_dir_fpointer readdir, fs_make_node makenode,
+                         fs_creat_fpointer creat, fs_update_fpointer update)
 {
 	g_current_fs->name = name;
 	g_current_fs->type = type;
@@ -194,13 +204,14 @@ void register_filesystem(char *name, int type, fs_read_file_fpointer readfile,
 
 ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 {
+	printk("Reading: %i byte\n", amount);
 	char *buf = _buf;
 
-	ssize_t ret = 0;
+	ssize_t      ret       = 0;
 	unsigned int blocksize = node->fs_info->block_size;
-	
+
 	unsigned int blockiter = seek / blocksize; /* the startblock*/
-	
+
 	unsigned int s_rest = seek % blocksize;
 	unsigned int e_rest = (amount + s_rest) % blocksize;
 
@@ -209,12 +220,13 @@ ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 	if (s_rest)
 	{
 		char *tmp = kmalloc(blocksize);
-		node->fs_info->block_read(node->offset, blockiter++, tmp, 1, node->fs_info);
+		node->fs_info->block_read(node->offset, blockiter++, tmp, 1,
+		                          node->fs_info);
 
 		size_t size = blocksize - s_rest;
 		if (amount < size)
 		{
-			size = amount;
+			size   = amount;
 			e_rest = 0;
 		}
 
@@ -222,14 +234,14 @@ ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 		ret += size;
 		buf += size;
 		kfree(tmp);
-		
+
 		if (blkcnt)
 			blkcnt--;
 	}
 	if (blkcnt)
 	{
-		int blks = node->fs_info->block_read(node->offset, blockiter, buf, blkcnt, 
-									   node->fs_info);
+		int blks = node->fs_info->block_read(node->offset, blockiter, buf,
+		                                     blkcnt, node->fs_info);
 		ret += blks * blocksize;
 		buf += blks * blocksize;
 		blockiter += blkcnt;
@@ -240,7 +252,8 @@ ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 	if (e_rest)
 	{
 		char *tmp = kmalloc(blocksize);
-		node->fs_info->block_read(node->offset, blockiter, tmp, 1, node->fs_info);
+		node->fs_info->block_read(node->offset, blockiter, tmp, 1,
+		                          node->fs_info);
 		memcpy(buf, tmp, e_rest);
 		kfree(tmp);
 		ret += e_rest;
@@ -253,13 +266,13 @@ ssize_t fs_write(vfs_node_t *node, int seek, const void *_buf, size_t amount)
 {
 	const char *buf = _buf;
 
-	ssize_t ret = 0;
+	ssize_t      ret       = 0;
 	unsigned int blocksize = node->fs_info->block_size;
 
-	unsigned int blockiter = seek / blocksize;
-	unsigned int s_rest = seek % blocksize;
-	unsigned int e_rest = (amount + s_rest) % blocksize;
-	filesystem_t *fs_info = node->fs_info;
+	unsigned int  blockiter = seek / blocksize;
+	unsigned int  s_rest    = seek % blocksize;
+	unsigned int  e_rest    = (amount + s_rest) % blocksize;
+	filesystem_t *fs_info   = node->fs_info;
 
 	int blkcnt = amount / blocksize;
 
@@ -267,16 +280,16 @@ ssize_t fs_write(vfs_node_t *node, int seek, const void *_buf, size_t amount)
 	{
 		char *tmp = kmalloc(blocksize);
 		fs_info->block_read(node->offset, blockiter, tmp, 1, fs_info);
-		
+
 		size_t size = blocksize - s_rest;
 		if (amount < size)
 		{
 			e_rest = 0;
-			size = amount;
+			size   = amount;
 		}
 
 		memcpy(tmp + s_rest, buf, size);
-		
+
 		fs_info->block_write(node->offset, blockiter++, tmp, 1, fs_info);
 		ret += size;
 		buf += size;
@@ -287,7 +300,8 @@ ssize_t fs_write(vfs_node_t *node, int seek, const void *_buf, size_t amount)
 	}
 	if (blkcnt)
 	{
-		int blks = fs_info->block_write(node->offset, blockiter, buf, blkcnt, fs_info);
+		int blks =
+			fs_info->block_write(node->offset, blockiter, buf, blkcnt, fs_info);
 
 		blockiter += blks;
 		buf += blks * blocksize;
@@ -301,9 +315,9 @@ ssize_t fs_write(vfs_node_t *node, int seek, const void *_buf, size_t amount)
 		char *tmp = kmalloc(blocksize);
 		fs_info->block_read(node->offset, blockiter, tmp, 1, fs_info);
 		memcpy(tmp, buf, e_rest);
-		
+
 		fs_info->block_write(node->offset, blockiter, tmp, 1, fs_info);
-		
+
 		kfree(tmp);
 		ret += e_rest;
 	}

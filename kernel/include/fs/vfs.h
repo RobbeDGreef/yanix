@@ -6,17 +6,17 @@
 
 extern vfs_node_t *vfs_root;
 
-struct file {
-	vfs_node_t 		*vfs_node;
-	int 			filedescriptor;
-	size_t 			filesize;
+struct file
+{
+	vfs_node_t *vfs_node;
+	int         filedescriptor;
+	size_t      filesize;
 };
 
 /**
  * @brief      Initialises the virtual filesystem
  */
 int init_vfs();
-
 
 /**
  * @brief      Reads from filedescriptor
@@ -62,7 +62,6 @@ ssize_t vfs_write_fd(int fd, const void *buf, size_t amount);
  */
 ssize_t vfs_write(struct file *file, const void *buf, size_t amount);
 
-
 /**
  * @brief      Open a file descriptor
  *
@@ -72,7 +71,7 @@ ssize_t vfs_write(struct file *file, const void *buf, size_t amount);
  *
  * @return     Filedescriptor on success
  */
-int vfs_open_fd(const char* path, int flags, int mode);
+int vfs_open_fd(const char *path, int flags, int mode);
 
 /**
  * @brief      Opens a vfs node
@@ -131,19 +130,21 @@ struct dirent *vfs_readdir(DIR *dirstream);
  */
 DIR *vfs_opendir(const char *filepath);
 
-
 /**
  * @brief      Finds the inode pointing to a specific path
  *
- * @param      path  The path 
+ * @param      path  The path
  *
  * @return     The inode to look for
  */
 vfs_node_t *vfs_find_path(const char *path);
 
-vfs_node_t *vfs_setupnode(char *name, uint8_t type, uint16_t permissions, uid_t uid, gid_t gid, size_t size, offset_t offset,
-						  open_fpointer open, close_fpointer close, creat_fpointer creat, read_fpointer read, write_fpointer write,
-						  open_dir_fpointer opendir, read_dir_fpointer readdir, filesystem_t *fs_info);
+vfs_node_t *vfs_setupnode(char *name, uint8_t type, uint16_t permissions,
+                          uid_t uid, gid_t gid, size_t size, offset_t offset,
+                          open_fpointer open, close_fpointer close,
+                          creat_fpointer creat, read_fpointer read,
+                          write_fpointer write, open_dir_fpointer opendir,
+                          read_dir_fpointer readdir, filesystem_t *fs_info);
 
 /**
  * @brief      Check wheter the VFS is initialsed
@@ -154,12 +155,11 @@ int vfs_check_if_initialised();
 
 int vfs_link_node_vfs(const char *path, vfs_node_t *node);
 
-char *vfs_get_name(const char*path);
+char *vfs_get_name(const char *path);
 
 int vfs_fstat(int fd, struct stat *statbuf);
 int vfs_stat(const char *pathname, struct stat *statbuf);
 
 off_t vfs_lseek(int fd, off_t offset, int whence);
-
 
 #endif

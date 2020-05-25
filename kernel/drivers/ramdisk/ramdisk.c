@@ -1,12 +1,12 @@
-#include <libk/string.h>
-#include <sys/types.h>
-#include <mm/heap.h>
 #include <drivers/disk.h>
+#include <libk/string.h>
+#include <mm/heap.h>
+#include <sys/types.h>
 
 typedef struct ramdisk_info_s
 {
-	unsigned long 	location;
-	unsigned long 	size;
+	unsigned long location;
+	unsigned long size;
 } ramdisk_info_t;
 
 /**
@@ -19,12 +19,13 @@ typedef struct ramdisk_info_s
  *
  * @return     Pointer to buffer location
  */
-ssize_t ramdisk_read(unsigned long offset, void *destination, size_t size, disk_t *disk_info) 
+ssize_t ramdisk_read(unsigned long offset, void *destination, size_t size,
+                     disk_t *disk_info)
 {
 	ramdisk_info_t *rd_info = (ramdisk_info_t *) disk_info->drive_info;
-	return (ssize_t) memcpy((void*) destination, (void*) (rd_info->location + offset), size);
+	return (ssize_t) memcpy((void *) destination,
+	                        (void *) (rd_info->location + offset), size);
 }
-
 
 /**
  * @brief      Will write contents of given buffer to a given offset relative to
@@ -37,12 +38,13 @@ ssize_t ramdisk_read(unsigned long offset, void *destination, size_t size, disk_
  *
  * @return     Pointer to Buffer location
  */
-ssize_t ramdisk_write(unsigned long offset, const void *buffer, size_t size, disk_t *disk_info)
+ssize_t ramdisk_write(unsigned long offset, const void *buffer, size_t size,
+                      disk_t *disk_info)
 {
 	ramdisk_info_t *rd_info = (ramdisk_info_t *) disk_info->drive_info;
-	return (ssize_t) memcpy((uint32_t*) (rd_info->location + offset), (uint32_t*) buffer, size);
+	return (ssize_t) memcpy((uint32_t *) (rd_info->location + offset),
+	                        (uint32_t *) buffer, size);
 }
-
 
 /**
  * @brief      Initializes the ramdisk
@@ -54,17 +56,17 @@ void init_ramdisk(offset_t location, size_t size)
 {
 	/* Create the ramdisk information structure */
 	ramdisk_info_t *rd_info = kmalloc(sizeof(ramdisk_info_t));
-	rd_info->location = location;
-	rd_info->size 	  = size;
+	rd_info->location       = location;
+	rd_info->size           = size;
 
-	disk_t *disk_info 	  = kmalloc(sizeof(disk_t));
-	disk_info->type 	  = DISK_TYPE_RAMDISK;
-	disk_info->name 	  = "Initrd";
-	disk_info->drive_info = (void*) rd_info;
-	disk_info->read 	  =	&ramdisk_read;
-	disk_info->write 	  = &ramdisk_write;
-	disk_info->next 	  = 0;
-	disk_info->block_size = 0;	/* Not necesairy */
+	disk_t *disk_info     = kmalloc(sizeof(disk_t));
+	disk_info->type       = DISK_TYPE_RAMDISK;
+	disk_info->name       = "Initrd";
+	disk_info->drive_info = (void *) rd_info;
+	disk_info->read       = &ramdisk_read;
+	disk_info->write      = &ramdisk_write;
+	disk_info->next       = 0;
+	disk_info->block_size = 0; /* Not necesairy */
 
 	/* Add the ramdisk disk into the drive list */
 	add_disk(disk_info);

@@ -1,27 +1,28 @@
-#include <fs/vfs.h>
-#include <fs/vfs_node.h>
+#include <debug.h>
 #include <drivers/disk.h>
 #include <drivers/ramdisk.h>
-#include <fs/filedescriptor.h>
-#include <fs/ext2/ext2.h>
-#include <fs/dirent.h>
-#include <fs/fs.h>
-#include <mm/heap.h>
-#include <libk/string.h>
 #include <errno.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <fs/dirent.h>
+#include <fs/ext2/ext2.h>
+#include <fs/filedescriptor.h>
+#include <fs/fs.h>
+#include <fs/vfs.h>
+#include <fs/vfs_node.h>
 #include <kernel.h>
-#include <unistd.h>
 #include <libk/math.h>
-#include <debug.h>
+#include <libk/string.h>
+#include <mm/heap.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-vfs_node_t	   *g_vfs_root  = NULL;
-unsigned long 	g_nodecount = 0;
+vfs_node_t *  g_vfs_root  = NULL;
+unsigned long g_nodecount = 0;
 
-static ssize_t _vfs_read(struct file_descriptor* fd_struct, void *buf, size_t amount)
+static ssize_t _vfs_read(struct file_descriptor *fd_struct, void *buf,
+                         size_t amount)
 {
-	ssize_t ret = 0;
+	ssize_t     ret  = 0;
 	vfs_node_t *node = fd_struct->node;
 	if (node->read != 0)
 	{
@@ -88,7 +89,6 @@ ssize_t vfs_read(struct file *file, void *buf, size_t amount)
 	return _vfs_read(get_filedescriptor(file->filedescriptor), buf, amount);
 }
 
-
 /**
  * @brief      Writes to a vfs_node
  *
@@ -98,9 +98,10 @@ ssize_t vfs_read(struct file *file, void *buf, size_t amount)
  *
  * @return     amount of bytes written
  */
-static ssize_t _vfs_write(struct file_descriptor *fd_struct, const void *buf, size_t amount)
+static ssize_t _vfs_write(struct file_descriptor *fd_struct, const void *buf,
+                          size_t amount)
 {
-	ssize_t ret = 0;
+	ssize_t     ret  = 0;
 	vfs_node_t *node = fd_struct->node;
 	if (node->write != 0)
 	{
@@ -133,13 +134,12 @@ static ssize_t _vfs_write(struct file_descriptor *fd_struct, const void *buf, si
 ssize_t vfs_write_fd(int fd, const void *buf, size_t amount)
 {
 	struct file_descriptor *fd_struct = get_filedescriptor(fd);
-	
-	if (fd_struct  == 0)
+
+	if (fd_struct == 0)
 		return -1;
 
 	return _vfs_write(fd_struct, buf, amount);
 }
-
 
 /**
  * @brief      Writes to a file structure
@@ -157,21 +157,36 @@ ssize_t vfs_write(struct file *file, const void *buf, size_t amount)
 
 static int _get_type(int mode)
 {
-	if (S_ISDIR(mode)) {
+	if (S_ISDIR(mode))
+	{
 		return VFS_DIRECTORY;
-	} else if (S_ISCHR(mode)) {
+	}
+	else if (S_ISCHR(mode))
+	{
 		return VFS_CHARDEVICE;
-	} else if (S_ISLNK(mode)) {
+	}
+	else if (S_ISLNK(mode))
+	{
 		return VFS_SYMLINK;
-	} else if (S_ISFIFO(mode)) {
+	}
+	else if (S_ISFIFO(mode))
+	{
 		return VFS_PIPE;
-	} else if (S_ISBLK(mode)) {
+	}
+	else if (S_ISBLK(mode))
+	{
 		return VFS_BLOCKDEVICE;
-	} else if (S_ISLNK(mode)) {
+	}
+	else if (S_ISLNK(mode))
+	{
 		return VFS_SYMLINK;
-	} else if (S_ISSOCK(mode)) {
+	}
+	else if (S_ISSOCK(mode))
+	{
 		return VFS_SOCKET;
-	} else {
+	}
+	else
+	{
 		return VFS_FILE;
 	}
 }
@@ -186,7 +201,7 @@ static vfs_node_t *_find_dir_path(const char *nodepath)
 		path[strlen(path) - 1] = '\0';
 
 	char *cutoff = strchr_r(path, '/');
-	*cutoff = '\0';
+	*cutoff      = '\0';
 
 	vfs_node_t *dir = vfs_find_path(path);
 	kfree(path);
@@ -210,37 +225,37 @@ static vfs_node_t *_create_node(const char *nodepath, int flags, mode_t mode)
 
 	node->type = _get_type(mode);
 	// @todo: permissions, uid, gid
-	node->id = g_nodecount++;
+	node->id      = g_nodecount++;
 	node->fs_info = dir->fs_info;
-	
+
 	/* Connect the node into the directory */
 	node->parent = dir;
 
 	vfs_node_t *tmp = dir->dirlist;
 	while (tmp->nextnode)
 		tmp = tmp->nextnode;
-	
+
 	tmp->nextnode = node;
 	return node;
 }
 
 vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 {
-	vfs_node_t *node = vfs_find_path(path);
-	int node_created = 0;
+	vfs_node_t *node         = vfs_find_path(path);
+	int         node_created = 0;
 
 	/* if node was not found check if O_CREAT flag is set */
 	if (!node && flags & O_CREAT)
 	{
 		/*create the node */
-		node = _create_node(path, flags, mode);
+		node         = _create_node(path, flags, mode);
 		node_created = 1;
 
 		if (!node)
 			return NULL;
 
 		printk("node created\n");
-		
+
 		if (node->creat || (node->fs_info && node->fs_info->create_node))
 		{
 			int i;
@@ -255,7 +270,7 @@ vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 
 			if (newpath[strlen(newpath)] == '/')
 				newpath[strlen(newpath)] = '\0';
-			
+
 			int ret;
 			if (node->creat)
 				ret = node->offset = node->creat(node, newpath, flags);
@@ -265,6 +280,7 @@ vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 			if (ret == -1)
 			{
 				kfree(node);
+				kfree(newpath);
 				node = NULL;
 			}
 
@@ -276,38 +292,38 @@ vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 		printk("Not found %s\n", path);
 		return NULL;
 	}
- 
-	if (node->open && node->open(node, !node_created, flags, mode) == -1) 
+
+	if (node->open && node->open(node, !node_created, flags, mode) == -1)
 		return NULL;
 
 	return node;
 }
 
 int _vfs_stat(vfs_node_t *node, mode_t mode, struct stat *statbuf)
-{	
+{
 	if (!node)
 		return -1;
 
 	/* See man stat(2) for these values */
-	statbuf->st_dev = 0;						/* @todo: What is the st_dev ? */
-	statbuf->st_ino = node->id;
-	statbuf->st_mode = (mode_t) node->type | mode;
+	statbuf->st_dev   = 0; /* @todo: What is the st_dev ? */
+	statbuf->st_ino   = node->id;
+	statbuf->st_mode  = (mode_t) node->type | mode;
 	statbuf->st_nlink = node->nlink;
-	statbuf->st_uid	= node->uid;
-	statbuf->st_gid = node->gid;
-	statbuf->st_rdev = 0;						/* @todo: rdev number in vfs nodes ? see man stat(2) */
-	statbuf->st_size = node->filelength;
+	statbuf->st_uid   = node->uid;
+	statbuf->st_gid   = node->gid;
+	statbuf->st_rdev =
+		0; /* @todo: rdev number in vfs nodes ? see man stat(2) */
+	statbuf->st_size    = node->filelength;
 	statbuf->st_blksize = node->fs_info->block_size;
-	statbuf->st_blocks = roundup(node->filelength, 512);
+	statbuf->st_blocks  = roundup(node->filelength, 512);
 	/* @todo: access times in stat struct */
 	return 0;
 }
 
-
 int vfs_fstat(int fd, struct stat *statbuf)
 {
 	struct file_descriptor *fd_struct = get_filedescriptor(fd);
-	
+
 	if (fd_struct)
 		return _vfs_stat(fd_struct->node, fd_struct->mode, statbuf);
 
@@ -316,9 +332,9 @@ int vfs_fstat(int fd, struct stat *statbuf)
 
 int vfs_stat(const char *pathname, struct stat *statbuf)
 {
-	vfs_node_t *node = vfs_find_path(pathname);
+	vfs_node_t *            node      = vfs_find_path(pathname);
 	struct file_descriptor *fd_struct = get_filedescriptor_from_node(node);
-	
+
 	if (fd_struct)
 		return _vfs_stat(node, fd_struct->mode, statbuf);
 
@@ -362,7 +378,7 @@ DIR *_vfs_opendir(vfs_node_t *node)
 
 	return 0;
 }
- #include <libk/string.h>
+#include <libk/string.h>
 /**
  * @brief      Open a file descriptor
  *
@@ -372,14 +388,14 @@ DIR *_vfs_opendir(vfs_node_t *node)
  *
  * @return     Filedescriptor on success
  */
-int vfs_open_fd(const char* path, int flags, int mode)
+int vfs_open_fd(const char *path, int flags, int mode)
 {
 	vfs_node_t *node;
 	if (strcmp(path, "/testout.asm") == 0)
-		node = get_filedescriptor(1)->node; 
+		node = get_filedescriptor(1)->node;
 	else
-	 	node = _vfs_open(path, flags, mode);
-	
+		node = _vfs_open(path, flags, mode);
+
 	if (!node)
 		return -1;
 
@@ -394,7 +410,6 @@ int vfs_open_fd(const char* path, int flags, int mode)
 	return fd;
 }
 
-
 /**
  * @brief      Opens a vfs node
  *
@@ -407,44 +422,45 @@ int vfs_open_fd(const char* path, int flags, int mode)
 struct file *vfs_open(const char *path, int flags, int mode)
 {
 	vfs_node_t *node = _vfs_open(path, flags, mode);
-	
+
 	if (node == 0)
 		return 0;
-	
+
 	int fd = register_filedescriptor(node, mode);
 
-	if (fd == -1) {
+	if (fd == -1)
+	{
 		return 0;
 	}
 
-	struct file *file = (struct file*) kmalloc(sizeof(file));
-	if (file == 0) {
+	struct file *file = (struct file *) kmalloc(sizeof(file));
+	if (file == 0)
+	{
 		return 0;
 	}
-	file->vfs_node = node;
+	file->vfs_node       = node;
 	file->filedescriptor = fd;
-	file->filesize = node->filelength;
+	file->filesize       = node->filelength;
 	return file;
 }
 
-char *vfs_get_name(const char*path)
+char *vfs_get_name(const char *path)
 {
-	int pathlen = strlen(path);
-	char *tmp = kmalloc(pathlen);
+	int   pathlen = strlen(path);
+	char *tmp     = kmalloc(pathlen);
 	memcpy(tmp, path, pathlen);
 
-	if (path[pathlen-1] == '/')
+	if (path[pathlen - 1] == '/')
 	{
-		tmp[pathlen-1] = '\0';
+		tmp[pathlen - 1] = '\0';
 		pathlen--;
 	}
-	
 
 	for (int i = pathlen; i != 0; i--)
 	{
 		if (tmp[i] == '/')
 		{
-			return &tmp[i+1];
+			return &tmp[i + 1];
 		}
 	}
 	kfree(tmp);
@@ -454,16 +470,16 @@ char *vfs_get_name(const char*path)
 
 int vfs_link_node_vfs(const char *path, vfs_node_t *node)
 {
-	int pathlen = strlen(path);
-	char *tmp = kmalloc(pathlen);
+	int   pathlen = strlen(path);
+	char *tmp     = kmalloc(pathlen);
 	memcpy(tmp, path, pathlen);
 
-	if (path[pathlen-1] == '/')
+	if (path[pathlen - 1] == '/')
 	{
-		tmp[pathlen-1] = '\0';
+		tmp[pathlen - 1] = '\0';
 		pathlen--;
 	}
-	
+
 	vfs_node_t *dir;
 
 	for (int i = pathlen; i != 0; i--)
@@ -471,7 +487,7 @@ int vfs_link_node_vfs(const char *path, vfs_node_t *node)
 		if (tmp[i] == '/')
 		{
 			tmp[i] = '\0';
-			dir = vfs_find_path(tmp);
+			dir    = vfs_find_path(tmp);
 		}
 	}
 
@@ -481,10 +497,10 @@ int vfs_link_node_vfs(const char *path, vfs_node_t *node)
 	node->parent = dir;
 
 	vfs_node_t *ntmp = dir->dirlist;
-	
+
 	while (ntmp->nextnode != 0)
 		ntmp = ntmp->nextnode;
-	
+
 	ntmp->nextnode = node;
 
 	kfree(tmp);
@@ -516,10 +532,12 @@ int vfs_close(struct file *file)
 {
 	close_filedescriptor(file->filedescriptor);
 	int ret = 0;
-	if (file->vfs_node->close != 0) {
+	if (file->vfs_node->close != 0)
+	{
 		ret = file->vfs_node->close(file->vfs_node);
 	}
-	if (kfree(file) == -1) {
+	if (kfree(file) == -1)
+	{
 		return -1;
 	}
 
@@ -536,16 +554,15 @@ int vfs_close(struct file *file)
 int vfs_close_fd(int fd)
 {
 	vfs_node_t *node = get_filedescriptor_node(fd);
-	
+
 	if (node == 0)
 		return -1;
-	
+
 	else if (node->close != 0)
 		node->close(node);
-	
+
 	return close_filedescriptor(fd);
 }
-
 
 /**
  * @brief      Reads the contents from a directory stream
@@ -558,7 +575,6 @@ struct dirent *vfs_readdir(DIR *dirstream)
 {
 	if (dirstream && dirstream->fs_info && dirstream->fs_info->dir_read)
 		return dirstream->fs_info->dir_read(dirstream);
-
 
 	return 0;
 }
@@ -587,7 +603,7 @@ DIR *vfs_opendir(const char *filepath)
  */
 vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
 {
-	#if 0
+#if 0
 	DIR *dirp = node->opendir(node);
 
 	if (dirp == 0) {
@@ -617,7 +633,7 @@ vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
 	}
 	return 0;
 
-	#endif
+#endif
 
 	vfs_node_t *tmp = node->dirlist;
 
@@ -632,17 +648,16 @@ vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
 	return 0;
 }
 
-
 /**
  * @brief      Finds the inode pointing to a specific path
  *
- * @param      path  The path 
+ * @param      path  The path
  *
  * @return     The inode to look for
  */
 vfs_node_t *vfs_find_path(const char *path)
 {
-	#if 0
+#if 0
 	char *buf = (char*) kmalloc(strlen(path)+1);
 	memset(buf, 0, strlen(path)+1);
 	int i = 1;
@@ -672,26 +687,29 @@ vfs_node_t *vfs_find_path(const char *path)
 		errno = ENOENT;
 	}
 	return node;
-	#endif
+#endif
 
 	/**
-	 * 
+	 *
 	 * It works pretty simple
-	 * 
+	 *
 	 * - if the path starts with a / -> its an absolute path
-	 * - if the path doesn't start with a / -> its a path relative of the current working directory
-	 * 
+	 * - if the path doesn't start with a / -> its a path relative of the
+	 * current working directory
+	 *
 	 */
 
 	if (path[0] != '/')
 	{
-		printk(KERN_WARNING "Kernel doesn't support relative filepaths yet, thus '%s' was not valid", path);
+		printk(KERN_WARNING "Kernel doesn't support relative filepaths yet, "
+		                    "thus '%s' was not valid",
+		       path);
 	}
 
-	size_t pathlength 	= strlen(path) + 1;
-	char  *buffer 		= kmalloc(pathlength);
-	size_t bufferiter 	= 0;
-	vfs_node_t *node 	= g_vfs_root;
+	size_t      pathlength = strlen(path) + 1;
+	char *      buffer     = kmalloc(pathlength);
+	size_t      bufferiter = 0;
+	vfs_node_t *node       = g_vfs_root;
 
 	if (!node)
 	{
@@ -706,9 +724,10 @@ vfs_node_t *vfs_find_path(const char *path)
 	{
 		if (path[i] == '/' || path[i] == '\0')
 		{
-			/* @fixme: Whenever we want to find '/' we can't because it looks in the subdirectory of that node anyway we need to fix that */
+			/* @fixme: Whenever we want to find '/' we can't because it looks in
+			 * the subdirectory of that node anyway we need to fix that */
 			buffer[bufferiter++] = '\0';
-			node = _vfs_path_find(node, buffer);
+			node                 = _vfs_path_find(node, buffer);
 
 			if (!node)
 			{
@@ -723,112 +742,123 @@ vfs_node_t *vfs_find_path(const char *path)
 			}
 			else
 			{
-				memset(buffer, 0, bufferiter+1);
+				memset(buffer, 0, bufferiter + 1);
 				bufferiter = 0;
 			}
 		}
 		else
 			buffer[bufferiter++] = path[i];
-		
 	}
-
+	kfree(buffer);
 	errno = ENOENT;
 	return 0;
 }
 
-vfs_node_t *vfs_setupnode(char *name, uint8_t type, uint16_t permissions, uid_t uid, gid_t gid, size_t size, offset_t offset,
-						  open_fpointer open, close_fpointer close, creat_fpointer creat, read_fpointer read, write_fpointer write,
-						  open_dir_fpointer opendir, read_dir_fpointer readdir, filesystem_t *fs_info)
+vfs_node_t *vfs_setupnode(char *name, uint8_t type, uint16_t permissions,
+                          uid_t uid, gid_t gid, size_t size, offset_t offset,
+                          open_fpointer open, close_fpointer close,
+                          creat_fpointer creat, read_fpointer read,
+                          write_fpointer write, open_dir_fpointer opendir,
+                          read_dir_fpointer readdir, filesystem_t *fs_info)
 {
-	vfs_node_t *node = (vfs_node_t*) kmalloc(sizeof(vfs_node_t));
+	vfs_node_t *node = (vfs_node_t *) kmalloc(sizeof(vfs_node_t));
 	memset(node, 0, sizeof(vfs_node_t));
-	node->name = name;
-	node->type = type;
+	node->name        = name;
+	node->type        = type;
 	node->permissions = permissions;
-	node->uid = uid;
-	node->gid = gid;
-	node->id = g_nodecount++;
-	node->filelength = size;
-	node->fs_info = fs_info;
-	node->offset = offset;
-	node->open = open;
-	node->close = close;
-	node->creat = creat;
-	node->read = read;
-	node->write = write;
-	node->opendir = opendir;
-	node->readdir = readdir;
+	node->uid         = uid;
+	node->gid         = gid;
+	node->id          = g_nodecount++;
+	node->filelength  = size;
+	node->fs_info     = fs_info;
+	node->offset      = offset;
+	node->open        = open;
+	node->close       = close;
+	node->creat       = creat;
+	node->read        = read;
+	node->write       = write;
+	node->opendir     = opendir;
+	node->readdir     = readdir;
 	// @todo: the rest
-	
+
 	return node;
 }
 
 /**
- * @brief      Recursive function that loops over the filesystem and allocates all the nodes
+ * @brief      Recursive function that loops over the filesystem and allocates
+ * all the nodes
  *
  * @param[in]  start      From what inode this loop should start
  * @param[in]  rootnode   Whether this is the top of the filesystem or not
  * @param      startnode  The node to start the linked list from
  * @param      fs_info    The file system information
  */
-void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, filesystem_t *fs_info)
-{	
+void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode,
+                          filesystem_t *fs_info)
+{
 	/* If it's the root inode, add it as the first in the list */
-	if (rootnode) 
+	if (rootnode)
 	{
-		g_vfs_root = (vfs_node_t*) fs_info->fs_makenode(start, "", g_nodecount++, fs_info);
+		g_vfs_root = (vfs_node_t *) fs_info->fs_makenode(
+			start, "", g_nodecount++, fs_info);
 		g_vfs_root->parent = g_vfs_root;
-		startnode = g_vfs_root;
+		startnode          = g_vfs_root;
 	}
-	
+
 	/* Opens the given inode directory */
 	DIR *dirp = fs_info->dir_open(start, fs_info);
 	if (dirp == 0)
 	{
 		return;
 	}
-	int first = 1;
+	int            first = 1;
 	struct dirent *dir;
-	vfs_node_t *prevnode = startnode;
-	vfs_node_t *node;
+	vfs_node_t *   prevnode = startnode;
+	vfs_node_t *   node;
 
 	/* Read all the entries in the opened inode */
 	while ((dir = fs_info->dir_read(dirp)) != 0)
 	{
 		/* The files . and .. shouldn't be added in the vfs */
-		//if (_strcmpI(dir->d_name, ".") != 0 && _strcmpI("..", dir->d_name) != 0)
+		// if (_strcmpI(dir->d_name, ".") != 0 && _strcmpI("..", dir->d_name) !=
+		// 0)
 		//{
-			/* Make name string */
-			char *name = kmalloc(strlen(dir->d_name)+1);
-			memcpy(name, &dir->d_name, strlen(dir->d_name));
-			name[strlen(dir->d_name)] = '\0';
+		/* Make name string */
+		char *name = kmalloc(strlen(dir->d_name) + 1);
+		memcpy(name, &dir->d_name, strlen(dir->d_name));
+		name[strlen(dir->d_name)] = '\0';
 
-			/* Create a new inode */
-			//printk("Inode %u name %s id %i\n", dir->d_ino, name, g_nodecount, fs_info);
-			node = (vfs_node_t*) fs_info->fs_makenode(dir->d_ino, name, g_nodecount++, fs_info);
+		/* Create a new inode */
+		// printk("Inode %u name %s id %i\n", dir->d_ino, name, g_nodecount,
+		// fs_info);
+		node = (vfs_node_t *) fs_info->fs_makenode(dir->d_ino, name,
+		                                           g_nodecount++, fs_info);
 
-			if (node == 0) 
-			{
-				continue;
-			}
+		if (node == 0)
+		{
+			continue;
+		}
 
-			node->parent = prevnode;
+		node->parent = prevnode;
 
-			if (first)
-			{
-				prevnode->dirlist = node;
-				first = 0;
-			} else {
-				prevnode->nextnode = node;
-			}
+		if (first)
+		{
+			prevnode->dirlist = node;
+			first             = 0;
+		}
+		else
+		{
+			prevnode->nextnode = node;
+		}
 
-			if (node->type == VFS_DIRECTORY && (strcmp(dir->d_name, ".") && strcmp("..", dir->d_name))) {
-				/* Recursive function */
-				loop_over_filesystem(node->offset, 0, node, fs_info);
-			}
-			prevnode = node;
+		if (node->type == VFS_DIRECTORY
+		    && (strcmp(dir->d_name, ".") && strcmp("..", dir->d_name)))
+		{
+			/* Recursive function */
+			loop_over_filesystem(node->offset, 0, node, fs_info);
+		}
+		prevnode = node;
 		//}
-
 	}
 
 	fs_info->dir_close(dirp);
@@ -836,7 +866,7 @@ void loop_over_filesystem(uint32_t start, int rootnode, vfs_node_t *startnode, f
 
 int check_vfs_initialised()
 {
-	return g_vfs_root ? 1:0;
+	return g_vfs_root ? 1 : 0;
 }
 
 /* @TODO: this is not how this system should work at all (see note below) */
@@ -851,15 +881,15 @@ int init_vfs()
 	g_nodecount = 0;
 	/* @todo: hard coded entry of fs is REALY BAD here */
 	g_current_fs = init_ext2_filesystem("EXT2FS", 1048576, disk_list);
-	
+
 	if (g_current_fs == 0)
 	{
 		return -1;
 	}
 
 	g_vfs_root = 0;
-	//init_vfs_lookuptable(g_vfs_root);
+	// init_vfs_lookuptable(g_vfs_root);
 
-	loop_over_filesystem(2, 1,  g_vfs_root, g_current_fs);
+	loop_over_filesystem(2, 1, g_vfs_root, g_current_fs);
 	return 0;
 }

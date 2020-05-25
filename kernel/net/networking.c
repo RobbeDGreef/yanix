@@ -1,22 +1,26 @@
-#include <net/networking.h>
-#include <net/ethernet.h>
-#include <net/arp.h>
 #include <mm/heap.h>
+#include <net/arp.h>
+#include <net/ethernet.h>
+#include <net/networking.h>
 
 networking_device_t *g_networking_devices = 0;
 
 void add_networking_device(networking_device_t *netdev)
 {
-	if (g_networking_devices == 0) {
+	if (g_networking_devices == 0)
+	{
 		g_networking_devices = netdev;
-	} else {
+	}
+	else
+	{
 		networking_device_t *tmp = g_networking_devices;
-		while ((tmp = tmp->next) != 0) { /* loop over all devices */ }
+		while ((tmp = tmp->next) != 0)
+		{ /* loop over all devices */
+		}
 		tmp->next = netdev;
 	}
 	return;
 }
-
 
 /**
  * @brief      Sends a raw packet.
@@ -34,21 +38,23 @@ ssize_t send_raw_packet(networking_device_t *netdev, void *packet, size_t size)
 
 #include <debug.h>
 
-ssize_t send_ethernet_packet(char *dest_mac, uint16_t ether_type, void *payload, size_t size)
+ssize_t send_ethernet_packet(char *dest_mac, uint16_t ether_type, void *payload,
+                             size_t size)
 {
-	void *packet = create_ethernet_packet(g_networking_devices, dest_mac, ether_type, payload, size);
+	void *packet = create_ethernet_packet(g_networking_devices, dest_mac,
+	                                      ether_type, payload, size);
 	send_raw_packet(g_networking_devices, packet, size + ETHERNET_LAYER_SIZE);
-	return  size + ETHERNET_LAYER_SIZE;
+	return size + ETHERNET_LAYER_SIZE;
 }
 
-#define ETHER_LAYER 		(1 << 0)
-#define IPV4_LAYER			(1 << 1)
-#define IPV6_LAYER 			(1 << 2)
-#define TCP_LAYER			(1 << 3)
-#define ARP_LAYER 			(1 << 4)
-#define UDP_LAYER			(1 << 5)
+#define ETHER_LAYER (1 << 0)
+#define IPV4_LAYER  (1 << 1)
+#define IPV6_LAYER  (1 << 2)
+#define TCP_LAYER   (1 << 3)
+#define ARP_LAYER   (1 << 4)
+#define UDP_LAYER   (1 << 5)
 
-#define MIN_PAYLOAD_SIZE 	46
+#define MIN_PAYLOAD_SIZE 46
 
 #include <libk/string.h>
 
@@ -128,4 +134,4 @@ void *build_packet(networking_device_t *netdev, char *receiving_mac, uint32_t la
 	return packet;
 }
 
-#endif 
+#endif

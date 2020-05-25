@@ -1,11 +1,11 @@
-#include <cpu/cpu.h>
 #include <cpu/arch_timer.h>
-#include <libk/string.h>
-#include <proc/tasking.h>
-#include <kernel.h>
-#include <stdint.h>
+#include <cpu/cpu.h>
 #include <debug.h>
+#include <kernel.h>
+#include <libk/string.h>
 #include <mm/heap.h>
+#include <proc/tasking.h>
+#include <stdint.h>
 
 #define TIMER_FREQ 250
 
@@ -14,9 +14,9 @@
  */
 struct time_info
 {
-	volatile unsigned long 	ticks_since_boot;
-	unsigned long 			period;				/* 1000 / frequency, milliseconds */
-	unsigned long			frequency;
+	volatile unsigned long ticks_since_boot;
+	unsigned long          period; /* 1000 / frequency, milliseconds */
+	unsigned long          frequency;
 };
 
 struct time_info *timer_info;
@@ -34,7 +34,7 @@ static void timer_callback(registers_t *regs)
 }
 
 /**
- * @brief      Get the period of the timer 
+ * @brief      Get the period of the timer
  *
  * @return     The period of the timer
  */
@@ -56,7 +56,7 @@ unsigned long timer_get_frequency()
 /**
  * @brief      Get the amount of ticks since last timer reset (boot)
  *
- * @return     The amount of ticks 
+ * @return     The amount of ticks
  */
 unsigned long timer_get_cur_ticks()
 {
@@ -75,5 +75,4 @@ void init_timer()
 
 	timer_info->frequency = arch_timer_get_frequency();
 	timer_info->period    = 1000 / arch_timer_get_frequency();
-
 }

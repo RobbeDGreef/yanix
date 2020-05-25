@@ -1,6 +1,5 @@
-#include <cpu/pit.h>
 #include <cpu/cpu.h>
-
+#include <cpu/pit.h>
 
 /**
  * @brief      Initialises the architechture dependand timer

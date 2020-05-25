@@ -1,8 +1,8 @@
-#include <stdint.h>
 #include <drivers/video/vesa.h>
 #include <drivers/video/vga.h>
 #include <drivers/video/video.h>
 #include <mm/heap.h>
+#include <stdint.h>
 
 unsigned int g_video_mode;
 
@@ -18,12 +18,18 @@ video_driver_t *g_video_driver;
 int set_video_mode(int mode)
 {
 	g_video_mode = mode;
-	// @todo: This is a bad system, this system should find the appropriate driver dynamically instead of hardcoded like this 
-	if (mode == VIDEO_MODE_TERM) {
+	// @todo: This is a bad system, this system should find the appropriate
+	// driver dynamically instead of hardcoded like this
+	if (mode == VIDEO_MODE_TERM)
+	{
 		/* initialise vga driver */
-		hook_vga_to_video(g_video_driver);	/* @todo: Sublime removed the VGA system so we gotta rewrite it because it somehow wasn't backed up :( */
-
-	} else if (mode == VIDEO_MODE_VESA) {
+		hook_vga_to_video(
+			g_video_driver); /* @todo: Sublime removed the VGA system so we
+		                        gotta rewrite it because it somehow wasn't
+		                        backed up :( */
+	}
+	else if (mode == VIDEO_MODE_VESA)
+	{
 		hook_vesa_to_video(g_video_driver);
 	}
 	return 0;
@@ -36,7 +42,7 @@ int set_video_mode(int mode)
  */
 int get_video_mode()
 {
-	return g_video_mode; 
+	return g_video_mode;
 }
 
 /**
@@ -113,9 +119,10 @@ int video_get_screen_fb()
  * @param[in]  frontgroundcolor  The frontgroundcolor
  * @param[in]  backgroundcolor   The backgroundcolor
  */
-void video_draw_char(char c, int x, int y, int frontgroundcolor, int backgroundcolor)
+void video_draw_char(char c, int x, int y, int frontgroundcolor,
+                     int backgroundcolor)
 {
-	if (g_video_driver->draw_char != 0) 
+	if (g_video_driver->draw_char != 0)
 		g_video_driver->draw_char(c, x, y, frontgroundcolor, backgroundcolor);
 }
 
@@ -143,12 +150,13 @@ void video_clear_screen()
 /**
  * @brief      Updates the cursor location on the screen
  *
- * @param[in]  x     New cursor x location 
+ * @param[in]  x     New cursor x location
  * @param[in]  y     New cursor y location
  */
 void video_update_cursor(int x, int y)
 {
-	if (g_video_driver != 0 && g_video_driver->update_cursor != 0) {
+	if (g_video_driver != 0 && g_video_driver->update_cursor != 0)
+	{
 		g_video_driver->update_cursor(x, y);
 	}
 }

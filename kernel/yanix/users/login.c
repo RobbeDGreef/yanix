@@ -1,14 +1,14 @@
-#include <yanix/user.h>
 #include <fs/vfs.h>
 #include <kernel.h>
 #include <libk/string.h>
 #include <proc/tasking.h>
+#include <yanix/user.h>
 
 char *getline()
 {
 	char buf[LOGIN_LEN];
-	int len = vfs_read_fd(0, buf, LOGIN_LEN);
-	buf[len-1] = '\0';
+	int  len     = vfs_read_fd(0, buf, LOGIN_LEN);
+	buf[len - 1] = '\0';
 
 	return strdup(buf);
 }
@@ -21,7 +21,7 @@ int login()
 		char *login = getline();
 		printk("Password: ");
 		char *passwd = getline();
-		
+
 		printk("'%s' '%s'\n", login, passwd);
 		if (!user_login(login, passwd))
 			break;

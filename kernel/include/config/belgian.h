@@ -3,9 +3,9 @@
 
 #define KeyboardListMax 58
 
-extern const char NormalKeyList[];
-extern const char ShiftKeyList[];
-extern const char AltGrKeyList[];
-extern const char* KeyNames[];
+extern const char  NormalKeyList[];
+extern const char  ShiftKeyList[];
+extern const char  AltGrKeyList[];
+extern const char *KeyNames[];
 
 #endif

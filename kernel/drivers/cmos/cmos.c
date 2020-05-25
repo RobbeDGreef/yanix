@@ -1,7 +1,7 @@
 #include <cpu/io.h>
 
-#define CMOS_SELECT_PORT	0x70
-#define CMOS_IO_PORT 		0x71
+#define CMOS_SELECT_PORT 0x70
+#define CMOS_IO_PORT     0x71
 
 /**
  * @brief      Function read from cmos address
@@ -12,7 +12,7 @@
  */
 int cmos_read(int addr)
 {
-	port_byte_out(CMOS_SELECT_PORT, 0x80|addr);
+	port_byte_out(CMOS_SELECT_PORT, 0x80 | addr);
 	return port_byte_in(CMOS_IO_PORT);
 }
 
@@ -25,5 +25,5 @@ int cmos_read(int addr)
  */
 int bcd_to_bin(int val)
 {
-	return (val&15) + ((val>>4)*10);
+	return (val & 15) + ((val >> 4) * 10);
 }

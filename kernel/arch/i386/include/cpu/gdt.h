@@ -15,5 +15,4 @@ void init_descriptor_tables();
  */
 void tss_set_kernel_stack(uint32_t stack);
 
-
 #endif

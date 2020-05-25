@@ -1,5 +1,5 @@
-#include <cpu/io.h>
 #include <cpu/cpu.h>
+#include <cpu/io.h>
 #include <drivers/keyboard.h>
 
 #define PS2_DATA_PORT 0x60
@@ -12,6 +12,6 @@ static void keyboard_callback(registers_t *regs)
 
 int init_ps2_keyboard()
 {
-    arch_register_interrupt_handler(IRQ1, &keyboard_callback);
-    return 0;
+	arch_register_interrupt_handler(IRQ1, &keyboard_callback);
+	return 0;
 }

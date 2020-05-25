@@ -1,7 +1,6 @@
 #ifndef KFUNCTIONS_H
 #define KFUNCTIONS_H
 
-
 void message(char *message, char code);
 void tick_sleep(unsigned int amount);
 void sleep(unsigned int milliseconds);

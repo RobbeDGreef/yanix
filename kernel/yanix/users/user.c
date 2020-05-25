@@ -1,12 +1,12 @@
-#include <yanix/user.h>
-#include <fs/vfs.h>
-#include <fcntl.h>
-#include <libk/string.h>
-#include <libk/stdlib.h>
-#include <libk/stdio.h>
-#include <mm/heap.h>
-#include <errno.h>
 #include <debug.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <fs/vfs.h>
+#include <libk/stdio.h>
+#include <libk/stdlib.h>
+#include <libk/string.h>
+#include <mm/heap.h>
+#include <yanix/user.h>
 
 struct user *g_current_user;
 
@@ -21,8 +21,8 @@ int evalpasswd(char *given, char *correct)
 int user_login(char *name, char *passwd)
 {
 	char *filebuf = kmalloc(BUFSIZ);
-	char *line = kmalloc(LOGIN_LEN);
-	int namelen = strlen(name);
+	char *line    = kmalloc(LOGIN_LEN);
+	int   namelen = strlen(name);
 
 	struct file *fp = vfs_open(USERFILE_LOCATION, 0, 0);
 	if (!fp)
@@ -35,13 +35,14 @@ int user_login(char *name, char *passwd)
 	vfs_read_fd(fp->filedescriptor, filebuf, BUFSIZ);
 
 	int seek = 0;
-	int ret = 0;
-	while ((ret = readline(filebuf + seek, BUFSIZ - seek, line, LOGIN_LEN)) != EOF)
+	int ret  = 0;
+	while ((ret = readline(filebuf + seek, BUFSIZ - seek, line, LOGIN_LEN))
+	       != EOF)
 	{
 		char *buf = line;
 		if (!memcmp(buf, name, namelen) && buf[namelen] == ':')
 		{
-			if (evalpasswd(passwd, buf + namelen+1))
+			if (evalpasswd(passwd, buf + namelen + 1))
 			{
 				errno = EACCES;
 				kfree(filebuf);
@@ -55,26 +56,26 @@ int user_login(char *name, char *passwd)
 
 			int end = strlen(name) + strlen(passwd) + 2;
 			buf += end;
-			g_current_user->uid  = atoi(buf);
-			buf = strchr(buf , ':') + 1;
-			g_current_user->gid  = atoi(buf);
-			buf = strchr(buf, ':') + 1;
-			g_current_user->name = strdup(name);
-			g_current_user->gcos = strdup_s(buf, strchr(buf, ':') - buf);
-			buf = strchr(buf, ':') + 1;
-			g_current_user->home = strdup_s(buf, strchr(buf, ':') - buf);
-			buf = strchr(buf, ':') + 1;
+			g_current_user->uid   = atoi(buf);
+			buf                   = strchr(buf, ':') + 1;
+			g_current_user->gid   = atoi(buf);
+			buf                   = strchr(buf, ':') + 1;
+			g_current_user->name  = strdup(name);
+			g_current_user->gcos  = strdup_s(buf, strchr(buf, ':') - buf);
+			buf                   = strchr(buf, ':') + 1;
+			g_current_user->home  = strdup_s(buf, strchr(buf, ':') - buf);
+			buf                   = strchr(buf, ':') + 1;
 			g_current_user->shell = strdup(buf);
-			
+
 			kfree(filebuf);
 			kfree(line);
 			vfs_close(fp);
 			return 0;
 		}
-		
+
 		seek += ret;
 	}
-	
+
 	kfree(filebuf);
 	kfree(line);
 	vfs_close(fp);

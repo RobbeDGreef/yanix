@@ -1,11 +1,10 @@
-#include <mm/paging.h>
-#include <mm/heap.h>
-#include <proc/tasking.h>
-#include <proc/arch_tasking.h>
 #include <cpu/interrupts.h>
+#include <mm/heap.h>
+#include <mm/paging.h>
+#include <proc/arch_tasking.h>
+#include <proc/tasking.h>
 
 #include <debug.h>
-
 
 struct task_list
 {
@@ -22,12 +21,12 @@ struct task_list sleep_list;
 /* These tasks are currently blocked */
 struct task_list blocked_list;
 
-static unsigned int 	scheduler_locks = 0;
+static unsigned int     scheduler_locks = 0;
 static volatile task_t *g_runningtask   = 0;
 
 task_t *get_current_task()
 {
-	return (task_t*) g_runningtask;
+	return (task_t *) g_runningtask;
 }
 
 /**
@@ -64,7 +63,7 @@ void set_list(struct task_list *list, task_t *task)
 void add_to_list(struct task_list *list, task_t *task)
 {
 	task_t *tmp = list->head;
-	task->next = NULL;
+	task->next  = NULL;
 
 	if (!tmp)
 	{
@@ -74,7 +73,7 @@ void add_to_list(struct task_list *list, task_t *task)
 
 	while (tmp->next)
 		tmp = tmp->next;
-	
+
 	tmp->next = task;
 }
 
@@ -101,21 +100,20 @@ int remove_from_list(struct task_list *list, task_t *task)
 			return 0;
 		}
 		prev = tmp;
-		tmp = tmp->next;
+		tmp  = tmp->next;
 	}
 	return -1;
 }
 
 task_t *get_next_from_list(struct task_list *list)
 {
-
 	task_t *next = list->next;
 
 	if (next)
 		list->next = list->next->next;
 	else
 	{
-		next = list->head;
+		next       = list->head;
 		list->next = list->head->next;
 	}
 
@@ -151,7 +149,7 @@ task_t *find_task_in_list_by_pid(struct task_list *list, pid_t pid)
 task_t *find_task_by_pid(pid_t pid)
 {
 	task_t *ret = 0;
-	ret = find_task_in_list_by_pid(&ready_list, pid);
+	ret         = find_task_in_list_by_pid(&ready_list, pid);
 	if (ret)
 		return ret;
 
@@ -172,8 +170,8 @@ void add_task_to_queue(task_t *new_task)
 
 void switch_task(task_t *next)
 {
-	task_t *previous = (task_t*) g_runningtask;
-	
+	task_t *previous = (task_t *) g_runningtask;
+
 	if (previous == next)
 	{
 		return;
@@ -187,12 +185,12 @@ void switch_task(task_t *next)
 		return;
 	}
 
-	g_runningtask = next;
+	g_runningtask            = next;
 	g_runningtask->sliceused = 0;
 	/* @todo: maybe i need to set the task state here */
-	
+
 	set_current_dir(g_runningtask->directory);
-	//debug_printk("Arch switch to %x\n", g_runningtask->esp);
+	// debug_printk("Arch switch to %x\n", g_runningtask->esp);
 	arch_task_switch(next, previous);
 }
 
@@ -214,7 +212,7 @@ void schedule()
 	lock_scheduler();
 
 	task_t *next = get_next_task();
-	
+
 	if (next)
 	{
 		switch_task(next);
@@ -271,4 +269,3 @@ int task_resume(pid_t pid)
 	unlock_scheduler();
 	return 0;
 }
-

@@ -5,38 +5,39 @@
 #define VIDEO_MODE_VESA 1
 
 // Function pointers for drawing functions
-typedef void (*draw_char_fpointer)	(char c, int x, int y, int foregroundcolor, int backgroundcolor);
-typedef void (*draw_pixel_fpointer)	(int x, int y, int color);
-typedef void (*draw_rect_fpointer)	(int x, int y, int width, int height, int color);
-typedef void (*draw_line_fpointer)	(int x, int y, int x2, int y2, int color);
-typedef void (*clear_fpointer)		();
-typedef void (*clear_cell_fpointer) (int x, int y);
+typedef void (*draw_char_fpointer)(char c, int x, int y, int foregroundcolor,
+                                   int backgroundcolor);
+typedef void (*draw_pixel_fpointer)(int x, int y, int color);
+typedef void (*draw_rect_fpointer)(int x, int y, int width, int height,
+                                   int color);
+typedef void (*draw_line_fpointer)(int x, int y, int x2, int y2, int color);
+typedef void (*clear_fpointer)();
+typedef void (*clear_cell_fpointer)(int x, int y);
 typedef void (*updt_cursor_fpointer)(int x, int y);
 
-// Extra function pointers 
-typedef int  (*vga_to_full_fpointer)(int color);
+// Extra function pointers
+typedef int (*vga_to_full_fpointer)(int color);
 
 /* This will hold the functions of the video driver */
-typedef struct video_driver_s {
-	draw_pixel_fpointer 	draw_pixel;
-	draw_char_fpointer 		draw_char;
-	draw_rect_fpointer		draw_rect;
-	draw_line_fpointer 		draw_line;
-	clear_fpointer			clear;
-	clear_cell_fpointer		clear_cell;
-	updt_cursor_fpointer	update_cursor;
+typedef struct video_driver_s
+{
+	draw_pixel_fpointer  draw_pixel;
+	draw_char_fpointer   draw_char;
+	draw_rect_fpointer   draw_rect;
+	draw_line_fpointer   draw_line;
+	clear_fpointer       clear;
+	clear_cell_fpointer  clear_cell;
+	updt_cursor_fpointer update_cursor;
 
-	vga_to_full_fpointer	vga_to_full;
+	vga_to_full_fpointer vga_to_full;
 
-	unsigned int 			screen_width;
-	unsigned int 			screen_height;
-	unsigned int 			screen_bpp;
-	unsigned int 			screen_fb;
-	char 					*video_driver_name;
-	char 					*video_card_name;
+	unsigned int screen_width;
+	unsigned int screen_height;
+	unsigned int screen_bpp;
+	unsigned int screen_fb;
+	char *       video_driver_name;
+	char *       video_card_name;
 } video_driver_t;
-
-
 
 /**
  * @brief      Sets the video mode.
@@ -47,14 +48,12 @@ typedef struct video_driver_s {
  */
 int set_video_mode(int mode);
 
-
 /**
  * @brief      Gets the video mode.
  *
  * @return     The video mode.
  */
 int get_video_mode();
-
 
 /**
  * @brief      Initializes the video driver
@@ -74,14 +73,12 @@ int init_video(int video_mode);
  */
 int video_vga_to_rgb(int vga_color);
 
-
 /**
  * @brief      Returns the screen width
  *
  * @return     Screen width
  */
 int video_get_screen_width();
-
 
 /**
  * @brief      Returns the screen height
@@ -113,12 +110,13 @@ int video_get_screen_bpp();
  * @param[in]  frontgroundcolor  The frontgroundcolor
  * @param[in]  backgroundcolor   The backgroundcolor
  */
-void video_draw_char(char c, int x, int y, int frontgroundcolor, int backgroundcolor);
+void video_draw_char(char c, int x, int y, int frontgroundcolor,
+                     int backgroundcolor);
 
 /**
  * @brief      Updates the cursor location on the screen
  *
- * @param[in]  x     New cursor x location 
+ * @param[in]  x     New cursor x location
  * @param[in]  y     New cursor y location
  */
 void video_update_cursor(int x, int y);

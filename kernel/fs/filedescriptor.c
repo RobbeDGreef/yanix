@@ -1,17 +1,17 @@
 #if 0
-#include <mm/heap.h>
-#include <libk/string.h>
+	#include <libk/string.h>
+	#include <mm/heap.h>
 
-#include <fs/vfs_node.h>
-#include <fs/vfs.h>
-#include <fs/filedescriptor.h>
-#include <fs/pipe.h>
+	#include <fs/filedescriptor.h>
+	#include <fs/pipe.h>
+	#include <fs/vfs.h>
+	#include <fs/vfs_node.h>
 
-#include <yanix/tty_dev.h>
-#include <proc/tasking.h>
+	#include <proc/tasking.h>
+	#include <yanix/tty_dev.h>
 
-#include <stdint.h>
-#include <errno.h>
+	#include <errno.h>
+	#include <stdint.h>
 
 
 /*
@@ -161,27 +161,25 @@ vfs_node_t *get_filedescriptor_node(int fd)
 	return 0;
 }
 
-
 #endif
-
-
 
 /* New system */
 
 /**
- * 
+ *
  * We will have a global file locking table
- * 
- * every process has it's own filedescriptors, we will save them in a vector like struct
- * 
+ *
+ * every process has it's own filedescriptors, we will save them in a vector
+ * like struct
+ *
  */
 
-#include <fs/filedescriptor.h>
-#include <yanix/ds/fd_vector.h>
 #include <errno.h>
+#include <fs/filedescriptor.h>
 #include <kernel.h>
+#include <yanix/ds/fd_vector.h>
 
-struct file_lock 	*global_file_table;
+struct file_lock *global_file_table;
 
 int lock_file(vfs_node_t *node, pid_t pid)
 {
@@ -221,7 +219,7 @@ int register_filedescriptor(vfs_node_t *node, int mode)
 	fd_struct.mode = mode;
 	fd_struct.seek = 0;
 
-	return vector_add(get_current_task()->fds, fd_struct); 
+	return vector_add(get_current_task()->fds, fd_struct);
 }
 
 struct file_descriptor *get_filedescriptor(int fd)
@@ -246,7 +244,7 @@ struct file_descriptor *get_filedescriptor_from_node(vfs_node_t *node)
 vfs_node_t *get_filedescriptor_node(int fd)
 {
 	struct file_descriptor *fd_struct = get_filedescriptor(fd);
-	
+
 	if (!fd_struct)
 		return 0;
 
@@ -257,7 +255,7 @@ int close_filedescriptor(int fd)
 {
 	struct file_descriptor *fd_struct = get_filedescriptor(fd);
 
-	/* Checking if the filedescriptor is actually open */	
+	/* Checking if the filedescriptor is actually open */
 	if (!fd_struct)
 		return 0;
 
@@ -269,4 +267,3 @@ int init_filedescriptors()
 {
 	return 0;
 }
-

@@ -1,6 +1,5 @@
-#include <stdint.h>
 #include <stddef.h>
-
+#include <stdint.h>
 
 /*
 this library will hold a lot of functions with various purposes

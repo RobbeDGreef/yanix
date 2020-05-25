@@ -1,19 +1,20 @@
+#include <errno.h>
 #include <libk/string.h>
 #include <mm/heap.h>
 #include <stdarg.h>
 #include <yanix/env.h>
-#include <errno.h>
 #include <yanix/user.h>
 
 /**
- * @todo  	Environment variables should not be a hardcoded amount  
+ * @todo  	Environment variables should not be a hardcoded amount
  */
 #define ENVIRONMENT_AMOUNT 256
 
 size_t env_size(char **vars)
 {
 	size_t amount = 0;
-	while (vars[amount++] != 0);
+	while (vars[amount++] != 0)
+		;
 	return amount;
 }
 
@@ -35,14 +36,13 @@ char *make_uservar(char *string1, char *string2)
 char **make_envvars()
 {
 	struct user *curuser = get_current_user();
-	char **env = kmalloc_user(sizeof(char*)*ENVIRONMENT_AMOUNT);
-	memset(env, 0, sizeof(char*) * ENVIRONMENT_AMOUNT);
+	char **      env     = kmalloc_user(sizeof(char *) * ENVIRONMENT_AMOUNT);
+	memset(env, 0, sizeof(char *) * ENVIRONMENT_AMOUNT);
 	env[0] = make_uservar("USER=", curuser->name);
 	env[1] = make_uservar("HOME=", curuser->home);
 	env[2] = make_userstring("PATH=/bin");
 	return env;
 }
-
 
 /**
  * @brief      Makes userspace readable arguments.
@@ -54,15 +54,15 @@ char **make_envvars()
  */
 char **make_args(int amount, ...)
 {
-	char **args = kmalloc_user(sizeof(char*) * (amount+1));
-	memset(args, 0, sizeof(char*) * (amount+1));
+	char **args = kmalloc_user(sizeof(char *) * (amount + 1));
+	memset(args, 0, sizeof(char *) * (amount + 1));
 
 	va_list valist;
 	va_start(valist, amount);
 
 	for (int i = 0; i < amount; i++)
 	{
-		args[i] = make_userstring(va_arg(valist, char*));
+		args[i] = make_userstring(va_arg(valist, char *));
 	}
 
 	va_end(valist);
@@ -87,14 +87,14 @@ char **combine_args_env(char **argv, char **env)
 	}
 
 	int paramsize = argvsize + envsize;
-	char **new = kmalloc_user(paramsize * sizeof(char*));
-	memset(new, 0, paramsize * sizeof(char*));
+	char **new    = kmalloc_user(paramsize * sizeof(char *));
+	memset(new, 0, paramsize * sizeof(char *));
 
 	int i;
 	for (i = 0; i < argvsize; i++)
 		new[i] = strdup_user(argv[i]);
 	i--;
-	
+
 	for (int j = 0; j < envsize; j++)
 		new[i++] = strdup_user(env[j]);
 

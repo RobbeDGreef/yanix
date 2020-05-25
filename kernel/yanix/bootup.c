@@ -1,23 +1,23 @@
-#include <cpu/cpu.h>						/* Architechture dependand header (init) */
-#include <drivers/ps2/keyboard.h>			/* ps2 keyboard 				(init) */
-#include <drivers/ps2/mouse.h>				/* ps2 mouse 					(init) */
-#include <fs/vfs.h>							/* virtual file system			(init) */
-#include <drivers/pci.h>					/* PCI device driver 			(init) */
-#include <fs/filedescriptor.h>		 		/* file descriptor system 		(init) */
-#include <drivers/video/video.h>			/* general video system 		(init) */
-#include <drivers/video/vesa.h>				/* vesa driver 					(init) */
-#include <drivers/serial.h> 				/* Serial connection driver 	(init) */
-#include <core/timer.h>						/* cpu timer 					(init) */
-#include <drivers/ramdisk.h>				/* ramdisk 						(init) */
-#include <proc/tasking.h>					/* tasking 						(init) */
-#include <mm/paging.h>						/* paging 						(init) */ 
-#include <mm/heap.h>						/* kernel heap 					(init) */
-#include <proc/syscall.h>					/* the system calls 			(init) */ 
-#include <yanix/stack.h>					/* stack functions 				(kernel init) */
-#include <yanix/tty_dev.h>					/* TTY functionality 			(kernel init) */
-#include <cpu/interrupts.h>					/* interrupt enable/disable 	(kernel init) */
-#include <yanix/user.h>						/* User system 					(init) */
+#include <core/timer.h>     /* cpu timer 					(init) */
+#include <cpu/cpu.h>        /* Architechture dependand header (init) */
+#include <cpu/interrupts.h> /* interrupt enable/disable 	(kernel init) */
 #include <drivers/keyboard.h>
+#include <drivers/pci.h>          /* PCI device driver 			(init) */
+#include <drivers/ps2/keyboard.h> /* ps2 keyboard 				(init) */
+#include <drivers/ps2/mouse.h>    /* ps2 mouse 					(init) */
+#include <drivers/ramdisk.h>      /* ramdisk 						(init) */
+#include <drivers/serial.h>       /* Serial connection driver 	(init) */
+#include <drivers/video/vesa.h>   /* vesa driver 					(init) */
+#include <drivers/video/video.h>  /* general video system 		(init) */
+#include <fs/filedescriptor.h>    /* file descriptor system 		(init) */
+#include <fs/vfs.h>               /* virtual file system			(init) */
+#include <mm/heap.h>              /* kernel heap 					(init) */
+#include <mm/paging.h>            /* paging 						(init) */
+#include <proc/syscall.h>         /* the system calls 			(init) */
+#include <proc/tasking.h>         /* tasking 						(init) */
+#include <yanix/stack.h>          /* stack functions 				(kernel init) */
+#include <yanix/tty_dev.h>        /* TTY functionality 			(kernel init) */
+#include <yanix/user.h>           /* User system 					(init) */
 
 #include <kernel.h>
 
@@ -36,14 +36,14 @@ void bootsequence(uint32_t stack)
 	/* initialize the kernel stack */
 	init_stack(stack);
 
-	/* Initialise the serial connection early on to print to the serial before tty is available */
+	/* Initialise the serial connection early on to print to the serial before
+	 * tty is available */
 	init_serial();
-
 
 	/* Initialize the video driver and clearing the screen */
 	video_clear_screen();
-	init_vesa((void*) 0xfd000000, 1024, 768, 3);
-	init_video(VIDEO_MODE_VESA);	
+	init_vesa((void *) 0xfd000000, 1024, 768, 3);
+	init_video(VIDEO_MODE_VESA);
 
 	arch_init();
 
@@ -73,7 +73,7 @@ void bootsequence_after_paging()
 	/* Scan PCI bus */
 	ret = init_pci();
 	message("PCI driver initialized", !ret);
-	
+
 	/* initialize all the pci devices with a driver */
 	ret = init_pci_devices();
 	message("PCI devices initialized", !ret);
@@ -83,8 +83,8 @@ void bootsequence_after_paging()
 	message("File descriptors initialized", !ret);
 	ret = init_tty_devices();
 	message("TTY devices initialized", !ret);
-	//ret = init_tty_filedescriptors();
-	//message("TTY initialized", !ret);
+	// ret = init_tty_filedescriptors();
+	// message("TTY initialized", !ret);
 
 	ret = init_vfs();
 	message("VFS initialized", !ret);
@@ -97,7 +97,7 @@ void bootsequence_after_paging()
 
 	ret = init_ps2_keyboard();
 	message("Keyboard initialized", !ret);
-	
+
 	ret = init_keyboard();
 	message("keyboard init", !ret);
 
@@ -106,7 +106,7 @@ void bootsequence_after_paging()
 
 	ret = init_syscalls();
 	message("Syscalls initialized", !ret);
-	
+
 	ret = init_user();
 	message("User initialized", !ret);
 
@@ -121,8 +121,9 @@ void enter_foreverloop()
 {
 	/* Execute halt instruction forever */
 	printk("\nEnd of main kernel loop, exiting...\n");
-	while (1) {
-		asm volatile ("hlt");
+	while (1)
+	{
+		asm volatile("hlt");
 	}
 }
 
