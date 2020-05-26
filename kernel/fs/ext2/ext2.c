@@ -231,7 +231,7 @@ ext2_inode_t *_ext2_get_inode_ref(ino_t inode, filesystem_t *fs_info)
 }
 
 static unsigned int handle_indirect_bp(unsigned int  indirect_bp_index,
-                                       unsigned int  block_to_read,
+                                       unsigned int  blk_to_rd,
                                        filesystem_t *fs_info)
 {
 	/* Create a buffer for the block pointer block and copy data */
@@ -245,7 +245,7 @@ static unsigned int handle_indirect_bp(unsigned int  indirect_bp_index,
 	ext2_disk_read(indirect_bp_index * fs_info->block_size, indirect_bp,
 	               fs_info->block_size, fs_info);
 
-	unsigned int ret = indirect_bp[block_to_read] * fs_info->block_size;
+	unsigned int ret = indirect_bp[blk_to_rd] * fs_info->block_size;
 
 	/**
 	 * @todo:	Figure out why this is happening and also if this is common,
@@ -289,23 +289,19 @@ static unsigned int handle_indirect_bp(unsigned int  indirect_bp_index,
 	 *comming
 	 */
 
-	if (!ret && indirect_bp[block_to_read + 1]
-	    || indirect_bp[block_to_read + 2])
+	if (!ret && (indirect_bp[blk_to_rd + 1] || indirect_bp[blk_to_rd + 2]))
 	{
-		if ((indirect_bp[block_to_read + 1]
-		     == indirect_bp[block_to_read - 1] + 2)
-		    || (indirect_bp[block_to_read + 2]
-		        == indirect_bp[block_to_read - 1] + 3))
+		if ((indirect_bp[blk_to_rd + 1] == indirect_bp[blk_to_rd - 1] + 2)
+		    || (indirect_bp[blk_to_rd + 2] == indirect_bp[blk_to_rd - 1] + 3))
 		{
-			int fill = indirect_bp[block_to_read - 1] + 1;
+			int fill = indirect_bp[blk_to_rd - 1] + 1;
 
 			printk(KERN_WARNING "Filled in blockindex gap with: %i\n", fill);
 			ret = fill * fs_info->block_size;
 		}
-		else if (indirect_bp[block_to_read + 1]
-		         == indirect_bp[block_to_read - 2] + 3)
+		else if (indirect_bp[blk_to_rd + 1] == indirect_bp[blk_to_rd - 2] + 3)
 		{
-			int fill = indirect_bp[block_to_read - 2] + 2;
+			int fill = indirect_bp[blk_to_rd - 2] + 2;
 
 			printk(KERN_WARNING "Filled in blockindex gap with: %i\n", fill);
 			ret = fill * fs_info->block_size;
