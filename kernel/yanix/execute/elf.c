@@ -98,8 +98,6 @@ static int elf_check_support(elf32_hdr_t *hdr)
 	return 0;
 }
 
-#include <debug.h>
-
 /**
  * @brief      Loads a program header into memory
  *
@@ -108,12 +106,14 @@ static int elf_check_support(elf32_hdr_t *hdr)
  *
  * @return     success
  */
-static int _elf_load_pheader(void *file, elf32_phdr_t *phdr)
+static int _elf_load_pheader(struct file *fp, elf32_phdr_t *phdr)
 {
 	map_mem(phdr->vaddr, phdr->vaddr + phdr->memsize, 0, phdr->flags & ELF_W);
 	memset((void *) phdr->vaddr, 0, phdr->memsize);
-	memcpy((void *) phdr->vaddr, (void *) ((unsigned int) file + phdr->offset),
-	       phdr->filesize);
+	// memcpy((void *) phdr->vaddr, buf + phdr->offset, phdr->filesize);
+	vfs_lseek(fp->fd, phdr->offset, SEEK_SET);
+	int i = vfs_read(fp, (void *) phdr->vaddr, phdr->filesize);
+
 	if (phdr->filesize < phdr->memsize)
 		memset((void *) (phdr->vaddr + phdr->filesize), 0,
 		       phdr->memsize - phdr->filesize);
@@ -131,7 +131,8 @@ static int _elf_load_pheader(void *file, elf32_phdr_t *phdr)
  *
  * @return     success
  */
-static int _elf_loop_over_program_table(void *file, elf32_hdr_t *elf_hdr,
+static int _elf_loop_over_program_table(struct file * fp,
+                                        elf32_hdr_t * elf_hdr,
                                         elf32_phdr_t *elf_program_table)
 {
 	for (size_t i = 0; i < elf_hdr->pheader_table_amount; i++)
@@ -147,7 +148,7 @@ static int _elf_loop_over_program_table(void *file, elf32_hdr_t *elf_hdr,
 		}
 		else if (elf_program_table[i].type == ELF_PHDR_LOAD)
 		{
-			if (_elf_load_pheader(file, &elf_program_table[i]) == -1)
+			if (_elf_load_pheader(fp, elf_program_table + i) == -1)
 			{
 				return -1;
 			}
@@ -187,24 +188,36 @@ static int _elf_loop_over_section_table(elf32_hdr_t * elf_hdr,
 	return 0;
 }
 
-uint32_t load_elf_into_mem(void *file)
+uint32_t load_elf_into_mem(struct file *fp)
 {
-	elf32_hdr_t *elf_hdr = (elf32_hdr_t *) file;
+	elf32_hdr_t *elf_hdr = kmalloc(sizeof(elf32_hdr_t));
+	vfs_read(fp, elf_hdr, sizeof(elf32_hdr_t));
+
 	if (elf_check_support(elf_hdr) == -1)
 		return 0;
 
 	// locating the header tables
-	elf32_shdr_t *elf_section_table =
-		(elf32_shdr_t *) ((uint32_t) file + elf_hdr->sheader_table_position);
-	elf32_phdr_t *elf_program_table =
-		(elf32_phdr_t *) ((uint32_t) file + elf_hdr->pheader_table_position);
+	// elf32_shdr_t *elf_section_table =
+	//	(elf32_shdr_t *) ((uint32_t) file + elf_hdr->sheader_table_position);
+
+	int phdr_sz = sizeof(elf32_phdr_t) * elf_hdr->pheader_table_amount;
+
+	elf32_phdr_t *elf_prgrm_tbl = kmalloc(phdr_sz);
+	vfs_lseek(fp->fd, elf_hdr->pheader_table_position, SEEK_SET);
+	vfs_read(fp, elf_prgrm_tbl, phdr_sz);
+	printk_hd(elf_prgrm_tbl, 64);
 
 	// looping over the header tables
-	if (_elf_loop_over_section_table(elf_hdr, elf_section_table) == -1)
+	// if (_elf_loop_over_section_table(elf_hdr, elf_section_table) == -1)
+	//	return 0;
+
+	if (_elf_loop_over_program_table(fp, elf_hdr, elf_prgrm_tbl) == -1)
 		return 0;
 
-	if (_elf_loop_over_program_table(file, elf_hdr, elf_program_table) == -1)
-		return 0;
+	int entry = elf_hdr->entry;
 
-	return elf_hdr->entry;
+	kfree(elf_hdr);
+	kfree(elf_prgrm_tbl);
+
+	return entry;
 }
