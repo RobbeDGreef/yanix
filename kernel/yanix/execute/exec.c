@@ -25,6 +25,8 @@ static int _execve(int jmpuser, const char *filename, const char **argv,
 	if (file == 0)
 		return -1;
 
+	if (!argv)
+		goto noargs_debug;
 	/**
 	 * We have to assemble the argument list now because we will
 	 * most likely overwrite the list and more importantly the string
@@ -41,8 +43,9 @@ static int _execve(int jmpuser, const char *filename, const char **argv,
 		return -1;
 	}
 
+noargs_debug:;
 	/* Interpret our elf executable and load it into the propper position */
-	offset_t ret = load_elf_into_mem(buf);
+	offset_t ret = load_elf_into_mem(file);
 
 	if (ret == 0)
 	{
