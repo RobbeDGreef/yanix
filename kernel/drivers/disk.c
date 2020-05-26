@@ -141,11 +141,17 @@ ssize_t disk_write(unsigned long offset, const void *_buf, size_t size,
 	ssize_t      ret       = 0;
 	unsigned int blocksize = disk->block_size;
 
-	unsigned int blockiter = offset / blocksize;
-	unsigned int s_rest    = offset % blocksize;
-	unsigned int e_rest    = (size + s_rest) % blocksize;
+	/* @XXX: I am VERY unsure about this piece of code here
+	 * 		 (see fs.c fs_read() */
+	unsigned int blockiter = offset / blocksize; /* the startblock*/
 
-	int blkcnt = size / blocksize;
+	unsigned int s_rest = offset % blocksize;
+	unsigned int e_rest = (size + s_rest) % blocksize;
+
+	if (s_rest && blocksize - s_rest > size)
+		e_rest = 0;
+
+	int blkcnt = (size - e_rest) / blocksize;
 
 	if (s_rest)
 	{
@@ -154,18 +160,12 @@ ssize_t disk_write(unsigned long offset, const void *_buf, size_t size,
 
 		size_t memcpy_size = blocksize - s_rest;
 		if (size < memcpy_size)
-		{
-			e_rest      = 0;
 			memcpy_size = size;
-		}
 
 		memcpy(tmp + s_rest, buf, memcpy_size);
 
 		disk->write(blockiter++, tmp, 1, disk);
 		kfree(tmp);
-
-		if (blkcnt)
-			blkcnt--;
 
 		buf += blocksize;
 		ret = blocksize;

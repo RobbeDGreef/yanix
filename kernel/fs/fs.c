@@ -204,7 +204,7 @@ void register_filesystem(char *name, int type, fs_read_file_fpointer readfile,
 
 ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 {
-	printk("Reading: %i byte\n", amount);
+	/* @XXX: I am VERY unsure about this piece of code here */
 	char *buf = _buf;
 
 	ssize_t      ret       = 0;
@@ -215,7 +215,10 @@ ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 	unsigned int s_rest = seek % blocksize;
 	unsigned int e_rest = (amount + s_rest) % blocksize;
 
-	int blkcnt = amount / blocksize;
+	if (s_rest && blocksize - s_rest > amount)
+		e_rest = 0;
+
+	int blkcnt = (amount - e_rest) / blocksize;
 
 	if (s_rest)
 	{
@@ -225,18 +228,12 @@ ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 
 		size_t size = blocksize - s_rest;
 		if (amount < size)
-		{
-			size   = amount;
-			e_rest = 0;
-		}
+			size = amount;
 
 		memcpy(buf, tmp + s_rest, size);
 		ret += size;
 		buf += size;
 		kfree(tmp);
-
-		if (blkcnt)
-			blkcnt--;
 	}
 	if (blkcnt)
 	{
@@ -269,12 +266,17 @@ ssize_t fs_write(vfs_node_t *node, int seek, const void *_buf, size_t amount)
 	ssize_t      ret       = 0;
 	unsigned int blocksize = node->fs_info->block_size;
 
-	unsigned int  blockiter = seek / blocksize;
-	unsigned int  s_rest    = seek % blocksize;
-	unsigned int  e_rest    = (amount + s_rest) % blocksize;
-	filesystem_t *fs_info   = node->fs_info;
+	filesystem_t *fs_info = node->fs_info;
 
-	int blkcnt = amount / blocksize;
+	unsigned int blockiter = seek / blocksize; /* the startblock*/
+
+	unsigned int s_rest = seek % blocksize;
+	unsigned int e_rest = (amount + s_rest) % blocksize;
+
+	if (s_rest && blocksize - s_rest > amount)
+		e_rest = 0;
+
+	int blkcnt = (amount - e_rest) / blocksize;
 
 	if (s_rest)
 	{
