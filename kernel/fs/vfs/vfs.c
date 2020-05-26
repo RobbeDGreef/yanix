@@ -86,7 +86,7 @@ ssize_t vfs_read_fd(int fd, void *buf, size_t amount)
  */
 ssize_t vfs_read(struct file *file, void *buf, size_t amount)
 {
-	return _vfs_read(get_filedescriptor(file->filedescriptor), buf, amount);
+	return _vfs_read(get_filedescriptor(file->fd), buf, amount);
 }
 
 /**
@@ -152,7 +152,7 @@ ssize_t vfs_write_fd(int fd, const void *buf, size_t amount)
  */
 ssize_t vfs_write(struct file *file, const void *buf, size_t amount)
 {
-	return _vfs_write(get_filedescriptor(file->filedescriptor), buf, amount);
+	return _vfs_write(get_filedescriptor(file->fd), buf, amount);
 }
 
 static int _get_type(int mode)
@@ -304,6 +304,8 @@ int _vfs_stat(vfs_node_t *node, mode_t mode, struct stat *statbuf)
 	if (!node)
 		return -1;
 
+	printk("statting: %s\n", node->name);
+
 	/* See man stat(2) for these values */
 	statbuf->st_dev   = 0; /* @todo: What is the st_dev ? */
 	statbuf->st_ino   = node->id;
@@ -311,8 +313,8 @@ int _vfs_stat(vfs_node_t *node, mode_t mode, struct stat *statbuf)
 	statbuf->st_nlink = node->nlink;
 	statbuf->st_uid   = node->uid;
 	statbuf->st_gid   = node->gid;
-	statbuf->st_rdev =
-		0; /* @todo: rdev number in vfs nodes ? see man stat(2) */
+	/* @todo: rdev number in vfs nodes ? see man stat(2) */
+	statbuf->st_rdev    = 0;
 	statbuf->st_size    = node->filelength;
 	statbuf->st_blksize = node->fs_info->block_size;
 	statbuf->st_blocks  = roundup(node->filelength, 512);
@@ -345,6 +347,9 @@ off_t vfs_lseek(int fd, off_t offset, int whence)
 {
 	struct file_descriptor *fd_struct = get_filedescriptor(fd);
 
+	if (!fd_struct)
+		return -1;
+
 	if (whence == SEEK_CUR)
 		offset += fd_struct->seek;
 
@@ -358,7 +363,7 @@ off_t vfs_lseek(int fd, off_t offset, int whence)
 	}
 
 	fd_struct->seek = offset;
-
+	printk("newseek = %x\n", fd_struct->seek);
 	return offset;
 }
 
@@ -438,9 +443,9 @@ struct file *vfs_open(const char *path, int flags, int mode)
 	{
 		return 0;
 	}
-	file->vfs_node       = node;
-	file->filedescriptor = fd;
-	file->filesize       = node->filelength;
+	file->vfs_node = node;
+	file->fd       = fd;
+	file->filesize = node->filelength;
 	return file;
 }
 
@@ -530,7 +535,7 @@ int vfs_creat(const char *path, int mode)
  */
 int vfs_close(struct file *file)
 {
-	close_filedescriptor(file->filedescriptor);
+	close_filedescriptor(file->fd);
 	int ret = 0;
 	if (file->vfs_node->close != 0)
 	{
