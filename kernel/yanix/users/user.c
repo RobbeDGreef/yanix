@@ -32,7 +32,7 @@ int user_login(char *name, char *passwd)
 		return -1;
 	}
 
-	vfs_read_fd(fp->filedescriptor, filebuf, BUFSIZ);
+	vfs_read_fd(fp->fd, filebuf, BUFSIZ);
 
 	int seek = 0;
 	int ret  = 0;
