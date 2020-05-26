@@ -35,7 +35,11 @@ void kernel_main()
 			if (fork() == 0)
 			{
 				char **envvars = make_envvars();
-				char **args    = make_args(1, get_current_user()->shell);
+				// char **args    = make_args(4, "/bin/nasm", "/etc/hello.s",
+				// "-o",
+				//                        "/bin/nasmtest");
+
+				char **args = make_args(1, get_current_user()->shell);
 				execve_user(args[0], (const char **) args,
 				            (const char **) envvars);
 				printk("Error trying to execute your shell (%s)\n", args[0]);

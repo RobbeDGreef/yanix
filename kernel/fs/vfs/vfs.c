@@ -304,8 +304,6 @@ int _vfs_stat(vfs_node_t *node, mode_t mode, struct stat *statbuf)
 	if (!node)
 		return -1;
 
-	printk("statting: %s\n", node->name);
-
 	/* See man stat(2) for these values */
 	statbuf->st_dev   = 0; /* @todo: What is the st_dev ? */
 	statbuf->st_ino   = node->id;
@@ -363,7 +361,6 @@ off_t vfs_lseek(int fd, off_t offset, int whence)
 	}
 
 	fd_struct->seek = offset;
-	printk("newseek = %x\n", fd_struct->seek);
 	return offset;
 }
 

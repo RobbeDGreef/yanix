@@ -75,6 +75,7 @@ void page_fault(registers_t *regs)
 	offset_t faulting_address;
 	asm volatile("mov %%cr2, %0" : "=r"(faulting_address));
 
+	// printk("addr: %x\n", faulting_address);
 	/* 0 means that the page was not present in regs->err_code & 0x1 */
 	int not_present =
 		!(regs->err_code & 0x1);   /* Whether the page was present */
@@ -87,7 +88,6 @@ void page_fault(registers_t *regs)
 
 	/* Check wheter it was part of a heap and should be zero'd out */
 	struct heap *heap = is_addr_in_heap(faulting_address);
-
 	if (not_present)
 	{
 		if (heap)

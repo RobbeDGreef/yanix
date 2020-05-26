@@ -647,7 +647,7 @@ int init_paging()
 	// if so it will use the heap, problem being we haven't initialized our heap
 	// yet
 
-	for (int i = KHEAP_START; i < KHEAP_START + KHEAP_MAXSIZE; i += 0x1000)
+	for (uint i = KHEAP_START; i < KHEAP_START + KHEAP_MAXSIZE; i += 0x1000)
 		get_page(i, 1, g_kernel_directory);
 
 	// identity map the memory from 0 to the end of the kernel and make it
