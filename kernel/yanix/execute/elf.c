@@ -11,6 +11,7 @@
 #include <fs/vfs.h>
 #include <kernel.h>
 #include <libk/string.h>
+#include <mm/heap.h>
 #include <mm/paging.h>
 #include <proc/tasking.h>
 #include <stddef.h>

@@ -1,6 +1,8 @@
 #ifndef SERIAL_H
 #define SERIAL_H
 
+#include <stddef.h>
+
 /**
  * @brief      Reads from a serial connection.
  *

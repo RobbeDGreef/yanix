@@ -1,7 +1,6 @@
 #ifndef _DIRENT_H
 #define _DIRENT_H
 
-#include <fs/fs.h>
 #include <sys/types.h>
 
 struct filesystem_s;

@@ -1,7 +1,4 @@
-#include <fs/dirent.h>
-#include <fs/vfs.h>
-#include <proc/syscall.h>
-#include <stdint.h>
+#include <sys/types.h>
 
 // @todo: this should use system calls
 #include <debug.h>

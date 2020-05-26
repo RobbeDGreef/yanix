@@ -3,13 +3,14 @@
 
 #include <fs/vfs_node.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 extern vfs_node_t *vfs_root;
 
 struct file
 {
 	vfs_node_t *vfs_node;
-	int         filedescriptor;
+	int         fd;
 	size_t      filesize;
 };
 

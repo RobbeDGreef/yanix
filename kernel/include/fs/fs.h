@@ -13,10 +13,11 @@
 #define FS_FAT32 1
 // ...
 
+struct DIR;
 struct filesystem_s;
-typedef struct filesystem_s filesystem_t;
 struct vfs_node_s;
-typedef struct vfs_node_s vfs_node_t;
+typedef struct filesystem_s filesystem_t;
+typedef struct vfs_node_s   vfs_node_t;
 
 typedef ssize_t (*fs_read_file_fpointer)(ino_t inode, unsigned int offset,
                                          void *buf, size_t count,

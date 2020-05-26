@@ -1,6 +1,7 @@
 #ifndef _ELF_H
 #define _ELF_H
 
+#include <fs/vfs.h>
 #include <stdint.h>
 
 #define ELF_MAGIC     0x464c457f // 0x7f 'E' 'L' 'F'
@@ -98,6 +99,6 @@ typedef struct elf32_shdr_s
  *
  * @return     successcode
  */
-uint32_t load_elf_into_mem(void *file);
+uint32_t load_elf_into_mem(struct file *file);
 
 #endif

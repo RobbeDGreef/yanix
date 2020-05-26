@@ -1,7 +1,5 @@
 #include <cpu/arch_timer.h>
 #include <cpu/cpu.h>
-#include <debug.h>
-#include <kernel.h>
 #include <libk/string.h>
 #include <mm/heap.h>
 #include <proc/tasking.h>
