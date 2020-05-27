@@ -95,12 +95,11 @@ int sys_isatty(int file)
 	return 1;
 }
 
-typedef void (*sighandler_t)(int);
-
 sighandler_t sys_signal(int signum, sighandler_t handler)
 {
 	(void) (signum);
 	(void) (handler);
+	signal(signum, handler);
 	return 0;
 }
 

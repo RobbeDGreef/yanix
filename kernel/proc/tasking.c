@@ -1,4 +1,5 @@
 #include <cpu/interrupts.h>
+#include <eclib/vector.h>
 #include <errno.h>
 #include <libk/string.h>
 #include <mm/heap.h>
@@ -9,17 +10,52 @@
 #include <yanix/stack.h>
 
 #include <debug.h>
-
 static pid_t PIDS = 1;
+
+/* Define the vector functions for the sighandler vector */
+define_vector_functions(struct sighandler, sig);
+
+sighandler_t signal(int sig, sighandler_t handler)
+{
+	struct sighandler hdl = {.sig = sig, .handler = handler};
+	vec_sig_push(get_current_task()->sighandlers, hdl);
+
+	return handler;
+}
+
+static sighandler_t findsighandler(vec_sig vector, int sig)
+{
+	int i;
+	while ((i = vec_sig_iter(vector)) != -1)
+	{
+		if (vec_sig_get(vector, i).sig == sig)
+		{
+			vector->iter = 0;
+			return vec_sig_get(vector, i).handler;
+		}
+	}
+
+	return NULL;
+}
 
 int send_task_signal(task_t *task, int sig)
 {
+	sighandler_t handler;
 	if (task)
 	{
-		if (task->notify)
-			task->notify(sig);
+		switch (sig)
+		{
+		case SIGINT:
+			handler = findsighandler(task->sighandlers, sig);
+			if (handler)
+			{
+				handler(sig);
+				break;
+			}
 
-		/* @todo: state system / sleeping,  blocking etc */
+			kill_proc(task);
+			break;
+		}
 	}
 	return 0;
 }
@@ -93,16 +129,15 @@ static task_t *create_task(task_t *new_task, int kernel_task,
 	new_task->priority  = curtask->priority;
 	new_task->directory = dir;
 	// new_task->state = TASK_RUNNING;
-	new_task->fds   = vector_copy(curtask->fds);
-	new_task->tty   = curtask->tty;
-	new_task->state = TASK_RUNNING;
+	new_task->fds         = vector_copy(curtask->fds);
+	new_task->tty         = curtask->tty;
+	new_task->state       = TASK_RUNNING;
+	new_task->sighandlers = vec_sig_copy(curtask->sighandlers);
 
 	/* @todo: timeslices should be set in config file */
 	new_task->timeslice = 100;
-
-	task_t *parent = (task_t *) get_current_task();
-	parent->childamount++;
-	new_task->cwd = strdup(parent->cwd);
+	curtask->childamount++;
+	new_task->cwd = strdup(curtask->cwd);
 
 	return new_task;
 }
@@ -124,9 +159,6 @@ pid_t fork()
 
 	if (parent_task == get_current_task())
 	{
-		alloc_frame(
-			get_page(new_task->kernel_stack - 0x1000, 1, new_task->directory),
-			1, 0);
 		enable_interrupts();
 		return new_task->pid;
 	}
@@ -159,6 +191,12 @@ int init_tasking()
 	mainloop->name     = "Main kernel loop";
 	mainloop->priority = 0;
 	mainloop->fds      = vector_create();
+
+	mainloop->sighandlers = vec_sig_create();
+
+	for (uint i = 0; i < KERNEL_STACK_SIZE; i += 0x1000)
+		alloc_frame(
+			get_page(mainloop->kernel_stack - i, 1, mainloop->directory), 1, 0);
 
 	init_scheduler(mainloop);
 	return 0;
