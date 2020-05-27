@@ -9,9 +9,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* Function pointer template for a notify function to notify the task of changes
- * in it's signal */
-typedef void (*notify_fpointer)(int signal);
+#include <eclib/vector.h>
+define_vector_type(sig);
 
 typedef struct task_control_block_s
 {
@@ -39,21 +38,18 @@ typedef struct task_control_block_s
 	vector_t *fds; /* The opened file descriptors */
 
 	/* Signaling */
-	int             lastsignal; /* The last signal sent to this task */
-	unsigned int    tty;        /* What tty to wirte output to */
-	notify_fpointer notify;     /* Notify pointer, programs can register this
-	                               pointer to handle signals better */
+	int          lastsignal; /* The last signal sent to this task */
+	unsigned int tty;        /* What tty to wirte output to */
+	vec_sig      sighandlers;
 
 	/* Scheduler information */
 	int           state;     /* Current state of the task */
 	unsigned long timeslice; /* The size of the timeslice of this task */
-	unsigned long
-		timeused; /* The total amount of cpu time this task has used */
-	unsigned long
-		sliceused; /* The current amount of cpu time the task is using */
-	int priority;  /* The priority of the task */
-	// int 				spawned;			/* Whether the task was already spawned or not
-	// */
+	unsigned long timeused;  /* The total amount of cpu time
+	                          * this task has used */
+	unsigned long sliceused; /* The current amount of cpu time
+	                          * the task is using */
+	int priority;            /* The priority of the task */
 
 	/* Linked list next identifier */
 	struct task_control_block_s *next;
@@ -66,6 +62,15 @@ typedef struct task_control_block_s
 #define TASK_BLOCKED 4
 
 task_t *get_current_task();
+
+typedef void (*sighandler_t)(int);
+struct sighandler
+{
+	int          sig;
+	sighandler_t handler;
+};
+
+sighandler_t signal(int sig, sighandler_t handler);
 
 /**
  * @brief      Switches tasks
