@@ -36,9 +36,10 @@ void hang();
 void print_return_address();
 void print_stack();
 
-int  check_vfs_initialised();
-void debug_print_phys_frame(offset_t virt_addr, size_t size,
-                            page_directory_t *dir);
-int  random_complex_calc(int x);
+int   check_vfs_initialised();
+void  debug_print_phys_frame(offset_t virt_addr, size_t size,
+                             page_directory_t *dir);
+int   random_complex_calc(int x);
+reg_t getstack();
 
 #endif
