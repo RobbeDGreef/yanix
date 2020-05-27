@@ -56,4 +56,8 @@ void init_paging_stack()
 
 	map_mem(DISIRED_STACK_LOCATION, DISIRED_STACK_LOCATION + KERNEL_STACK_SIZE,
 	        1, 0);
+
+	for (uint i = 0; i < KERNEL_STACK_SIZE; i += 0x1000)
+		alloc_frame(get_page(DISIRED_STACK_LOCATION - i, 1, get_current_dir()),
+		            0, 1);
 }
