@@ -1,26 +1,27 @@
+#include <errno.h>
+#include <getopt.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
-#include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
-#include <errno.h>
+#include <unistd.h>
 
 extern int errno;
 
 /**
  * This is a terrible shell written in a couple of minutes
  * just to have something without porting too much stuff
-*/
+ */
 
 #define MAXARGS 32
 #define PATHLEN 256
 #define SIZE(x) (sizeof x / sizeof x[0])
 
-int 	g_running = 1;
-char 	g_buffer[BUFSIZ];
-char 	g_curpath[PATHLEN];
-char 	*g_args[MAXARGS];
+int   g_running = 1;
+char  g_buffer[BUFSIZ];
+char  g_curpath[PATHLEN];
+char *g_args[MAXARGS];
 
 int builtin_exit(char *const *args)
 {
@@ -31,23 +32,20 @@ int builtin_exit(char *const *args)
 int changedir(char *const *args)
 {
 	if (!chdir(args[1]))
-		memcpy(g_curpath, args[1], strlen(args[1])+1);
+		memcpy(g_curpath, args[1], strlen(args[1]) + 1);
 	else
 		printf("Error, unknown directory '%s'\n", args[1]);
 }
 
-typedef int (*builtin_fpointer) (char *const *args);
+typedef int (*builtin_fpointer)(char *const *args);
 struct builtin_lookup
 {
-	char *name;
+	char *           name;
 	builtin_fpointer func;
 };
 
-const struct builtin_lookup builtins[] = 
-{
-	{"exit", &builtin_exit},
-	{"cd", &changedir}
-};
+const struct builtin_lookup builtins[] = {{"exit", &builtin_exit},
+                                          {"cd", &changedir}};
 
 int builtin(char *const *args)
 {
@@ -60,7 +58,7 @@ int builtin(char *const *args)
 	return -1;
 }
 
-void execute_command(char* const *args)
+void execute_command(char *const *args)
 {
 	int pid;
 	int status;
@@ -80,9 +78,9 @@ void execute_command(char* const *args)
 
 char *create_string(char *str, int len)
 {
-	if (str[len-1] == '\n')
+	if (str[len - 1] == '\n')
 		len--;
-	char *newstr = malloc(len+1);
+	char *newstr = malloc(len + 1);
 	memcpy(newstr, str, len);
 	newstr[len] = '\0';
 	return newstr;
@@ -91,8 +89,8 @@ char *create_string(char *str, int len)
 char **split_command(char *cmd)
 {
 	char *lastptr = cmd;
-	int argcnt = 0;
-	int len = 0;
+	int   argcnt  = 0;
+	int   len     = 0;
 
 	while (1)
 	{
@@ -111,7 +109,7 @@ char **split_command(char *cmd)
 				return g_args;
 			}
 
-			len = 0;
+			len     = 0;
 			lastptr = ++cmd;
 			continue;
 		}
@@ -139,9 +137,19 @@ void mainloop()
 	}
 }
 
+void sigint_handler(int sig)
+{
+}
+
+void init()
+{
+	signal(SIGINT, sigint_handler);
+	getcwd(g_curpath, PATHLEN);
+}
+
 int main()
 {
-	getcwd(g_curpath, PATHLEN);
+	init();
 	printf("Hi :)\n");
 	mainloop();
 	return 0;
