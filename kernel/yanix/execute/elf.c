@@ -205,7 +205,6 @@ uint32_t load_elf_into_mem(struct file *fp)
 	elf32_phdr_t *elf_prgrm_tbl = kmalloc(phdr_sz);
 	vfs_lseek(fp->fd, elf_hdr->pheader_table_position, SEEK_SET);
 	vfs_read(fp, elf_prgrm_tbl, phdr_sz);
-	printk_hd(elf_prgrm_tbl, 64);
 
 	// looping over the header tables
 	// if (_elf_loop_over_section_table(elf_hdr, elf_section_table) == -1)

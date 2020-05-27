@@ -1,4 +1,4 @@
-#include <config/font.h>
+#include <drivers/video/font.h>
 #include <drivers/video/video.h>
 #include <fs/filedescriptor.h>
 #include <libk/string.h>

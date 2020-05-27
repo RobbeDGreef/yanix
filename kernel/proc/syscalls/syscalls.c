@@ -53,6 +53,7 @@ int sys_times(struct tms *buf)
 
 int sys_kill(pid_t pid, int sig)
 {
+	printk("sys kill\n");
 	return send_pid_sig(pid, sig);
 }
 
