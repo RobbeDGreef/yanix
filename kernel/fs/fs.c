@@ -112,7 +112,6 @@ static ssize_t tty_stderrwrite(vfs_node_t *node, unsigned int offset,
 {
 	(void) (node);
 	(void) (offset);
-	debug_printk("size: %i\n", size, buffer);
 	for (unsigned int i = 0; i < size; i++)
 		serial_put(((char *) buffer)[i]);
 
@@ -121,6 +120,7 @@ static ssize_t tty_stderrwrite(vfs_node_t *node, unsigned int offset,
 	int ret = tty_write(tty_get_device(get_current_task()->tty), buffer, size,
 	                    -1, -1);
 	tty_set_color(TTY_WHITE);
+
 	return ret;
 }
 

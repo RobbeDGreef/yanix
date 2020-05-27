@@ -254,8 +254,6 @@ vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 		if (!node)
 			return NULL;
 
-		printk("node created\n");
-
 		if (node->creat || (node->fs_info && node->fs_info->create_node))
 		{
 			int i;
@@ -289,7 +287,6 @@ vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 	}
 	else if (!node)
 	{
-		printk("Not found %s\n", path);
 		return NULL;
 	}
 
@@ -393,13 +390,17 @@ DIR *_vfs_opendir(vfs_node_t *node)
 int vfs_open_fd(const char *path, int flags, int mode)
 {
 	vfs_node_t *node;
+	debug_printk("opening: %s\n", path);
 	if (strcmp(path, "/testout.asm") == 0)
 		node = get_filedescriptor(1)->node;
 	else
 		node = _vfs_open(path, flags, mode);
 
 	if (!node)
+	{
+		debug_printk("error opening\n");
 		return -1;
+	}
 
 	int fd = register_filedescriptor(node, mode);
 
@@ -409,6 +410,7 @@ int vfs_open_fd(const char *path, int flags, int mode)
 		vfs_lseek(fd, (unsigned int) d, SEEK_SET);
 	}
 
+	debug_printk("open fd: %i\n", fd);
 	return fd;
 }
 
