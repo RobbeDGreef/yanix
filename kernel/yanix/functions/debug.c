@@ -367,3 +367,10 @@ int random_complex_calc(int x)
 
 	return y;
 }
+
+reg_t getstack()
+{
+	int ret;
+	asm volatile("mov %%esp, %0" : "=r"(ret));
+	return ret;
+}
