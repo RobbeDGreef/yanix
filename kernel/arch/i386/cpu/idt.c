@@ -23,6 +23,17 @@ void set_idt_gate(int32_t n, uint32_t handler)
 	idt[n].high_offset = high16(handler);
 }
 
+void set_task_gate(int32_t n, uint32_t handler)
+{
+	/* I am unable to figure out how these work / should be set up so yeah */
+	uint16_t tss_seg_sel = 0x28;
+	idt[n].low_offset    = 0;
+	idt[n].sel           = tss_seg_sel;
+	idt[n].zero          = 0;
+	idt[n].flags         = 0x85;
+	idt[n].high_offset   = 0;
+}
+
 /**
  * @brief      Sets the idt.
  */

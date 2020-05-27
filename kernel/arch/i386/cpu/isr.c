@@ -75,6 +75,7 @@ void isr_install()
 	set_idt_gate(5, (uint32_t) isr5);
 	set_idt_gate(6, (uint32_t) isr6);
 	set_idt_gate(7, (uint32_t) isr7);
+	// set_task_gate(8, (uint32_t) isr8);
 	set_idt_gate(8, (uint32_t) isr8);
 	set_idt_gate(9, (uint32_t) isr9);
 	set_idt_gate(10, (uint32_t) isr10);

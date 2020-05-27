@@ -30,6 +30,7 @@ typedef struct
 extern idt_gate_t     idt[IDT_ENTRIES];
 extern idt_register_t idt_reg;
 
+void set_task_gate(int32_t n, uint32_t handler);
 void set_idt_gate(int32_t n, uint32_t handler);
 void set_idt();
 

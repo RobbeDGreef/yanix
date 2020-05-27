@@ -177,8 +177,6 @@ isr7:
 isr8:
     cli
     jmp $
-    ;mov  ebp, DOUBLE_FAULT_STACK
-    ;mov  esp, DOUBLE_FAULT_STACK
     push byte 8
     jmp isr_common_stub
 

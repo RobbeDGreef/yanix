@@ -17,6 +17,6 @@ gdt_flush:
 
 [GLOBAL tss_flush]
 tss_flush:
-	mov 	ax, 0x2B
+	mov 	ax, word [esp+4]
 	ltr 	ax
 	ret

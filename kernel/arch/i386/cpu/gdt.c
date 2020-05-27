@@ -66,13 +66,14 @@ typedef struct tss_entry_s tss_entry_t;
 
 /* asm function to flush gdt and tss */
 extern void gdt_flush(uint32_t);
-extern void tss_flush();
+extern void tss_flush(uint32_t sel);
 
+#define GDT_AMOUNT 6
 /* Global GDT and TSS variables */
-gdt_entry_t gdt_entries[6];
+gdt_entry_t gdt_entries[GDT_AMOUNT];
 gdt_ptr_t   gdt_ptr;
 
-tss_entry_t tss_entry;
+tss_entry_t tss_entries[2];
 
 /**
  * @brief      Sets a GDT gate
@@ -97,27 +98,28 @@ static void gdt_set_gate(int32_t num, uint32_t base, uint32_t limit,
 	gdt_entries[num].access = access;
 }
 
-static void write_tss(int32_t num, uint16_t ss0, uint32_t esp0)
+static void write_tss(int32_t num, int32_t gatenum, uint16_t ss0, uint32_t esp0)
 {
-	uint32_t base  = (uint32_t) &tss_entry;
-	uint32_t limit = base + sizeof(tss_entry);
+	uint32_t base  = (uint32_t) &tss_entries[num];
+	uint32_t limit = base + sizeof(tss_entry_t);
 
-	gdt_set_gate(num, base, limit, 0xE9, 0x00);
+	gdt_set_gate(gatenum, base, limit, 0xE9, 0x00);
 
-	memset(&tss_entry, 0, sizeof(tss_entry));
+	memset(&tss_entries[num], 0, sizeof(tss_entry_t));
 
-	tss_entry.ss0  = ss0;
-	tss_entry.esp0 = esp0;
+	tss_entries[num].ss0  = ss0;
+	tss_entries[num].esp0 = esp0;
 
-	tss_entry.cs = 0x0B;
-	tss_entry.ss = tss_entry.ds = tss_entry.es = tss_entry.fs = tss_entry.gs =
-		0x13;
-	tss_entry.iomap_base = sizeof(tss_entry);
+	tss_entries[num].cs = 0x0B;
+	tss_entries[num].ss = tss_entries[num].ds = tss_entries[num].es = 0x13;
+	tss_entries[num].fs = tss_entries[num].gs = tss_entries[num].ss;
+
+	tss_entries[num].iomap_base = sizeof(tss_entry_t);
 }
 
 static void init_gdt()
 {
-	gdt_ptr.limit = (sizeof(gdt_entry_t) * 6) - 1;
+	gdt_ptr.limit = (sizeof(gdt_entry_t) * GDT_AMOUNT) - 1;
 	gdt_ptr.base  = (uint32_t) &gdt_entries;
 
 	gdt_set_gate(0, 0, 0, 0, 0);
@@ -125,17 +127,19 @@ static void init_gdt()
 	gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF);
 	gdt_set_gate(3, 0, 0xFFFFFFFF, 0xFA, 0xCF);
 	gdt_set_gate(4, 0, 0xFFFFFFFF, 0xF2, 0xCF);
-	write_tss(5, 0x10, 0x0);
+	write_tss(0, 5, 0x10, 0x0);
 
 	gdt_flush((uint32_t) &gdt_ptr);
-	tss_flush();
+	tss_flush(0x28);
 }
 
 void tss_set_kernel_stack(uint32_t stack)
 {
-	tss_entry.ss0  = 0x10;
-	tss_entry.esp0 = stack;
+	tss_entries[0].ss0  = 0x10;
+	tss_entries[0].esp0 = stack;
 }
+
+extern void isr8();
 
 /* GDT and TSS functions */
 void init_descriptor_tables()
