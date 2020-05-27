@@ -1,7 +1,7 @@
 #include <drivers/video/vesa.h>
 #include <drivers/video/video.h>
 
-#include <config/font.h>
+#include <drivers/video/font.h>
 #include <libk/bit.h>
 #include <libk/string.h>
 #include <mm/heap.h>
