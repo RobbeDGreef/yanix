@@ -20,8 +20,8 @@ static void syscall_handler(registers_t *regs)
 		return;
 	}
 
-	// end_of_interrupt();
-	// enable_interrupts();
+	end_of_interrupt();
+	enable_interrupts();
 
 	int ret;
 	asm volatile(" \
@@ -31,11 +31,7 @@ static void syscall_handler(registers_t *regs)
      	push %4; \
      	push %5; \
      	call *%6; \
-     	pop %%ebx; \
-     	pop %%ebx; \
-     	pop %%ebx; \
-     	pop %%ebx; \
-     	pop %%ebx; \
+     	sub $20, %%ebx; \
         "
 	             : "=a"(ret)
 	             : "r"(regs->edi), "r"(regs->esi), "r"(regs->edx),
