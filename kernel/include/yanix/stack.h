@@ -9,7 +9,7 @@
 #define DISIRED_KERNEL_STACK_LOC 0x3000000
 #define STACK_SIZE               0x1000
 #define STACK_LOCATION           0x9000
-#define KERNEL_STACK_SIZE        0x1000
+#define KERNEL_STACK_SIZE        0x8000
 #define USER_STACK_SIZE          0x4000 // 16Kib
 
 extern uint32_t g_initial_esp;
