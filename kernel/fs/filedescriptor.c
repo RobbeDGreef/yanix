@@ -103,3 +103,14 @@ int dup_filedescriptor(int fd, int from)
 	else
 		return vector_add_from(get_current_task()->fds, *dup, from);
 }
+
+int setflags_filedescriptor(int fd, int flags)
+{
+	struct file_descriptor *toset = get_filedescriptor(fd);
+
+	if (!toset)
+		return -1;
+
+	toset->flags = flags;
+	return 0;
+}
