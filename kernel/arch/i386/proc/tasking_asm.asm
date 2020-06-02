@@ -50,11 +50,15 @@ do_task_switch: ; void do_task_switch(reg_t *previous_esp, reg_t next_esp, reg_t
 	ret
 
 [global jmp_userspace]
-jmp_userspace: ;jmp_userspace(uint32_t eip, uint32_t argc, uint32_t argv)
+jmp_userspace: ;jmp_userspace(uint32_t eip, uint32_t stacktop uint32_t argc, uint32_t argv)
 	cli
+	mov 	eax, [esp+8]	; holds stacktop
 	mov 	ebx, [esp+4]	; holds eip
-	mov 	ecx, [esp+8]	; holds argument count
-	mov 	edx, [esp+12] 	; holds argument variables
+	mov 	ecx, [esp+12]	; holds argument count
+	mov 	edx, [esp+16] 	; holds argument variables
+
+	mov 	ebp, eax
+	mov 	esp, ebp
 
 	mov 	ax, 0x23
 	mov 	ds, ax

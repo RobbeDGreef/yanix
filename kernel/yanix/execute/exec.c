@@ -96,6 +96,10 @@ noargs_debug:;
 		             :
 		             : "r"(ret), "r"(get_current_task()->stacktop), "c"(amount),
 		               "d"((reg_t) argv));
+#endif
+
+		jump_userspace(ret, get_current_task()->stacktop, amount, (reg_t) argv);
+
 		return 0;
 	}
 }
