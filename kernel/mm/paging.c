@@ -157,6 +157,24 @@ int alloc_frame(page_t *page, int is_kernel, int is_writable_from_userspace)
 	}
 }
 
+static void set_frame_flags(page_t *page, int kernel, int writeable)
+{
+	page->rw   = (writeable) ? 1 : 0;
+	page->user = (kernel) ? 0 : 1;
+}
+
+int flagforce_alloc_frame(page_t *page, int is_kernel, int writeable)
+{
+	int ret = alloc_frame(page, is_kernel, writeable);
+
+	if (ret == -1)
+		set_frame_flags(page, is_kernel, writeable);
+	else if (ret == -2)
+		return -1;
+
+	return 0;
+}
+
 /**
  * @brief      Realocates a frame from a page struct
  *
@@ -501,30 +519,28 @@ void clear_page_directory(page_directory_t *dir)
  * @return     success code
  */
 static int map_memory_block(uint32_t startaddr, uint32_t endaddr, int is_kernel,
-                            int               is_writable_from_userspace,
-                            page_directory_t *dir)
+                            int writeable, page_directory_t *dir)
 {
 	/* this loop uses startaddr as an iterator */
-	while (startaddr <= endaddr)
+	while (startaddr < endaddr)
 	{
-		/* alocates a frame for every page that is in this memory block */
-		alloc_frame(get_page(startaddr, 1, dir), is_kernel,
-		            is_writable_from_userspace);
+		page_t *page = get_page(startaddr, 1, dir);
+		flagforce_alloc_frame(page, is_kernel, writeable);
+
 		startaddr += 0x1000;
 	}
 	return 0;
 }
 
 static int remap_memory_block(uint32_t startaddr, uint32_t endaddr,
-                              int is_kernel, int is_writable_from_userspace,
+                              int is_kernel, int writeable,
                               page_directory_t *dir)
 {
 	/* this loop uses startaddr as an iterator */
 	while (startaddr <= endaddr)
 	{
 		/* alocates a frame for every page that is in this memory block */
-		realloc_frame(get_page(startaddr, 1, dir), is_kernel,
-		              is_writable_from_userspace);
+		realloc_frame(get_page(startaddr, 1, dir), is_kernel, writeable);
 		startaddr += 0x1000;
 	}
 	return 0;

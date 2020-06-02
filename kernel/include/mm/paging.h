@@ -51,9 +51,8 @@ void              set_current_dir(page_directory_t *new);
  * @return     success or failure (0/-1)
  */
 int alloc_frame(page_t *page, int is_kernel, int is_writable_from_userspace);
-
 int realloc_frame(page_t *page, int is_kernel, int is_writable_from_userspace);
-
+int flagforce_alloc_frame(page_t *page, int is_kernel, int writeable);
 /**
  * @brief      Maps a frame to requested location
  *
