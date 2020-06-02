@@ -162,5 +162,6 @@ int vfs_fstat(int fd, struct stat *statbuf);
 int vfs_stat(const char *pathname, struct stat *statbuf);
 
 off_t vfs_lseek(int fd, off_t offset, int whence);
+void vfs_interpret_path(char *buf);
 
 #endif
