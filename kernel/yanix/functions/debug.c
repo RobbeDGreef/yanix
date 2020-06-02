@@ -131,6 +131,9 @@ void debug_printk(const char *__restrict fmt, ...)
 	size_t i = 0;
 	char   character;
 
+	if (fmt[0] == '<' && fmt[1] == SERIAL_NOTICE[0])
+		print("\033[0;31m");
+
 	while ((character = fmt[i]) != '\0')
 	{
 		if (character == '%')
@@ -352,6 +355,9 @@ void debug_printk(const char *__restrict fmt, ...)
 
 		i++;
 	}
+
+	if (fmt[0] == '<' && fmt[1] == SERIAL_NOTICE[0])
+		print("\033[0m;");
 
 	va_end(args);
 }

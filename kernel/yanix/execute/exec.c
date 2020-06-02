@@ -14,6 +14,7 @@
 
 #include <libk/string.h>
 
+#include <cpu/interrupts.h>
 #include <debug.h>
 #include <mm/linkedlist.h>
 
@@ -72,6 +73,7 @@ noargs_debug:;
 
 		return 0;
 	}
+
 	else
 	{
 		/* Now we need to switch the task to usermode, i.e. giving it brand new
@@ -79,10 +81,13 @@ noargs_debug:;
 
 		/* First disable interrupts because we are working on the stack (not
 		 * sure if it's necessary but it wont hurt) */
+		end_of_interrupt();
 		asm volatile("cli;");
 
 		/* Sets up a user stack */
 		set_user_stack();
+
+#if 0
 
 		asm volatile("movl %0, %%eax; \
 					  movl %1, %%ebx; \

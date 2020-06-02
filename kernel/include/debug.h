@@ -12,6 +12,7 @@
 #include <fs/vfs.h>
 #include <kernel.h>
 #include <libk/string.h>
+#include <mm/linkedlist.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <yanix/kfunctions.h>
