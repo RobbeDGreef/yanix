@@ -9,6 +9,7 @@
 
 #include <fs/filedescriptor.h>
 #include <fs/vfs_node.h>
+#include <libk/math.h>
 #include <libk/string.h>
 #include <mm/heap.h>
 #include <yanix/ds/fd_vector.h>
@@ -35,7 +36,6 @@ vector_t *vector_create()
 
 	return vec;
 }
-
 vector_t *vector_copy(vector_t *cp)
 {
 	vector_t *vec = kmalloc(sizeof(vector_t));
@@ -58,11 +58,10 @@ vector_t *vector_copy(vector_t *cp)
 	return vec;
 }
 
-int vector_expand(vector_t *vec)
+int vector_expand(vector_t *vec, int amount)
 {
-	int                     newsize = vec->vector_maxsize * 2;
-	struct file_descriptor *tmp =
-		kmalloc(sizeof(struct file_descriptor) * newsize);
+	int   newsize = vec->vector_maxsize * amount;
+	void *tmp     = kmalloc(sizeof(struct file_descriptor) * newsize);
 
 	if (!tmp)
 		return -1;
@@ -72,7 +71,7 @@ int vector_expand(vector_t *vec)
 	       vec->vector_maxsize * sizeof(struct file_descriptor));
 
 	kfree(vec->vector_buffer);
-	vec->vector_buffer  = tmp;
+	vec->vector_buffer  = (struct file_descriptor *) tmp;
 	vec->vector_maxsize = newsize;
 
 	return 0;
@@ -80,22 +79,21 @@ int vector_expand(vector_t *vec)
 
 int vector_push(vector_t *vec, struct file_descriptor fd)
 {
-	if (vector_expand(vec))
+	if (vec->vector_size == vec->vector_maxsize && vector_expand(vec, 2))
 		return -1;
 
 	memcpy(&vec->vector_buffer[vec->vector_size++], &fd,
 	       sizeof(struct file_descriptor));
 
-	return vec->vector_size;
+	return vec->vector_size - 1;
 }
 
 int vector_add(vector_t *vec, struct file_descriptor fd)
 {
-	for (int i = 0; i < vec->vector_maxsize; i++)
+	for (int i = 0; i < vec->vector_size; i++)
 	{
 		if (vec->vector_buffer[i].node == 0)
 		{
-			vec->vector_size++;
 			memcpy(&vec->vector_buffer[i], &fd, sizeof(struct file_descriptor));
 			return i;
 		}
