@@ -41,5 +41,6 @@ void  debug_print_phys_frame(offset_t virt_addr, size_t size,
                              page_directory_t *dir);
 int   random_complex_calc(int x);
 reg_t getstack();
+int   debug_is_heapblock_free(void *);
 
 #endif

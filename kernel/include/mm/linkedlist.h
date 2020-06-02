@@ -34,4 +34,6 @@ int             free_node(struct ll_node *node, struct linkedlist *list);
 struct ll_node *get_free(size_t searchsize, struct linkedlist *list,
                          int pagealigned);
 
+int dbg_is_heapblock_free(struct linkedlist *list, struct ll_node *node);
+
 #endif /* _MM_LINKEDLIST_H */

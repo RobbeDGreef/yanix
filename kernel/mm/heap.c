@@ -246,3 +246,10 @@ int init_uheap()
 	user_heap = create_heap(UHEAP_START, UHEAP_MAXSIZE, 1);
 	return 0;
 }
+
+int debug_is_heapblock_free(void *addr)
+{
+	return dbg_is_heapblock_free(
+		kernel_heap->linkedlist,
+		(struct ll_node *) (addr - sizeof(struct ll_node)));
+}

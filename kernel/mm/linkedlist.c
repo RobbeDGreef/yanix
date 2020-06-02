@@ -412,3 +412,18 @@ error:
 	errno = EFAULT;
 	return -1;
 }
+
+int dbg_is_heapblock_free(struct linkedlist *list, struct ll_node *node)
+{
+	struct ll_node *tmp = list->start_free;
+
+	while (tmp)
+	{
+		if (tmp == node)
+			return 1;
+
+		tmp = tmp->next;
+	}
+
+	return 0;
+}
