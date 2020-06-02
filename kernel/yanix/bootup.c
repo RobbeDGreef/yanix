@@ -16,6 +16,7 @@
 #include <proc/syscall.h>         /* the system calls 			(init) */
 #include <proc/tasking.h>         /* tasking 						(init) */
 #include <yanix/stack.h>          /* stack functions 				(kernel init) */
+#include <yanix/system.h>         /* System info initialisation (init) */
 #include <yanix/tty_dev.h>        /* TTY functionality 			(kernel init) */
 #include <yanix/user.h>           /* User system 					(init) */
 
@@ -109,6 +110,9 @@ void bootsequence_after_paging()
 
 	ret = init_user();
 	message("User initialized", !ret);
+
+	ret = init_sysinfo();
+	message("System info initialized", !ret);
 
 	/* sleep to read the messages */
 	sleep(1000);
