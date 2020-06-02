@@ -93,6 +93,7 @@ int getdents(int fd, struct dirent *dir, int count)
  *
  * @return     { description_of_the_return_value }
  */
+#include <debug.h>
 static ssize_t tty_stdoutwrite(vfs_node_t *node, unsigned int offset,
                                const void *buffer, size_t size)
 {
@@ -106,7 +107,6 @@ static ssize_t tty_stdoutwrite(vfs_node_t *node, unsigned int offset,
 	                 -1);
 }
 
-#include <debug.h>
 static ssize_t tty_stderrwrite(vfs_node_t *node, unsigned int offset,
                                const void *buffer, size_t size)
 {
@@ -144,15 +144,61 @@ static ssize_t tty_stdinwrite(vfs_node_t *node, unsigned int offset,
 	return size;
 }
 
+static ssize_t tty_readtest(vfs_node_t *node, unsigned int offset, void *buffer,
+                            size_t size)
+{
+	printk("He's trying to read and i don't know what to do\n");
+	return 0;
+}
+
+static ssize_t read_null(vfs_node_t *node, unsigned int offset, void *buffer,
+                         size_t size)
+{
+	char *buf = (char *) buffer;
+	for (uint i = 0; i < size; i++)
+		buf[i] = 0;
+
+	return size;
+}
+
+static ssize_t write_null(vfs_node_t *node, unsigned int offset,
+                          const void *buffer, size_t size)
+{
+	return size;
+}
+
 int init_char_specials()
 {
 	/* Create /dev/stdin */
-	stdinbuffer = kmalloc(BUFSIZ);
 	mkfifo("/dev/stdin");
+	mkfifo("/dev/tty");
+	mkfifo("/dev/pts/0");
+	mkfifo("/dev/null");
 
 	vfs_node_t *node = vfs_find_path("/dev/stdin");
 	if (node)
 		node->write = &tty_stdinwrite;
+
+	node = vfs_find_path("/dev/tty");
+	if (node)
+	{
+		node->read  = &tty_readtest;
+		node->write = &tty_stdoutwrite;
+	}
+
+	node = vfs_find_path("/dev/pts/0");
+	if (node)
+	{
+		node->read = &tty_readtest;
+		node->write = &tty_stdoutwrite;
+	}
+
+	node = vfs_find_path("/dev/null");
+	if (node)
+	{
+		node->read  = &read_null;
+		node->write = &write_null;
+	}
 
 	/* @todo: Should actually be a pipe that notifies the tty systems, because
 	 * we need to be able to read from stdout too */
@@ -163,6 +209,8 @@ int init_char_specials()
 	vfs_node_t *stderr = vfs_setupnode("stderr", VFS_CHARDEVICE, 0, 0, 0, 0, 0,
 	                                   0, 0, 0, 0, tty_stderrwrite, 0, 0, 0);
 	vfs_link_node_vfs("/dev/stderr", stderr);
+
+	//vfs_node_t *tmp = vfs_setupnode("tmp", VFS_DIRECTORY, 0, 0, 0, 0, )
 
 	vfs_open_fd("/dev/stdin", 0, 0);
 	vfs_open_fd("/dev/stdout", 0, 0);
@@ -213,26 +261,29 @@ ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 	unsigned int blockiter = seek / blocksize; /* the startblock*/
 
 	unsigned int s_rest = seek % blocksize;
-	unsigned int e_rest = (amount + s_rest) % blocksize;
+	unsigned int e_rest = (amount + (blocksize  - s_rest)) % blocksize;
 
 	if (s_rest && blocksize - s_rest > amount)
 		e_rest = 0;
 
-	int blkcnt = (amount - e_rest) / blocksize;
+	int blkcnt = amount / blocksize;
 
 	if (s_rest)
 	{
 		char *tmp = kmalloc(blocksize);
-		node->fs_info->block_read(node->offset, blockiter++, tmp, 1,
+		ret = node->fs_info->block_read(node->offset, blockiter++, tmp, 1,
 		                          node->fs_info);
+
+		if (ret == 0)
+			return 0;
 
 		size_t size = blocksize - s_rest;
 		if (amount < size)
 			size = amount;
 
 		memcpy(buf, tmp + s_rest, size);
-		ret += size;
-		buf += size;
+		ret = size;
+		buf += ret;
 		kfree(tmp);
 	}
 	if (blkcnt)
@@ -249,8 +300,12 @@ ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 	if (e_rest)
 	{
 		char *tmp = kmalloc(blocksize);
-		node->fs_info->block_read(node->offset, blockiter, tmp, 1,
+		int r = node->fs_info->block_read(node->offset, blockiter, tmp, 1,
 		                          node->fs_info);
+		
+		if (r == 0)
+			return ret;
+		
 		memcpy(buf, tmp, e_rest);
 		kfree(tmp);
 		ret += e_rest;
