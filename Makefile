@@ -33,6 +33,7 @@ QEMU_FLAGS += -netdev user,id=u1,hostfwd=tcp::5555-:5454 -device rtl8139,netdev=
 QEMU_FLAGS += -object filter-dump,id=f1,netdev=u1,file=networkdump.dat 
 QEMU_FLAGS += -serial pipe:/serial_output.out 
 QEMU_FLAGS += -no-reboot #-enable-kvm
+QEMU_FLAGS += -d int,cpu_reset
 # Kvm actually slow the os down on some parts (like the ata driver)
 
 all:
@@ -56,11 +57,12 @@ clean:
 
 run: kernel.bin maindisk.iso
 	@echo "Serial output: "
+	cat /dev/null > /tmp/qemu_dump.txt
 	cat /serial_output.out &
-	$(QEMU) ${QEMU_FLAGS} -hda $(DISKNAME)
+	$(QEMU) ${QEMU_FLAGS} -hda $(DISKNAME) > /tmp/qemu_dump.txt 2>&1
 
 debug: kernel.bin maindisk.iso kernel.elf
-	$(QEMU) -s ${QEMU_FLAGS} -hda $(DISKNAME) &
+	$(QEMU) -s ${QEMU_FLAGS} -hda $(DISKNAME) > /tmp/qemu_dump.txt 2>&1 &
 	$(GDB) -ex "target remote localhost:1234" -ex "symbol-file kernel.elf" -ex "breakpoint DEBUGGER_ENTRY" -ex "directory /home/robbe/Projects/yanix/kernel" -ex "set disassembly-flavor intel"
 
 mount_ramdisk: ramdisk.iso

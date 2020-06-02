@@ -56,6 +56,7 @@ ifndef CC_FLAGS
 	CC_FLAGS += -I $(PWD)/kernel/include -I $(PWD)/kernel/arch/$(ARCH)/include  
 	CC_FLAGS += -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter
 	CC_FLAGS += -include $(PWD)/external/config.h -I $(PWD)/external/
+	CC_FLAGS += -include $(PWD)/kernel/config.h
 endif
 
 # Custom flags can be used otherwise this will be used
