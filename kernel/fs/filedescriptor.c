@@ -114,3 +114,15 @@ int setflags_filedescriptor(int fd, int flags)
 	toset->flags = flags;
 	return 0;
 }
+
+void check_filedescriptors()
+{
+	int fds = get_current_task()->fds->vector_size;
+	for (int i = 0; i < fds; i++)
+	{
+		struct file_descriptor *fd = get_filedescriptor(i);
+		if (fd)
+			if (fd->flags & E_CLOEXEC)
+				close_filedescriptor(i);
+	}
+}
