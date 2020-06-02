@@ -138,3 +138,35 @@ int vector_destroy(vector_t *vec)
 	kfree(vec);
 	return 0;
 }
+
+int vector_add_from(vector_t *vec, struct file_descriptor fd, int from)
+{
+	if (from > vec->vector_maxsize)
+		vector_expand(vec, roundup(from, vec->vector_maxsize));
+
+	for (int i = from; i < vec->vector_maxsize; i++)
+	{
+		if (vec->vector_buffer[i].node == 0)
+		{
+			if (i >= vec->vector_size)
+				vec->vector_size = i + 1;
+
+			memcpy(&vec->vector_buffer[i], &fd, sizeof(struct file_descriptor));
+			return i;
+		}
+	}
+
+	return vector_push(vec, fd);
+}
+
+int vector_set(vector_t *vec, struct file_descriptor obj, int fd)
+{
+	if (fd >= vec->vector_maxsize)
+		vector_expand(vec, roundup(fd, vec->vector_maxsize));
+
+	if (fd >= vec->vector_size)
+		vec->vector_size = fd + 1;
+
+	memcpy(&vec->vector_buffer[fd], &obj, sizeof(struct file_descriptor));
+	return fd;
+}

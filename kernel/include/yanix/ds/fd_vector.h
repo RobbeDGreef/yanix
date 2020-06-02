@@ -22,5 +22,6 @@ int                     vector_add(vector_t *vec, struct file_descriptor fd);
 struct file_descriptor *vector_get(vector_t *vec, int fd);
 struct file_descriptor *vector_get_node(vector_t *vec, vfs_node_t *node);
 int                     vector_destroy(vector_t *vec);
-
+int vector_add_from(vector_t *vec, struct file_descriptor obj, int from);
+int vector_set(vector_t *vec, struct file_descriptor obj, int fd);
 #endif /* _YANIX_DS_FD_VECTOR_H */
