@@ -27,5 +27,10 @@ struct file_descriptor *get_filedescriptor(int fd);
 struct file_descriptor *get_filedescriptor_from_node(vfs_node_t *node);
 vfs_node_t *            get_filedescriptor_node(int fd);
 int                     register_filedescriptor(vfs_node_t *node, int mode);
+void                    check_filedescriptors();
+int                     setflags_filedescriptor(int fd, int flags);
+int                     dup_filedescriptor(int fd, int from);
+int                     dup2_filedescriptor(int old, int new);
+void                    debug_filedescriptors();
 
 #endif
