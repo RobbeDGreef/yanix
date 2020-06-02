@@ -171,9 +171,16 @@ int mkfifo(const char *path)
 	if (!pipe)
 		return -1;
 
-	vfs_node_t *pipe_node = vfs_setupnode(
-		vfs_get_name(path), VFS_PIPE, 0, 0, 0, pipe->circbuf->size,
-		(offset_t) pipe, 0, &pipe_close, 0, &pipe_read, &pipe_write, 0, 0, 0);
+	/**
+	 * Note: We do not give the vfs node a close function because
+	 * we want it to keep alive in the system until it reboots
+	 * this is a fifo and not a pipe, they're different in nature
+	 */
+	vfs_node_t *pipe_node =
+		vfs_setupnode(vfs_get_name(path), VFS_PIPE, 0, 0, 0,
+	                  pipe->circbuf->size, (offset_t) pipe, 0, 0 /* see note */,
+	                  0, &pipe_read, &pipe_write, 0, 0, 0);
+
 	vfs_link_node_vfs(path, pipe_node);
 
 	return 0;
