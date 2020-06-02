@@ -49,8 +49,7 @@ ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer,
 	struct pipe_s *pipe = (struct pipe_s *) offset;
 
 	if (!(pipe->flags & NON_BLOCK))
-	{
-		/* waiting for a process to write to the pipe */
+	{		/* waiting for a process to write to the pipe */
 		enable_interrupts();
 		end_of_interrupt();
 		circular_buffer_block(pipe->circbuf);
@@ -151,7 +150,7 @@ int pipe(int pipefd[2])
 	// @todo: the mode of this register file descriptor should be set
 	// @todo: separate read and write in these pipe file descriptors
 	pipefd[0] = register_filedescriptor(pipe_node, 0);
-	pipefd[1] = pipefd[0];
+	pipefd[1] = register_filedescriptor(pipe_node, 1);
 
 	pipe->pipefd[0] = pipefd[0];
 	pipe->pipefd[1] = pipefd[1];
