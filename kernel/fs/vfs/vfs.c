@@ -652,6 +652,48 @@ vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
 	return 0;
 }
 
+static void shiftpath(char *path, int amount)
+{
+	for (int i = 0; i < (int) strlen(path); i++)
+	{
+		path[i] = path[i + amount];
+	}
+}
+
+static void snippath(char *path, int len, int amount)
+{
+	for (int i = 0; i < len; i++)
+	{
+		path[i] = path[i + len];
+	}
+}
+
+void vfs_interpret_path(char *buf)
+{
+	int entryloc = 0;
+	printk("'%s'\n", buf);
+	/* @todo this is just a stub */
+	for (uint i = 0; i < strlen(buf); i++)
+	{
+		if (buf[i] == '/' && buf[i + 1] == '\0')
+			buf[i] = '\0';
+
+		if (buf[i] == '/' && buf[i + 1] == '/')
+			shiftpath(&buf[i], 1);
+
+		if (buf[i] == '/' && buf[i + 1] == '.'
+		    && (buf[i + 2] == '\0' || buf[i + 2] == '/'))
+			shiftpath(&buf[i], 2);
+
+		if (buf[i] == '/' && !memcmp(&buf[i + 1], "..", 2)
+		    && (buf[i + 3] == '\0' || buf[i + 3] == '/'))
+			snippath(&buf[entryloc], i - entryloc + 3, strlen(buf) - entryloc);
+
+		if (buf[i] == '/')
+			entryloc = i;
+	}
+}
+
 /**
  * @brief      Finds the inode pointing to a specific path
  *
@@ -663,10 +705,20 @@ vfs_node_t *vfs_find_path(const char *path)
 {
 	if (path[0] != '/')
 	{
-		printk(KERN_WARNING "Kernel doesn't support relative filepaths yet, "
-		                    "thus '%s' was not valid",
-		       path);
+		char *cwd = get_current_task()->cwd;
+		char *buf = kmalloc(strlen(cwd) + strlen(path) + 2);
+		*buf      = '\0';
+		strcpy(buf, cwd);
+		strcat(buf, "/");
+		strcat(buf, path);
+		vfs_node_t *node = vfs_find_path(buf);
+		kfree(buf);
+		if (node)
+			return node;
 	}
+
+	else if (path[1] == '\0')
+		return g_vfs_root;
 
 	size_t      pathlength = strlen(path) + 1;
 	char *      buffer     = kmalloc(pathlength);
