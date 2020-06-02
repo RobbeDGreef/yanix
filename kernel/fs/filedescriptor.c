@@ -139,3 +139,18 @@ int dup2_filedescriptor(int old, int new)
 
 	return vector_set(get_current_task()->fds, *oldfd, new);
 }
+
+void debug_filedescriptors()
+{
+	return;
+	vector_t *vec = get_current_task()->fds;
+	debug_printk("fd list size: %i %i\n", vec->vector_size,
+	             vec->vector_maxsize);
+
+	for (int i = 0; i < vec->vector_size; i++)
+	{
+		struct file_descriptor *fd = vector_get(vec, i);
+		debug_printk("    node: %x %s\n", fd->node,
+		             fd->node ? fd->node->name : 0);
+	}
+}
