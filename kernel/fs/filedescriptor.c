@@ -91,3 +91,15 @@ int init_filedescriptors()
 {
 	return 0;
 }
+
+int dup_filedescriptor(int fd, int from)
+{
+	struct file_descriptor *dup = get_filedescriptor(fd);
+	if (!dup)
+		return -1;
+
+	if (from == -1)
+		return vector_add(get_current_task()->fds, *dup);
+	else
+		return vector_add_from(get_current_task()->fds, *dup, from);
+}
