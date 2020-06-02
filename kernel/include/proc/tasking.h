@@ -33,7 +33,10 @@ typedef struct task_control_block_s
 	pid_t     parent;
 	pid_t     childamount;
 	uid_t     uid;
+	uid_t     euid;
+	mode_t    umask;
 	gid_t     gid;
+	gid_t     egid;
 	int       ring;
 	vector_t *fds; /* The opened file descriptors */
 
@@ -102,7 +105,7 @@ pid_t fork(void);
 /**
  * @brief      Jump to userspace
  */
-void jump_userspace(reg_t eip, reg_t argc, reg_t argv);
+void jump_userspace(reg_t eip, reg_t stackstop, reg_t argc, reg_t argv);
 
 /**
  * @brief      Sends a signal to the current task.

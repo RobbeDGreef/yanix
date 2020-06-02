@@ -72,6 +72,8 @@ int send_pid_sig(pid_t pid, int signal)
 
 static void free_task(task_t *task)
 {
+	for (;;)
+		;
 	vector_destroy(task->fds);
 	/* @todo: */
 }
@@ -187,7 +189,9 @@ int init_tasking()
 	mainloop->stack_size   = STACK_SIZE;
 
 	mainloop->uid      = 0;
+	mainloop->euid     = 0;
 	mainloop->gid      = 0;
+	mainloop->egid     = 0;
 	mainloop->name     = "Main kernel loop";
 	mainloop->priority = 0;
 	mainloop->fds      = vector_create();
