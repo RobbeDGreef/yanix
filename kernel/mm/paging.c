@@ -556,19 +556,15 @@ static int remap_memory_block(uint32_t startaddr, uint32_t endaddr,
  *
  * @return     { description_of_the_return_value }
  */
-int map_mem(uint32_t startaddr, uint32_t endaddr, int is_kernel,
-            int is_writable_from_userspace)
+int map_mem(uint32_t startaddr, uint32_t endaddr, int is_kernel, int writable)
 {
-	return map_memory_block(startaddr, endaddr, is_kernel,
-	                        is_writable_from_userspace,
+	return map_memory_block(startaddr, endaddr, is_kernel, writable,
 	                        (page_directory_t *) g_current_directory);
 }
 
-int remap_mem(uint32_t startaddr, uint32_t endaddr, int is_kernel,
-              int is_writable_from_userspace)
+int remap_mem(uint32_t startaddr, uint32_t endaddr, int is_kernel, int writable)
 {
-	return remap_memory_block(startaddr, endaddr, is_kernel,
-	                          is_writable_from_userspace,
+	return remap_memory_block(startaddr, endaddr, is_kernel, writable,
 	                          (page_directory_t *) g_current_directory);
 }
 

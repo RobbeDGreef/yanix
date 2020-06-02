@@ -103,6 +103,7 @@ static ssize_t _vfs_write(struct file_descriptor *fd_struct, const void *buf,
 {
 	ssize_t     ret  = 0;
 	vfs_node_t *node = fd_struct->node;
+
 	if (node->write != 0)
 	{
 		ret = node->write(node, fd_struct->seek, buf, amount);
@@ -329,7 +330,7 @@ int vfs_fstat(int fd, struct stat *statbuf)
 
 int vfs_stat(const char *pathname, struct stat *statbuf)
 {
-	vfs_node_t *            node      = vfs_find_path(pathname);
+	vfs_node_t 		       *node      = vfs_find_path(pathname);
 	struct file_descriptor *fd_struct = get_filedescriptor_from_node(node);
 
 	if (fd_struct)
@@ -885,7 +886,7 @@ int check_vfs_initialised()
 
 /* @TODO: this is not how this system should work at all (see note below) */
 extern disk_t *disk_list;
-#include <debug.h>
+
 /**
  * @brief      Initialises the virtual filesystem
  */

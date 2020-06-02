@@ -63,6 +63,7 @@ ssize_t circular_buffer_read_index(char *buffer, size_t size,
 		 */
 		unsigned short int ind = index;
 		size_t             max = size;
+
 		if (max > circbuf->virtual_end - circbuf->virtual_begin)
 			max = circbuf->virtual_end - circbuf->virtual_begin;
 

@@ -107,13 +107,13 @@ int vector_add(vector_t *vec, struct file_descriptor fd)
 int vector_clear(vector_t *vec, int fd)
 {
 	vec->vector_buffer[fd].node = 0;
-	vec->vector_size--;
+	// vec->vector_size--;
 	return 0;
 }
 
 struct file_descriptor *vector_get(vector_t *vec, int fd)
 {
-	if (vec && fd <= vec->vector_size)
+	if (vec && fd < vec->vector_size)
 		return &vec->vector_buffer[fd];
 
 	return 0;

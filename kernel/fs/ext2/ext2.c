@@ -484,7 +484,6 @@ ssize_t ext2_read_file(ino_t inode, unsigned int offset, void *buf,
 		return -1;
 
 	unsigned int startblock = offset;
-
 	/**
 	 * loop over those blocks and copy them
 	 */

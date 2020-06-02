@@ -14,9 +14,9 @@
  * @param[in]  size      The amount of bytes to compair
  *
  * @return     returns 0 when the two memory blocks are the same,
- * 			   -1 when the first diferent byte is smaller in the first pointer than
- * the byte in the second pointer 1 when the first diferent byte is larger in
- * the first pointer than the byte in the second pointer
+ * 			   -1 when the first diferent byte is smaller in the first pointer
+ * than the byte in the second pointer 1 when the first diferent byte is larger
+ * in the first pointer than the byte in the second pointer
  */
 int memcmp(const void *, const void *, size_t);
 
