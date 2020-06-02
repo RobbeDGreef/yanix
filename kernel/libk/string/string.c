@@ -404,7 +404,7 @@ int strcpy_s(char *dest, const char *str, int max)
 
 	while (*str)
 	{
-		if (i == max - 1)
+		if (i == max)
 			return i;
 
 		*dest = *str;
@@ -444,5 +444,5 @@ char *strcat(char *buf, const char *str)
 
 	*buf = '\0';
 
-	return 0;
+	return buf;
 }
