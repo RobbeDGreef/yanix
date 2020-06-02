@@ -41,6 +41,8 @@ char **make_envvars()
 	env[0] = make_uservar("USER=", curuser->name);
 	env[1] = make_uservar("HOME=", curuser->home);
 	env[2] = make_userstring("PATH=/bin");
+	env[3] = make_uservar("PWD=", curuser->home);
+	env[4] = make_uservar("TERM=", "yanix");
 	return env;
 }
 
