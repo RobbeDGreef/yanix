@@ -221,10 +221,10 @@ void schedule()
 	unlock_scheduler();
 }
 
-void jump_userspace(reg_t eip, reg_t argc, reg_t argv)
+void jump_userspace(reg_t eip, reg_t stacktop, reg_t argc, reg_t argv)
 {
 	g_runningtask->ring = 3;
-	arch_jump_userspace(eip, argc, argv);
+	arch_jump_userspace(eip, stacktop, argc, argv);
 }
 
 int init_scheduler(task_t *mainloop)
