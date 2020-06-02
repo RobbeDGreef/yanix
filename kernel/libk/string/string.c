@@ -419,7 +419,20 @@ int strcpy_s(char *dest, const char *str, int max)
 	return i;
 }
 
-int strcat(char *buf, const char *str)
+char *strcpy(char *dest, const char *src)
+{
+	while (*src)
+	{
+		*dest = *src;
+		dest++;
+		src++;
+	}
+
+	*dest = '\0';
+	return dest;
+}
+
+char *strcat(char *buf, const char *str)
 {
 	buf += strlen(buf);
 	while (*str)
