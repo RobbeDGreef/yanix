@@ -1,15 +1,15 @@
-#include <stdio.h>
-#include <getopt.h>
 #include <dirent.h>
 #include <errno.h>
-#include <string.h>
+#include <getopt.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 extern int errno;
 
 void lsdir(char *path)
 {
-	DIR *d = opendir(path);
+	DIR *          d = opendir(path);
 	struct dirent *dir;
 
 	if (!d)
@@ -31,8 +31,8 @@ int main(int argc, char **argv)
 	else
 	{
 		char *buf = malloc(BUFSIZ);
-		
-		if (getcwd(buf, BUFSIZ))
+
+		if (!getcwd(buf, BUFSIZ))
 		{
 			free(buf);
 			return -1;

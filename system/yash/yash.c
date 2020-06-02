@@ -37,6 +37,12 @@ int changedir(char *const *args)
 		printf("Error, unknown directory '%s'\n", args[1]);
 }
 
+int nowait(char *const *args)
+{
+	args = args + 1;
+	execvp(args[0], args);
+}
+
 typedef int (*builtin_fpointer)(char *const *args);
 struct builtin_lookup
 {
@@ -44,8 +50,8 @@ struct builtin_lookup
 	builtin_fpointer func;
 };
 
-const struct builtin_lookup builtins[] = {{"exit", &builtin_exit},
-                                          {"cd", &changedir}};
+const struct builtin_lookup builtins[] = {
+	{"exit", &builtin_exit}, {"cd", &changedir}, {"nowait", &nowait}};
 
 int builtin(char *const *args)
 {
