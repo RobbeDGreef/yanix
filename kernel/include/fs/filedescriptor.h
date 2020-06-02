@@ -1,11 +1,11 @@
 #ifndef FILEDESCRIPTOR_H
 #define FILEDESCRIPTOR_H
 
-
 #include <fs/vfs_node.h>
 
-#define GLOBAL_FILE_TABLE_SIZE 1024
+#define E_CLOEXEC 1
 
+#define GLOBAL_FILE_TABLE_SIZE 1024
 struct file_lock
 {
 	vfs_node_t *node; /* The vfs file node that is locked */
@@ -16,6 +16,7 @@ struct file_descriptor
 {
 	vfs_node_t *node;
 	mode_t      mode;
+	int         flags;
 	int         seek;
 	int         lock_index;
 };
