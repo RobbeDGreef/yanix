@@ -57,6 +57,7 @@ noargs_debug:;
 	vfs_close(file);
 
 	get_current_task()->name = (char *) filename;
+	check_filedescriptors(get_current_task()->fds);
 
 	debug_printk(KERN_INFO "Executing execve\n");
 
