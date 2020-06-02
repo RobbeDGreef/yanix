@@ -29,6 +29,8 @@ struct circular_buffer_s *create_circular_buffer(size_t size, cb_flags_t flags)
 	circbuf->flags        = flags;
 	circbuf->size         = size;
 
+	circbuf->virtual_end = 0;
+
 	return circbuf;
 }
 
@@ -79,7 +81,7 @@ ssize_t circular_buffer_read_index(char *buffer, size_t size,
 		circbuf->virtual_begin = index + max;
 
 		if (circbuf->lock)
-			circbuf->lock -= size;
+			circbuf->lock -= max;
 
 		return max;
 	}
@@ -136,7 +138,9 @@ ssize_t circular_buffer_write_index(char *buffer, size_t size,
 		for (size_t i = 0; i < size; i++)
 		{
 			if (buffer[i] == '\n')
-				circbuf->lock = circbuf->virtual_begin + ind;
+			{
+				circbuf->lock = circbuf->virtual_end - circbuf->virtual_begin + i + 1;
+			}
 
 			circbuf->buffer_start[ind++] = buffer[i];
 		}
