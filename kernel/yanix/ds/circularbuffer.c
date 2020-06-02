@@ -171,9 +171,7 @@ ssize_t circular_buffer_write(char *buffer, size_t size,
 
 void circular_buffer_block(struct circular_buffer_s *circbuf)
 {
-	debug_printk("lock: %i\n", circbuf->lock);
-	while (!circbuf->lock)
-		;
+	while (!circbuf->lock);
 }
 
 void circbuf_buffer_flush(struct circular_buffer_s *circbuf)

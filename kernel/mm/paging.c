@@ -391,28 +391,22 @@ void debug_print_phys_frame(offset_t virt_addr, size_t size,
  */
 static void copy_page(size_t addr, page_directory_t *newdir)
 {
-	// printk("\n\n");
-	// printk("-");
-	page_t *page_to_copy_ref =
-		get_page(addr, 1, (page_directory_t *) g_current_directory);
-	page_t *buffer_page = get_page(PAGE_BUFFER_LOCATION, 1,
-	                               (page_directory_t *) g_current_directory);
+	page_directory_t *curdir = (page_directory_t *) g_current_directory;
+
+	page_t *copy_page   = get_page(addr, 1, curdir);
+	page_t *buffer_page = get_page(PAGE_BUFFER_LOCATION, 1, curdir);
 	page_t *new_page    = get_page(addr, 1, newdir);
 
 	int bufframe = buffer_page->frame;
 
-	alloc_frame(new_page, page_to_copy_ref->user ? 0 : 1, page_to_copy_ref->rw);
+	alloc_frame(new_page, copy_page->user ? 0 : 1, copy_page->rw);
 
 	buffer_page->frame = new_page->frame;
 	memcpy((void *) PAGE_BUFFER_LOCATION, (void *) addr, 0x1000);
 
 	buffer_page->frame = bufframe;
 
-	// printk("addr: %x\n", addr);
 	arch_flush_tlb();
-
-	// void *ptr = kmalloc(804);
-	// kfree(ptr);
 }
 
 /**

@@ -110,7 +110,6 @@ static int _elf_load_pheader(struct file *fp, elf32_phdr_t *phdr)
 {
 	map_mem(phdr->vaddr, phdr->vaddr + phdr->memsize, 0, phdr->flags & ELF_W);
 	memset((void *) phdr->vaddr, 0, phdr->memsize);
-	// memcpy((void *) phdr->vaddr, buf + phdr->offset, phdr->filesize);
 	vfs_lseek(fp->fd, phdr->offset, SEEK_SET);
 	int i = vfs_read(fp, (void *) phdr->vaddr, phdr->filesize);
 
@@ -170,6 +169,8 @@ static int _elf_loop_over_program_table(struct file * fp,
 			pstrt = (elf_program_table[i].vaddr);
 	}
 
+	//if (pbrk & 0xFFF)
+	//	pbrk = (pbrk & 0xFFFFF000) + 0x1000;
 	get_current_task()->program_break = pbrk;
 	get_current_task()->program_start = pstrt;
 

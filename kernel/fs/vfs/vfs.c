@@ -391,18 +391,10 @@ DIR *_vfs_opendir(vfs_node_t *node)
 int vfs_open_fd(const char *path, int flags, int mode)
 {
 	vfs_node_t *node;
-	debug_printk("opening: %s\n", path);
-	if (strcmp(path, "/testout.asm") == 0)
-		node = get_filedescriptor(1)->node;
-	else
-		node = _vfs_open(path, flags, mode);
 
 	if (!node)
-	{
-		debug_printk("error opening\n");
 		return -1;
-	}
-
+	
 	int fd = register_filedescriptor(node, mode);
 
 	if (flags & O_DIRECTORY)
@@ -411,7 +403,6 @@ int vfs_open_fd(const char *path, int flags, int mode)
 		vfs_lseek(fd, (unsigned int) d, SEEK_SET);
 	}
 
-	debug_printk("open fd: %i\n", fd);
 	return fd;
 }
 
