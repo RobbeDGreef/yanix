@@ -126,3 +126,16 @@ void check_filedescriptors()
 				close_filedescriptor(i);
 	}
 }
+
+int dup2_filedescriptor(int old, int new)
+{
+	struct file_descriptor *oldfd = get_filedescriptor(old);
+	if (!oldfd)
+		return -1;
+
+	struct file_descriptor *newfd = get_filedescriptor(new);
+	if (newfd)
+		close_filedescriptor(new);
+
+	return vector_set(get_current_task()->fds, *oldfd, new);
+}
