@@ -661,48 +661,6 @@ vfs_node_t *_vfs_path_find(vfs_node_t *node, char *name)
  */
 vfs_node_t *vfs_find_path(const char *path)
 {
-#if 0
-	char *buf = (char*) kmalloc(strlen(path)+1);
-	memset(buf, 0, strlen(path)+1);
-	int i = 1;
-	int last = i;
-	char c = path[i];
-	vfs_node_t *node = g_vfs_root;
-	while (1) {
-		if ((c == '\0' || c == '/') && (i-last) != 0) {
-			memcpy(buf, path+last, i-last);
-			buf[i-last] = '\0';
-			last = i+1;
-			node = _vfs_path_find(node, buf);
-			if (node == 0) {
-				break;
-			}
-			if (c == '\0') {
-				break;
-			}
-		} else if (c == '\0' || c == '/') {
-			break;
-		}
-		i++;
-		c = path[i];
-	}
-	kfree(buf);
-	if (node == 0) {
-		errno = ENOENT;
-	}
-	return node;
-#endif
-
-	/**
-	 *
-	 * It works pretty simple
-	 *
-	 * - if the path starts with a / -> its an absolute path
-	 * - if the path doesn't start with a / -> its a path relative of the
-	 * current working directory
-	 *
-	 */
-
 	if (path[0] != '/')
 	{
 		printk(KERN_WARNING "Kernel doesn't support relative filepaths yet, "
