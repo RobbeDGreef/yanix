@@ -95,7 +95,7 @@ int init_filedescriptors()
 int dup_filedescriptor(int fd, int from)
 {
 	struct file_descriptor *dup = get_filedescriptor(fd);
-	if (!dup)
+	if (!dup || !dup->node)
 		return -1;
 
 	if (from == -1)
@@ -130,12 +130,14 @@ void check_filedescriptors()
 int dup2_filedescriptor(int old, int new)
 {
 	struct file_descriptor *oldfd = get_filedescriptor(old);
-	if (!oldfd)
+	if (!oldfd || !oldfd->node)
 		return -1;
 
 	struct file_descriptor *newfd = get_filedescriptor(new);
 	if (newfd)
 		close_filedescriptor(new);
+
+	debug_printk("copy %s to: %s\n", oldfd->node->name, (newfd->node) ? newfd->node->name: "(null)");
 
 	return vector_set(get_current_task()->fds, *oldfd, new);
 }
