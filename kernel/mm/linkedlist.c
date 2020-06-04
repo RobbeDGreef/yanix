@@ -405,7 +405,6 @@ int free_node(struct ll_node *node, struct linkedlist *list)
 			mark_free(node, list);
 			return 0;
 		}
-
 	} while ((tmp = tmp->next) != 0);
 
 error:
