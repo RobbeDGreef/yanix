@@ -352,8 +352,8 @@ ssize_t fs_write(vfs_node_t *node, int seek, const void *_buf, size_t amount)
 		buf += size;
 		kfree(tmp);
 
-		if (blkcnt)
-			blkcnt--;
+		//if (blkcnt)
+		//	blkcnt--;
 	}
 	if (blkcnt)
 	{
