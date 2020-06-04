@@ -297,6 +297,21 @@ vfs_node_t *_vfs_open(const char *path, int flags, int mode)
 	return node;
 }
 
+static mode_t vfs_to_stat(int mode)
+{
+	switch (mode)
+	{
+	case VFS_FILE: 			return S_IFREG;
+	case VFS_DIRECTORY:		return S_IFDIR;
+	case VFS_CHARDEVICE:	return S_IFCHR;
+	case VFS_BLOCKDEVICE:	return S_IFBLK;
+	case VFS_PIPE:			return S_IFIFO;
+	case VFS_SYMLINK:		return S_IFLNK;
+	}
+
+	return mode;
+}
+
 int _vfs_stat(vfs_node_t *node, mode_t mode, struct stat *statbuf)
 {
 	if (!node)
@@ -305,7 +320,7 @@ int _vfs_stat(vfs_node_t *node, mode_t mode, struct stat *statbuf)
 	/* See man stat(2) for these values */
 	statbuf->st_dev   = 0; /* @todo: What is the st_dev ? */
 	statbuf->st_ino   = node->id;
-	statbuf->st_mode  = (mode_t) node->type | mode;
+	statbuf->st_mode  = vfs_to_stat(node->type) | mode;
 	statbuf->st_nlink = node->nlink;
 	statbuf->st_uid   = node->uid;
 	statbuf->st_gid   = node->gid;
