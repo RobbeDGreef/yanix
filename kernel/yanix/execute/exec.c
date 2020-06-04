@@ -36,7 +36,6 @@ static int _execve(int jmpuser, const char *filename, const char **argv,
 	size_t amount = 0;
 	while (argv[amount] != 0)
 		amount++;
-
 	argv = (const char **) combine_args_env((char **) argv, (char **) envp);
 	if (!argv)
 	{

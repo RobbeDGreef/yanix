@@ -1,6 +1,7 @@
 #include <mm/heap.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <libk/assert.h>
 
 /**
  * @brief      Compairs memory from two given locations
