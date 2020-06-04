@@ -143,7 +143,7 @@ int init_keyboard()
 	struct file *fp     = vfs_open(KEYMAP_FILE, 0, 0);
 	vfs_read(fp, keymap, 32);
 	vfs_close(fp);
-
+	
 	char *file = kmalloc(256);
 	char *buf  = kmalloc(KEYMAP_FILE_SIZE);
 
@@ -151,24 +151,24 @@ int init_keyboard()
 	strcat(file, keymap);
 	strcat(file, "-normal");
 	fp = vfs_open(file, 0, 0);
-	vfs_read(fp, buf, fp->filesize);
-	set_keymap(keymap_normal, buf, KEYMAP_FILE_SIZE);
+	vfs_read(fp, buf, KEYMAP_FILE_SIZE);
+	set_keymap(keymap_normal, buf, KEYMAP_SIZE);
 	vfs_close(fp);
 
 	strcpy_s(file, KEYMAP_FILE_PREFIX, 256);
 	strcat(file, keymap);
 	strcat(file, "-shift");
 	fp = vfs_open(file, 0, 0);
-	vfs_read(fp, buf, fp->filesize);
-	set_keymap(keymap_shift, buf, KEYMAP_FILE_SIZE);
+	vfs_read(fp, buf, KEYMAP_FILE_SIZE);
+	set_keymap(keymap_shift, buf, KEYMAP_SIZE);
 	vfs_close(fp);
 
 	strcpy_s(file, KEYMAP_FILE_PREFIX, 256);
 	strcat(file, keymap);
 	strcat(file, "-altgr");
 	fp = vfs_open(file, 0, 0);
-	vfs_read(fp, buf, fp->filesize);
-	set_keymap(keymap_altgr, buf, KEYMAP_FILE_SIZE);
+	vfs_read(fp, buf, KEYMAP_FILE_SIZE);
+	set_keymap(keymap_altgr, buf, KEYMAP_SIZE);
 	vfs_close(fp);
 
 	kfree(keymap);
