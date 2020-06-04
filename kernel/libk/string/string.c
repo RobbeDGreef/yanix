@@ -133,6 +133,8 @@ void *memset(void *destpointer, int value, size_t size)
  */
 size_t strlen(const char *str)
 {
+	assert(str);
+
 	size_t len = 0;
 	while (str[len] != 0)
 		len++;
