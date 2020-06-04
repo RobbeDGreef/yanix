@@ -19,8 +19,8 @@ struct key_mod g_modifier;
 #define RSHIFT_D 0x36
 #define RSHIFT_U 0xb6
 
-#define ALTGR_D 22456
-#define ALTGR_U 224184
+#define ALTGR_D 56
+#define ALTGR_U 184
 
 #define RETURN_D 0x1C
 #define LCTRL_D  0x1D
@@ -141,7 +141,7 @@ int init_keyboard()
 
 	char *       keymap = kmalloc(32);
 	struct file *fp     = vfs_open(KEYMAP_FILE, 0, 0);
-	vfs_read(fp, keymap, fp->filesize);
+	vfs_read(fp, keymap, 32);
 	vfs_close(fp);
 
 	char *file = kmalloc(256);
@@ -152,7 +152,7 @@ int init_keyboard()
 	strcat(file, "-normal");
 	fp = vfs_open(file, 0, 0);
 	vfs_read(fp, buf, fp->filesize);
-	set_keymap(keymap_normal, buf, fp->filesize);
+	set_keymap(keymap_normal, buf, KEYMAP_FILE_SIZE);
 	vfs_close(fp);
 
 	strcpy_s(file, KEYMAP_FILE_PREFIX, 256);
@@ -160,7 +160,7 @@ int init_keyboard()
 	strcat(file, "-shift");
 	fp = vfs_open(file, 0, 0);
 	vfs_read(fp, buf, fp->filesize);
-	set_keymap(keymap_shift, buf, fp->filesize);
+	set_keymap(keymap_shift, buf, KEYMAP_FILE_SIZE);
 	vfs_close(fp);
 
 	strcpy_s(file, KEYMAP_FILE_PREFIX, 256);
@@ -168,7 +168,7 @@ int init_keyboard()
 	strcat(file, "-altgr");
 	fp = vfs_open(file, 0, 0);
 	vfs_read(fp, buf, fp->filesize);
-	set_keymap(keymap_altgr, buf, fp->filesize);
+	set_keymap(keymap_altgr, buf, KEYMAP_FILE_SIZE);
 	vfs_close(fp);
 
 	kfree(keymap);
