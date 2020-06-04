@@ -99,7 +99,6 @@ char **combine_args_env(char **argv, char **env)
 	int i;
 	for (i = 0; i < argvsize; i++)
 		new[i] = strdup_user(argv[i]);
-	i--;
 
 	for (int j = 0; j < envsize; j++)
 		new[i++] = strdup_user(env[j]);
