@@ -177,11 +177,15 @@ int init_char_specials()
 
 	vfs_node_t *node = vfs_find_path("/dev/stdin");
 	if (node)
+	{
+		node->type = VFS_CHARDEVICE;
 		node->write = &tty_stdinwrite;
+	}
 
 	node = vfs_find_path("/dev/tty");
 	if (node)
 	{
+		node->type = VFS_CHARDEVICE;
 		node->read  = &tty_readtest;
 		node->write = &tty_stdoutwrite;
 	}
@@ -189,6 +193,7 @@ int init_char_specials()
 	node = vfs_find_path("/dev/pts/0");
 	if (node)
 	{
+		node->type = VFS_CHARDEVICE;
 		node->read = &tty_readtest;
 		node->write = &tty_stdoutwrite;
 	}
