@@ -43,6 +43,7 @@ char **make_envvars()
 	env[2] = make_userstring("PATH=/bin");
 	env[3] = make_uservar("PWD=", curuser->home);
 	env[4] = make_uservar("TERM=", "yanix");
+	env[5] = make_uservar("PS1=", "sup: ");
 	return env;
 }
 

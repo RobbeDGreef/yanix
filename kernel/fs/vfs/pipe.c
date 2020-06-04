@@ -20,6 +20,7 @@
  */
 int pipe_close(vfs_node_t *node)
 {
+	return 0;
 	kfree((void *) ((struct pipe_s *) node->offset)->circbuf);
 	kfree((void *) node->offset);
 	return 0;
@@ -56,7 +57,9 @@ ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer,
 		disable_interrupts();
 	}
 
-	return circular_buffer_read((char *) buffer, size, pipe->circbuf);
+	int ret = circular_buffer_read((char *) buffer, size, pipe->circbuf);
+	debug_printk("ret: %i '%s'\n", ret, buffer);
+	return ret;
 }
 
 /**
@@ -154,6 +157,8 @@ int pipe(int pipefd[2])
 
 	pipe->pipefd[0] = pipefd[0];
 	pipe->pipefd[1] = pipefd[1];
+
+	printk("Pipe created %i %i\n", pipefd[0], pipefd[1]);
 
 	return 0;
 }

@@ -2,6 +2,7 @@
 #include <fs/filedescriptor.h>
 #include <kernel.h>
 #include <yanix/ds/fd_vector.h>
+#include <debug.h>
 
 struct file_lock *global_file_table;
 int               lock_file(vfs_node_t *node, pid_t pid)
