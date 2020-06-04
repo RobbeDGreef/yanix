@@ -380,7 +380,7 @@ struct sigaction;
 int sys_sigaction(int signum, const struct sigaction *act,
                   struct sigaction *oldact)
 {
-	return 0;
+	return -1;
 }
 
 mode_t sys_umask(mode_t mask)
