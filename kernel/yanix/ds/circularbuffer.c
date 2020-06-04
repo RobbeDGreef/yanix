@@ -29,6 +29,7 @@ struct circular_buffer_s *create_circular_buffer(size_t size, cb_flags_t flags)
 	circbuf->flags        = flags;
 	circbuf->size         = size;
 
+	circbuf->virtual_begin = 0;
 	circbuf->virtual_end = 0;
 
 	return circbuf;

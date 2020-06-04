@@ -337,7 +337,7 @@ int sys_open(const char *path, int flags, int mode)
 	if (ret == -1)
 		return -errno;
 
-	printk("open: %s as %i\n", path, ret);
+	debug_printk("open: %s as %i\n", path, ret);
 	return ret;
 }
 
