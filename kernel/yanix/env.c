@@ -92,7 +92,7 @@ char **combine_args_env(char **argv, char **env)
 		return NULL;
 	}
 
-	int paramsize = argvsize + envsize;
+	int paramsize = argvsize + envsize + 1;
 	char **new    = kmalloc_user(paramsize * sizeof(char *));
 	memset(new, 0, paramsize * sizeof(char *));
 
