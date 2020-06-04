@@ -193,6 +193,7 @@ int init_tasking()
 	mainloop->gid      = 0;
 	mainloop->egid     = 0;
 	mainloop->name     = "Main kernel loop";
+	mainloop->cwd 	   = "/root";
 	mainloop->priority = 0;
 	mainloop->fds      = vector_create();
 
