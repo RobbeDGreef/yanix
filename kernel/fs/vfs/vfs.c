@@ -390,7 +390,7 @@ DIR *_vfs_opendir(vfs_node_t *node)
  */
 int vfs_open_fd(const char *path, int flags, int mode)
 {
-	vfs_node_t *node;
+	vfs_node_t *node = vfs_find_path(path);
 
 	if (!node)
 		return -1;
