@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 
+#if 0
 struct stat
 {
 	dev_t     st_dev;
@@ -19,6 +20,27 @@ struct stat
 	time_t    st_mtime;
 	time_t    st_ctime;
 };
+#endif
+
+struct stat
+{
+	/* I don't know why these need to be shorts, bash needs it to function 
+	   (actually newlib _isatty needs it) */
+	short     st_dev;
+	short     st_ino;
+	int    st_mode;
+	int   st_nlink;
+	int     st_uid;
+	int     st_gid;
+	int     st_rdev;
+	int     st_size;
+	int st_blksize;
+	int  st_blocks;
+	int    st_atime;
+	int    st_mtime;
+	int    st_ctime;
+};
+
 
 #define S_IFMT   0170000 /* type of file */
 #define S_IFIFO  0010000 /* named pipe (fifo) */
