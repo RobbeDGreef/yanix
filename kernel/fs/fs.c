@@ -326,7 +326,7 @@ ssize_t fs_write(vfs_node_t *node, int seek, const void *_buf, size_t amount)
 	unsigned int blockiter = seek / blocksize; /* the startblock*/
 
 	unsigned int s_rest = seek % blocksize;
-	unsigned int e_rest = (amount + s_rest) % blocksize;
+	unsigned int e_rest = (amount + (blocksize  - s_rest)) % blocksize;
 
 	if (s_rest && blocksize - s_rest > amount)
 		e_rest = 0;
