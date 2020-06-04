@@ -57,9 +57,7 @@ ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer,
 		disable_interrupts();
 	}
 
-	int ret = circular_buffer_read((char *) buffer, size, pipe->circbuf);
-	debug_printk("ret: %i '%s'\n", ret, buffer);
-	return ret;
+	return circular_buffer_read((char *) buffer, size, pipe->circbuf);
 }
 
 /**
