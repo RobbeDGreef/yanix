@@ -13,15 +13,16 @@
 size_t env_size(char **vars)
 {
 	size_t amount = 0;
-	while (vars[amount++] != 0)
-		;
+	while (vars[amount] != 0)
+		amount++;
+	
 	return amount;
 }
 
 char *make_userstring(char *string)
 {
 	char *us = kmalloc_user(strlen(string) + 1);
-	memcpy(us, string, strlen(string));
+	memcpy(us, string, strlen(string)+1);
 	return us;
 }
 #include <debug.h>
@@ -29,7 +30,9 @@ char *make_uservar(char *string1, char *string2)
 {
 	char *us = kmalloc_user(strlen(string1) + strlen(string2) + 1);
 	memcpy(us, string1, strlen(string1));
-	memcpy(us + strlen(string1), string2, strlen(string2));
+	//strcpy(us, string1);
+	//strcat(us, string2);
+	memcpy(us + strlen(string1), string2, strlen(string2)+1);
 	return us;
 }
 
