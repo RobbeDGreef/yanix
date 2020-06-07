@@ -331,6 +331,28 @@ static void parse_escape_control_sequence(struct escape_seq *es, char *seq)
 			tty_set_color(escape_to_tty_color(param1), -1);
 			break;
 		}
+		else if (*seq == 'A')
+		{
+			if ((int) (es->currow - param1) < 0)
+				param1 = param1 - es->currow;
+
+			es->currow -= param1;
+			break;
+		}
+
+		else if (*seq == 'C')
+		{
+			if (es->curcol + param1 > tty_control_struct->col_max - 1)
+				param1 = tty_control_struct->col_max - 1 - param1;
+
+			es->curcol += param1;
+			break;
+		}
+
+		/* Unknown escape sequence */
+		if (*seq != ';')
+			break;
+
 		seq++;
 		param2 = parse_dec_uint(&seq);
 
@@ -368,8 +390,8 @@ static void parse_escape_sequence(struct escape_seq *es, char *seq)
 
 static void tty_clear_cell(tty_dev_t *tty_dev, int col, int row)
 {
-	int l                  = (row * tty_control_struct->col_max + col) * 2;
-	tty_dev->buffer[l + 1] = ' ';
+	int l              = (row * tty_control_struct->col_max + col) * 2;
+	tty_dev->buffer[l] = ' ';
 	tty_update_display(tty_dev, col, row, col + 1, row);
 }
 
