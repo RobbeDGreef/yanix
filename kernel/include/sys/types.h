@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define KB * 1024
+#define MB KB * 1024
+
 // typedef __int128 int128_t;
 // typedef unsigned __int128 uint128_t;
 
