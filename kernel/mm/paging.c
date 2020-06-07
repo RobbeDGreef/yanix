@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <yanix/kfunctions.h>
 #include <yanix/stack.h>
+#include <libk/bit.h>
 
 /**
  * The global directory variables
@@ -632,7 +633,7 @@ int map_physical_to_virtual(phys_addr_t *physical_address,
 int init_paging()
 {
 	// @todo: get end of memory
-	offset_t end_of_memory = 0xFFFFFFFF;
+	offset_t end_of_memory = 512 MB;
 	g_nframes = end_of_memory / 0x1000; // each page frame coveres 4kib bytes
 
 	g_frames = kmalloc_base(g_nframes / 32, 1, 0);
