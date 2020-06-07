@@ -124,7 +124,6 @@ void bootsequence_after_paging()
 void enter_foreverloop()
 {
 	/* Execute halt instruction forever */
-	printk("\nEnd of main kernel loop, exiting...\n");
 	while (1)
 	{
 		asm volatile("hlt");
