@@ -38,6 +38,7 @@ typedef struct tty_dev_s
 	unsigned int id;
 	unsigned int c_col;
 	unsigned int c_row;
+
 } tty_dev_t;
 
 /**
@@ -49,9 +50,10 @@ typedef struct tty_ctrl_s
 	unsigned int row_max;
 	unsigned int colorbit_size;
 	unsigned int char_size; // just sizeof(char) but it's cleaner this way
-	char         color;
-	char         default_color; // just to reset the color
-	tty_dev_t *  tty_devices;   // pointer to array of tty devices
+	unsigned int color;
+	unsigned int default_color;
+	int          bold;
+	tty_dev_t *  tty_devices; // pointer to array of tty devices
 } tty_ctrl_t;
 
 /* Functions */
@@ -92,12 +94,8 @@ ssize_t tty_write(tty_dev_t *tty_dev, const char *text_to_write,
  */
 tty_dev_t *tty_get_device(unsigned int tty_id);
 
-/**
- * @brief      Sets the tty colorcode for future text
- *
- * @param[in]  color  The color
- */
-void tty_set_color(int color);
+void tty_set_color(int fg, int bg);
+void tty_reset_color();
 
 /**
  * @brief      Sets the tty cursor column location

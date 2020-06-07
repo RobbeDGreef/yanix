@@ -81,8 +81,8 @@ int init_tty_devices()
 	tty_control_struct->row_max       = rows;
 	tty_control_struct->colorbit_size = sizeof(colorbit_t);
 	tty_control_struct->char_size     = sizeof(char);
-	tty_control_struct->color         = TTY_WHITE;
-	tty_control_struct->default_color = TTY_WHITE;
+	tty_control_struct->default_color = TTY_WHITE | (TTY_BLACK << 4);
+	tty_control_struct->color         = tty_control_struct->default_color;
 
 	tty_control_struct->tty_devices =
 		kmalloc(sizeof(tty_dev_t) * TTY_DEVICE_AMOUNT);
@@ -103,6 +103,12 @@ int init_tty_devices()
 	/* Kernel will get tty 0 for now, i haven't completely tought this tty
 	 * system through */
 	get_current_task()->tty = 0;
+
+	char *buf = tty_control_struct->tty_devices[0].buffer;
+	for (int i = 0; i < tty_buf_size; i += 2)
+	{
+		buf[i + 1] = tty_control_struct->color;
+	}
 
 	// return 0 on success
 	return 0;
@@ -140,7 +146,8 @@ void tty_update_display(tty_dev_t *tty_dev, int startcol, int startrow,
 	     (tty_control_struct->char_size + tty_control_struct->colorbit_size))
 	{
 		// draw character at correct location with correct color
-		int color = tty_dev->buffer[i + 1];
+		int color = tty_dev->buffer[i + 1] & 0xF;
+		int bg    = tty_dev->buffer[i + 1] >> 4;
 
 		// xloc and yloc are actually the terminal column and row
 		int xloc = (i
@@ -161,6 +168,7 @@ void tty_update_display(tty_dev_t *tty_dev, int startcol, int startrow,
 		{
 			// recalculate the color
 			color = video_vga_to_rgb(color);
+			bg    = video_vga_to_rgb(bg);
 
 			xloc *= video_get_screen_width() / tty_control_struct->col_max;
 			yloc *= video_get_screen_height() / tty_control_struct->row_max;
@@ -168,11 +176,11 @@ void tty_update_display(tty_dev_t *tty_dev, int startcol, int startrow,
 			if (tty_dev->buffer[i] > ' ' && tty_dev->buffer[i] <= '~')
 			{
 				// video_clear_cell(xloc, yloc);
-				video_draw_char(' ', xloc, yloc, color, 0);
+				video_draw_char(' ', xloc, yloc, color, bg);
 			}
 		}
 
-		video_draw_char(tty_dev->buffer[i], xloc, yloc, color, -1);
+		video_draw_char(tty_dev->buffer[i], xloc, yloc, color, bg);
 	}
 
 	video_update_cursor(tty_dev->c_col, tty_dev->c_row);
@@ -226,6 +234,68 @@ static unsigned int parse_dec_uint(char **str)
 	return num;
 }
 
+static int escape_to_tty_color(int escapecolor)
+{
+	if (tty_control_struct->bold && escapecolor >= 30 && escapecolor <= 37)
+	{
+		tty_control_struct->bold = 0;
+		int color                = escape_to_tty_color(escapecolor + 60);
+		tty_control_struct->bold = 1;
+
+		return color;
+	}
+
+	switch (escapecolor)
+	{
+	case 30:
+		return TTY_BLACK;
+	case 31:
+		return TTY_RED;
+	case 32:
+		return TTY_GREEN;
+	case 33:
+		return TTY_ORANGE;
+	case 34:
+		return TTY_BLUE;
+	case 35:
+		return TTY_PURPLE;
+	case 36:
+		return TTY_CYAN;
+	case 37:
+		return TTY_GRAY;
+
+	case 90: /* Bright black ? lol */
+		return TTY_DARK_GRAY;
+	case 91: /* Bright red */
+		return TTY_LIGHT_RED;
+	case 92: /* Bright green */
+		return TTY_LIGHT_GREEN;
+	case 93: /* Bright yellow */
+		return TTY_YELLOW;
+	case 94: /* Bright blue */
+		return TTY_LIGHT_BLUE;
+	case 95: /* Bright magenta */
+		return TTY_PINK;
+	case 96: /* Bright cyan */
+		return TTY_LIGHT_CYAN;
+	case 97: /* Bright white ? again what */
+		return TTY_WHITE;
+	case 0:
+		tty_control_struct->bold = 0;
+		return TTY_WHITE;
+
+	case 1:
+		tty_control_struct->bold = 1;
+		int color                = tty_control_struct->color;
+		if (color <= TTY_GRAY && color >= TTY_BLACK)
+			tty_control_struct->color += TTY_DARK_GRAY;
+
+		return -1;
+	}
+
+	return -1;
+}
+
 static void parse_escape_control_sequence(struct escape_seq *es, char *seq)
 {
 	unsigned int param1;
@@ -247,8 +317,20 @@ static void parse_escape_control_sequence(struct escape_seq *es, char *seq)
 		tty_clear_buf(es->ttydev);
 		return;
 
+	case 'm':
+		es->iter++;
+		tty_set_color(tty_control_struct->default_color, -1);
+		return;
+
 	default:
 		param1 = parse_dec_uint(&seq);
+
+		if (*seq == 'm')
+		{
+			/* Set color */
+			tty_set_color(escape_to_tty_color(param1), -1);
+			break;
+		}
 		seq++;
 		param2 = parse_dec_uint(&seq);
 
@@ -262,6 +344,13 @@ static void parse_escape_control_sequence(struct escape_seq *es, char *seq)
 			if (es->currow < es->startr)
 				es->startr = es->currow;
 		}
+		else if (*seq == 'm')
+		{
+			tty_set_color(escape_to_tty_color(param1), -1);
+			tty_set_color(escape_to_tty_color(param2), -1);
+		}
+		else
+			debug_printk("Unknown escape sequence %c %i\n", *seq, *seq);
 	}
 	es->iter += (unsigned int) seq - start_seq + 1;
 }
@@ -460,9 +549,24 @@ tty_dev_t *tty_get_device(unsigned int tty_id)
  *
  * @param[in]  color  The color
  */
-void tty_set_color(int color)
+void tty_set_color(int fg, int bg)
 {
-	tty_control_struct->color = color;
+	if (fg != -1)
+	{
+		tty_control_struct->color &= 0xF0;
+		tty_control_struct->color |= fg;
+	}
+
+	if (bg != -1)
+	{
+		tty_control_struct->color &= 0xF;
+		tty_control_struct->color |= bg << 4;
+	}
+}
+
+void tty_reset_color()
+{
+	tty_control_struct->color = tty_control_struct->default_color;
 }
 
 /**
@@ -500,8 +604,9 @@ void tty_clear_buf(tty_dev_t *tty_dev)
 		for (size_t j = 0; j < tty_control_struct->row_max; j++)
 		{
 			/* The - 1 at the end is because indexes start at 0 */
-			tty_dev->buffer[(j * tty_control_struct->col_max + i) * 2 - 1] =
-				' ';
+			int l                  = (j * tty_control_struct->col_max + i) * 2;
+			tty_dev->buffer[l]     = ' ';
+			tty_dev->buffer[l + 1] = tty_control_struct->color;
 		}
 	}
 
