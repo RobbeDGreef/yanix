@@ -7,12 +7,12 @@ compliant as possible and self sustaining.
 
 This project is a hobby os so this is not perfect,
 I am currently trying to make the codebase as clean as possible
-so others can learn from this os and build their own
-but as of now some parts especially the older parts of the os
+so others can learn from this os and build their own.
+However some parts, especially the older parts of the os,
 are not the prettiest / most well documented code ever.
 
 You are welcome to make any pull requests and help build this os
-further. 
+further.
 
 If you are starting out I really recommend the osdev.org wiki 
 as a lot of the code here is build on the information found
@@ -21,46 +21,45 @@ on that wiki. For more helpfull links check the bottom of this page
 ## Currently supported features:
 ### CPU-based Features:
 #### Supported Architectures:
-> - [X] x86
+> - [x] x86
 > - [ ] x86-64
 
-- [X] Multitasking
+- [x] Multitasking
 - [ ] Multiprocessing
-- [X] User mode
+- [x] User mode
 
 ### Kernel Features:
-- [X] Monolithic kernel
-- [X] Preemptible kernel
-- [X] Virtual filesystem
-- [X] Execve system call (still in development)
-- [X] Elf exec driver
-- [X] Memory management
-- [X] Ramdisk support
+- [x] Monolithic kernel
+- [x] Preemptible kernel
+- [x] Virtual filesystem
+- [x] Execve system call (still in development)
+- [x] Elf exec driver
+- [x] Memory management
+- [x] Ramdisk support
 - [ ] Moduling system
 
 ### Supported Filesystems:
-- [X] ext2
+- [x] ext2
 - [ ] fat32
 - [ ] ext3
 - [ ] ext4
 
 ### Supported Devices & Drivers:
-- [X] i8042         (PS/2 Controller)
-- [X] Ramdisk       (memory mapped storage device)
-- [X] ps2 mouse 
-- [X] ps2 keyboard
-- [X] CMOS driver
-- [X] PCI driver
-- [ ] Floppy driver (not sure if it will be supported)
-- [ ] ata
+- [x] i8042         (PS/2 Controller)
+- [x] Ramdisk       (memory mapped storage device)
+- [x] ps2 mouse 
+- [x] ps2 keyboard
+- [x] CMOS driver
+- [x] PCI driver
+- [x] ata
 - [-] networking
 
 ### Supported Video Interfaces:
-- [X] VESA 3.0 graphics
-- [X] Standard video memory
+- [x] VESA 3.0 graphics
+- [x] Standard vga terminal buffer
 
 ### System Features:
-- [X] Home made bootloader
+- [x] Home made bootloader
  
 ## Features/stuff coming in next updates:
 - Userspace shell
@@ -89,10 +88,12 @@ The first port ever completed is FIGlet and it runs perfectly on yanix!
 	  |_|\__,_|_| |_|_/_/\_\ |_|___/  \__,_| \_/\_/ \___||___/\___/|_| |_| |_|\___|
 
 - [x] FIGlet
-- [ ] Bash
+- [x] Bash
 - [ ] GCC
-- [ ] TCC
+- [x] TCC
 - [ ] lua
+- [x] nasm
+- [x] smlrcc
 
 ## Getting it to work on your machine:
 
