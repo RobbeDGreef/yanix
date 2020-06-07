@@ -572,8 +572,6 @@ int sys_uname(struct utsname *buf)
 	int version_len  = strlen(g_system.version) + 1;
 	int machine_len  = strlen(g_system.machine) + 1;
 
-	debug_printk("release: %i\n", release_len);
-
 	memcpy(buf->sysname, g_system.sysname, sysname_len);
 	memcpy(buf->release, g_system.release, release_len);
 	memcpy(buf->version, g_system.version, version_len);
