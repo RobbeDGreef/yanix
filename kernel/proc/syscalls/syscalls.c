@@ -566,12 +566,13 @@ struct utsname
 int sys_uname(struct utsname *buf)
 {
 	int sysname_len  = strlen(g_system.sysname) + 1;
-	int nodename_len = 1; /* stubbed */
+	int nodename_len = strlen(g_system.sysname) + 1;
 	int release_len  = strlen(g_system.release) + 1;
 	int version_len  = strlen(g_system.version) + 1;
 	int machine_len  = strlen(g_system.machine) + 1;
 
 	memcpy(buf->sysname, g_system.sysname, sysname_len);
+	memcpy(buf->nodename, g_system.sysname, nodename_len);
 	memcpy(buf->release, g_system.release, release_len);
 	memcpy(buf->version, g_system.version, version_len);
 	memcpy(buf->machine, g_system.machine, machine_len);
