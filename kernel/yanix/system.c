@@ -2,6 +2,7 @@
 #include <fs/vfs.h>
 #include <libk/string.h>
 #include <yanix/system.h>
+#include <sys/types.h>
 
 struct kern_sysinfo g_system;
 
@@ -17,6 +18,10 @@ int init_sysinfo()
 	g_system.release  = OS_RELEASE;
 	g_system.version  = OS_VERSION;
 	g_system.machine  = HW_IDENT;
+
+	/* @todo: detect memory */
+	g_system.totalram = 512 MB;
+	g_system.totalswap = 0 MB;
 
 	return 0;
 }
