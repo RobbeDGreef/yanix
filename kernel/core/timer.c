@@ -74,3 +74,10 @@ void init_timer()
 	timer_info->frequency = arch_timer_get_frequency();
 	timer_info->period    = 1000 / arch_timer_get_frequency();
 }
+#include <debug.h>
+unsigned long timer_secs_since_boot()
+{
+	unsigned long count = timer_info->ticks_since_boot;
+	debug_printk("count: %i\n", count);
+	return (count / arch_timer_get_frequency());
+}

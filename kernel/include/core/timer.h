@@ -27,4 +27,6 @@ unsigned long timer_get_cur_ticks();
  */
 unsigned long timer_get_period();
 
+unsigned long timer_secs_since_boot();
+
 #endif
