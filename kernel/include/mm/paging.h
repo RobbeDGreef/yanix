@@ -40,6 +40,11 @@ page_directory_t *get_kernel_dir();
 page_directory_t *get_current_dir();
 void              set_current_dir(page_directory_t *new);
 
+unsigned long phys_freeram_amount();
+unsigned long phys_freeswap_amount();
+unsigned long sharedram_amount();
+unsigned long bufferram_amount();
+
 /**
  * @brief      Alocates a frame from a page struct
  *

@@ -716,3 +716,39 @@ void debug_paging_buf(page_directory_t *dir)
 	printk("frame: %x %x\n", frame, page->frame);
 	page->frame = frame;
 }
+
+unsigned long phys_freeram_amount()
+{
+	unsigned long freeram = 0;
+	unsigned long ints = g_nframes / 32;
+	for (unsigned long i = 0; i < ints; i++)
+	{
+		if (g_frames[i] == 0)
+		{
+			freeram += 32;
+			continue;
+		}
+
+		for (int j = 0; j < 32; j++)
+			if (!GETBIT(g_frames[i], j))
+				freeram++;
+	}
+
+	debug_printk("current freeram: %i KB\n", freeram * 0x1000 / 1024);
+	return freeram * 0x1000;
+}
+
+unsigned long phys_freeswap_amount()
+{
+	return 0;
+}
+
+unsigned long sharedram_amount()
+{
+	return 0;
+}
+
+unsigned long bufferram_amount()
+{
+	return 0;
+}
