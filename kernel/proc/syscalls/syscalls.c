@@ -139,7 +139,7 @@ int sys_chdir(const char *path)
 		strcpy_s(buf, cwd, strlen(cwd) + 1);
 		strcat(buf, "/");
 		strcat(buf, path);
-		vfs_interpret_path(buf);
+		// vfs_interpret_path(buf);
 	}
 	else
 		buf = strdup(path);
