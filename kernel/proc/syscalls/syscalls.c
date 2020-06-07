@@ -335,6 +335,9 @@ int sys_creat(const char *path, int mode)
 
 int sys_open(const char *path, int flags, int mode)
 {
+	if ((int) path == -1)
+		return -ENOENT;
+
 	int ret = vfs_open_fd(path, flags, mode);
 	if (ret == -1)
 		return -errno;
