@@ -3,6 +3,8 @@ Just a UNIX-like kernel build on caffeine and
 sleep deprivation. I call it yanix (**Y**et **A**nother u**NIX** clone) The goal is to make it as **POSIX**
 compliant as possible and self sustaining.
 
+[!Yanix Screenshot](https://github.com/RobbeDGreef/yanix/blob/[branch]/yanix-screenshot.png?raw=true))
+
 This project is a hobby os so this is not perfect,
 I am currently trying to make the codebase as clean as possible
 so others can learn from this os and build their own
