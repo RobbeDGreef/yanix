@@ -281,8 +281,19 @@ int sys_chown(char *pathname, uid_t owner, gid_t group)
 	return 0;
 }
 
-int sys_sysinfo()
+int sys_sysinfo(struct us_sysinfo *si)
 {
+	memset(si, 0, sizeof(struct us_sysinfo));
+
+	si->uptime    = timer_secs_since_boot();
+	si->totalram  = g_system.totalram;
+	si->freeram   = phys_freeram_amount();
+	si->sharedram = sharedram_amount();
+	si->bufferram = bufferram_amount();
+	si->totalswap = g_system.totalswap;
+	si->freeswap  = phys_freeswap_amount();
+	si->procs     = get_proccount();
+
 	return 0;
 }
 

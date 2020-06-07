@@ -7,6 +7,8 @@
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/types.h>
+#include <yanix/system.h>
+
 typedef void (*sighandler_t)(int);
 
 struct siginfo;
@@ -61,7 +63,7 @@ int          sys_close(int fd);
 int     sys_execve(const char *filename, const char **argv, char const **envp);
 int     sys_getwd(char *buf);
 int     sys_chown(char *pathname, uid_t owner, gid_t group);
-int     sys_sysinfo();
+int     sys_sysinfo(struct us_sysinfo *si);
 int     sys_compatibility(int newmode);
 void *  sys_sbrk(intptr_t incr);
 int     sys_close(int fd);
