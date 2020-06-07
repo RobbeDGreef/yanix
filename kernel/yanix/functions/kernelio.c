@@ -56,7 +56,7 @@ int printk(const char *__restrict fmt, ...)
 
 	if (loglevel == 7)
 	{
-		tty_set_color(TTY_YELLOW);
+		tty_set_color(TTY_YELLOW, -1);
 		/* Debug loglevel */
 		printk("[ DEBUG ] ");
 	}
@@ -66,12 +66,12 @@ int printk(const char *__restrict fmt, ...)
 	}
 	else if (loglevel == 4)
 	{
-		tty_set_color(TTY_ORANGE);
+		tty_set_color(TTY_ORANGE, -1);
 		printk("[WARNING] ");
 	}
 	else if (loglevel == 5)
 	{
-		tty_set_color(TTY_LIGHT_BLUE);
+		tty_set_color(TTY_LIGHT_BLUE, -1);
 		printk("[NOTICE] ");
 	}
 
@@ -301,7 +301,7 @@ int printk(const char *__restrict fmt, ...)
 	}
 
 	if (loglevel)
-		tty_set_color(TTY_WHITE);
+		tty_reset_color();
 	va_end(args);
 	return written_character;
 }
