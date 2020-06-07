@@ -239,14 +239,6 @@ pid_t sys_fork()
 
 ssize_t sys_write(int fd, const void *buf, size_t amount)
 {
-	if (fd == 1)
-	{
-		tty_set_color(TTY_LIGHT_BLUE);
-		ssize_t ret = vfs_write_fd(fd, buf, amount);
-		tty_set_color(TTY_WHITE);
-		return ret;
-	}
-
 	if (fd == 2 && amount > 0xC00)
 	{
 		debug_printk("Error, stderr lock for newlib bug called, write did not "
