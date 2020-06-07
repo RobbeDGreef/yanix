@@ -19,4 +19,7 @@ void arch_init_timer(unsigned long frequency, isr_callback_t callback);
  */
 uint32_t arch_timer_get_frequency();
 
+extern uint32_t arch_timer_read_count();
+
+
 #endif
