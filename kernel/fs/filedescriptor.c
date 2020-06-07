@@ -1,8 +1,8 @@
+#include <debug.h>
 #include <errno.h>
 #include <fs/filedescriptor.h>
 #include <kernel.h>
 #include <yanix/ds/fd_vector.h>
-#include <debug.h>
 
 struct file_lock *global_file_table;
 int               lock_file(vfs_node_t *node, pid_t pid)
@@ -137,8 +137,6 @@ int dup2_filedescriptor(int old, int new)
 	struct file_descriptor *newfd = get_filedescriptor(new);
 	if (newfd)
 		close_filedescriptor(new);
-
-	debug_printk("copy %s to: %s\n", oldfd->node->name, (newfd->node) ? newfd->node->name: "(null)");
 
 	return vector_set(get_current_task()->fds, *oldfd, new);
 }

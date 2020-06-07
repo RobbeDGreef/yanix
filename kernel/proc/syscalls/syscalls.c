@@ -199,7 +199,6 @@ int sys_mkdir(const char *path, mode_t mode)
 
 int sys_fcntl(int fd, int cmd, uintptr_t arg)
 {
-	debug_printk("fd: %i cmd %i args %x\n", fd, cmd, arg);
 	switch (cmd)
 	{
 	case F_DUPFD:
@@ -208,7 +207,7 @@ int sys_fcntl(int fd, int cmd, uintptr_t arg)
 		return setflags_filedescriptor(fd, arg);
 	}
 
-	return -1;
+	return 0;
 }
 
 void *sys_mmap(void *addr, size_t length, int prot, int flags, int fd,

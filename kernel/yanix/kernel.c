@@ -23,8 +23,6 @@ extern vfs_node_t *g_vfs_root;
  */
 void kernel_main()
 {
-	printk(KERN_INFO "kernel boot up procedure completed\n");
-
 	if (fork() == 0)
 	{
 		while (1)
