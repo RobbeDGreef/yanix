@@ -221,3 +221,8 @@ int task_wait(int *status)
 		return -1;
 	}
 }
+
+unsigned long get_proccount()
+{
+	return task_count_all();
+}

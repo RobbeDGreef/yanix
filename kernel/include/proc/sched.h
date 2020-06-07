@@ -16,5 +16,6 @@ int  init_scheduler(task_t *mainloop);
 void debug_print_chain();
 int  task_resume(pid_t pid);
 int  task_block(pid_t pid);
+int task_count_all();
 
 #endif /* PROC_SCHED_H */

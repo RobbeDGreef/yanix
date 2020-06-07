@@ -269,3 +269,27 @@ int task_resume(pid_t pid)
 	unlock_scheduler();
 	return 0;
 }
+
+int task_count_list(struct task_list *list)
+{
+	task_t *tmp = list->head;
+
+	int cnt = 0;
+	while (tmp)
+	{
+		debug_printk("COUNT \n");
+		tmp = tmp->next;
+		cnt++;
+	}
+
+	return cnt;
+}
+
+int task_count_all()
+{
+	int cnt = task_count_list(&ready_list);
+	cnt += task_count_list(&blocked_list);
+	cnt += task_count_list(&sleep_list);
+
+	return cnt;
+}

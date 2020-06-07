@@ -148,5 +148,6 @@ void *sbrk(intptr_t incr);
 void kill_proc(task_t *task);
 
 int task_wait(int *status);
+unsigned long get_proccount();
 
 #endif // TASKING_H_
