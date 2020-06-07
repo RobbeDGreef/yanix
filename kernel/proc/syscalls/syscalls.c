@@ -365,8 +365,7 @@ uid_t sys_geteuid()
 int sys_dup2(int oldfd, int newfd)
 {
 	int ret = dup2_filedescriptor(oldfd, newfd);
-	debug_printk("old: %i new %i ret %i\n", oldfd, newfd, ret);
-	
+
 	if (ret == -1)
 		return -errno;
 

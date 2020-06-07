@@ -8,7 +8,7 @@ int    syscall_amount       = 0;
 
 static void syscall_handler(registers_t *regs)
 {
-	//if (regs->eax != 4)
+	if (regs->eax != 4)
 		debug_printk(KERN_DEBUG "syscall: %i '%i' '%i' '%i'\n", regs->eax,
 		             regs->ebx, regs->ecx, regs->edx);
 	if (regs->eax >= (uint) syscall_amount)
@@ -21,8 +21,8 @@ static void syscall_handler(registers_t *regs)
 		return;
 	}
 
-	//end_of_interrupt();
-	// enable_interrupts();
+	end_of_interrupt();
+	enable_interrupts();
 
 	int ret;
 	asm volatile(" \
