@@ -14,15 +14,15 @@ struct circular_buffer_s
 {
 	unsigned long size;
 
-	unsigned long virtual_end;   // Will hold the current end of the list
-	unsigned long virtual_begin; // Will hold the current begin of the list
+	volatile unsigned long virtual_end;   // Will hold the current end of the list
+	volatile unsigned long virtual_begin; // Will hold the current begin of the list
 	                             // (since it is circular the actual one will be
 	                             // abstracted away)
 
 	char *buffer_start;
 	char *buffer_end;
 
-	unsigned int lock;
+	volatile unsigned int lock;
 
 	cb_flags_t flags;
 };
