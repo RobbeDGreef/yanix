@@ -163,6 +163,9 @@ static ssize_t write_null(vfs_node_t *node, unsigned int offset,
 	return size;
 }
 
+/* Defined in termios.c */
+int termios_cmd(int request, char *argv);
+
 int init_char_specials()
 {
 	/* Create /dev/stdin */
@@ -170,27 +173,29 @@ int init_char_specials()
 	mkfifo("/dev/tty");
 	mkfifo("/dev/pts/0");
 	mkfifo("/dev/null");
+	mkfifo("/dev/fb0");
 
 	vfs_node_t *node = vfs_find_path("/dev/stdin");
 	if (node)
 	{
-		node->type = VFS_CHARDEVICE;
+		node->type  = VFS_CHARDEVICE;
 		node->write = &tty_stdinwrite;
 	}
 
 	node = vfs_find_path("/dev/tty");
 	if (node)
 	{
-		node->type = VFS_CHARDEVICE;
+		node->type  = VFS_CHARDEVICE;
 		node->read  = &tty_readtest;
 		node->write = &tty_stdoutwrite;
+		node->cmd   = &termios_cmd;
 	}
 
 	node = vfs_find_path("/dev/pts/0");
 	if (node)
 	{
-		node->type = VFS_CHARDEVICE;
-		node->read = &tty_readtest;
+		node->type  = VFS_CHARDEVICE;
+		node->read  = &tty_readtest;
 		node->write = &tty_stdoutwrite;
 	}
 
@@ -199,6 +204,14 @@ int init_char_specials()
 	{
 		node->read  = &read_null;
 		node->write = &write_null;
+	}
+
+	node = vfs_find_path("/dev/fb0");
+	if (node)
+	{
+		node->type  = VFS_CHARDEVICE;
+		node->write = &fb_write;
+		node->cmd   = &fb_cmd;
 	}
 
 	/* @todo: Should actually be a pipe that notifies the tty systems, because
