@@ -1,19 +1,7 @@
-#ifndef _SYSTEM_H
-#define _SYSTEM_H
+#ifndef _YANIX_SYSTEM_H
+#define _YANIX_SYSTEM_H
 
-struct kern_sysinfo
-{
-	char *hostname;
-	char *sysname;
-	char *release;
-	char *version;
-	char *machine;
-
-	unsigned long totalram;
-	unsigned long totalswap;
-};
-
-struct us_sysinfo
+struct sysinfo
 {
 	long uptime;
 	unsigned long loads[3];
@@ -27,8 +15,4 @@ struct us_sysinfo
 	char _pad[22];
 };
 
-extern struct kern_sysinfo g_system;
-
-int init_sysinfo();
-
-#endif /* _SYSTEM_H */
+#endif
