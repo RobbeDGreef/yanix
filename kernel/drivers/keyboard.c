@@ -89,8 +89,7 @@ static int getkey(int scancode)
 	if (keymap_normal)
 		return keymap_normal[scancode];
 
-	return 0;
-	// return '?';
+	return '?';
 }
 
 static int combination(int c)
@@ -106,8 +105,11 @@ static int combination(int c)
 
 int send_scancode(int scancode)
 {
-	char c = getkey(scancode);
+	if (keymap_normal == NULL)
+		return 0;
 
+	char c = getkey(scancode);
+	
 	int interuptchar = '^';
 	if (combination(c))
 		vfs_write_fd(0, &interuptchar, 1);
