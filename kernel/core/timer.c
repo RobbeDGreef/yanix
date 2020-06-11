@@ -81,3 +81,13 @@ unsigned long timer_secs_since_boot()
 	debug_printk("count: %i\n", count);
 	return (count / arch_timer_get_frequency());
 }
+
+void time_since_boot(time_t *sec, time_t *microsec)
+{
+	unsigned long count = timer_info->ticks_since_boot;
+	*sec                = count / arch_timer_get_frequency();
+
+	unsigned long ms = count % arch_timer_get_frequency();
+	if (ms)
+		*microsec = 1000 / (arch_timer_get_frequency() / ms);
+}
