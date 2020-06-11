@@ -419,7 +419,7 @@ gid_t sys_getgid()
 
 int sys_ioctl(int fd, unsigned long request, char *argp)
 {
-	return -1;
+	return ioctl(fd, request, argp);
 }
 
 /**
