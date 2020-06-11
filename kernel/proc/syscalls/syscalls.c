@@ -582,3 +582,12 @@ int sys_uname(struct utsname *buf)
 
 	return 0;
 }
+
+int sys_gettimeofday(struct timeval *tv, struct timezone *tz)
+{
+	if (tv == NULL)
+		return -1;
+
+	time_since_boot((time_t *) &tv->tv_sec, (time_t *) &tv->tv_usec);
+	return 0;
+}

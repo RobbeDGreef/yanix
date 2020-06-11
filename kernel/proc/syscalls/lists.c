@@ -70,6 +70,7 @@ const void *syscalls_yanix[] = {
 	/* 66 */ &sys_endgrent,
 	/* 67 */ &sys_select,
 	/* 68 */ &sys_uname,
+	/* 69 */ &sys_gettimeofday,
 
 };
 
