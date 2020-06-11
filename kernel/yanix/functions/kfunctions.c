@@ -36,9 +36,9 @@ void message(char *message, char code)
 void _tick_sleep(unsigned int amount)
 {
 	// NOTE: When the compiler optimizes this code it does something weird with
-	// the loop where it doesn't check if the 		 variables have changed and by
-	// that enter a endless loop. I fixed this by setting the volatile keyword
-	// before the g_timer_tick variable in timer.c and timer.h
+	// the loop where it doesn't check if the 		 variables have changed and
+	// by that enter a endless loop. I fixed this by setting the volatile
+	// keyword before the g_timer_tick variable in timer.c and timer.h
 	unsigned int start = (unsigned int) timer_get_cur_ticks();
 	while ((timer_get_cur_ticks() - start) <= amount)
 		;
@@ -56,6 +56,8 @@ void sleep(unsigned int milliseconds)
 
 	// if (runningtask == 0){
 	unsigned int amount = milliseconds / (timer_get_period());
+	if (!amount)
+		amount++;
 	_tick_sleep(amount);
 
 	/*7

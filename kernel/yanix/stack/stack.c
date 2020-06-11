@@ -1,7 +1,7 @@
 #include <mm/paging.h>
 #include <proc/tasking.h>
 #include <stdint.h>
-#include <yanix/stack.h>
+#include <kernel/stack.h>
 
 uint32_t                 g_inital_esp = 0;
 extern page_directory_t *g_current_directory;

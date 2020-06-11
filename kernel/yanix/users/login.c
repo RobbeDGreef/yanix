@@ -2,7 +2,7 @@
 #include <kernel.h>
 #include <libk/string.h>
 #include <proc/tasking.h>
-#include <yanix/user.h>
+#include <kernel/user.h>
 
 char *getline()
 {

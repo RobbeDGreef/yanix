@@ -1,11 +1,11 @@
 #include <errno.h>
 #include <kernel.h>
-#include <yanix/exec.h>
+#include <kernel/exec.h>
 
 /* Debugging */
 
 #include <fs/vfs_node.h>
-#include <yanix/env.h>
+#include <kernel/env.h>
 
 extern vfs_node_t *g_vfs_root;
 
@@ -16,8 +16,8 @@ extern vfs_node_t *g_vfs_root;
 #include <mm/heap.h>
 #include <mm/paging.h>
 #include <unistd.h>
-#include <yanix/user.h>
-
+#include <kernel/user.h>
+#include <cpu/interrupts.h>
 /**
  * @brief      Kernel main loop
  */

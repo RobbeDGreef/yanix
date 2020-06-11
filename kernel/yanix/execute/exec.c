@@ -2,9 +2,9 @@
 #include <fs/vfs.h>
 #include <mm/heap.h>
 #include <proc/tasking.h>
-#include <yanix/elf.h>
-#include <yanix/env.h>
-#include <yanix/stack.h>
+#include <kernel/elf.h>
+#include <kernel/env.h>
+#include <kernel/stack.h>
 
 #include <errno.h>
 #include <stdarg.h>
@@ -26,14 +26,16 @@ static int _execve(int jmpuser, const char *filename, const char **argv,
 	if (file == 0)
 		return -1;
 
-	if (!argv)
-		goto noargs_debug;
 	/**
 	 * We have to assemble the argument list now because we will
 	 * most likely overwrite the list and more importantly the string
 	 * while loading the elf file into memory
 	 */
 	size_t amount = 0;
+
+	if (!argv)
+		goto noargs_debug;
+
 	while (argv[amount] != 0)
 		amount++;
 	argv = (const char **) combine_args_env((char **) argv, (char **) envp);
@@ -63,13 +65,8 @@ noargs_debug:;
 
 	if (!jmpuser)
 	{
-		/* Execute the program */
-		asm volatile("pushl %2; \
-					   pushl %1; \
-					   jmp %0;"
-		             :
-		             : "r"(ret), "r"(amount), "r"(argv));
-
+		void (*loc)(int amount, char **argv) = (void *) ret;
+		loc(amount, (char **) argv);
 		return 0;
 	}
 

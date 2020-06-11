@@ -7,7 +7,7 @@
 #include <proc/sched.h>
 #include <proc/tasking.h>
 #include <sys/types.h>
-#include <yanix/stack.h>
+#include <kernel/stack.h>
 
 #include <debug.h>
 static pid_t PIDS = 1;
@@ -193,7 +193,7 @@ int init_tasking()
 	mainloop->gid      = 0;
 	mainloop->egid     = 0;
 	mainloop->name     = "Main kernel loop";
-	mainloop->cwd 	   = "/root";
+	mainloop->cwd      = "/root";
 	mainloop->priority = 0;
 	mainloop->fds      = vector_create();
 

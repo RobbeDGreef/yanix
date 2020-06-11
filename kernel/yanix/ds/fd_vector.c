@@ -12,7 +12,7 @@
 #include <libk/math.h>
 #include <libk/string.h>
 #include <mm/heap.h>
-#include <yanix/ds/fd_vector.h>
+#include <kernel/ds/fd_vector.h>
 
 vector_t *vector_create()
 {

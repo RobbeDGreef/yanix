@@ -6,7 +6,7 @@
 #include <libk/stdlib.h>
 #include <libk/string.h>
 #include <mm/heap.h>
-#include <yanix/user.h>
+#include <kernel/user.h>
 
 struct user *g_current_user;
 

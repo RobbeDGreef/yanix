@@ -15,10 +15,10 @@
 #include <mm/paging.h>            /* paging 						(init) */
 #include <proc/syscall.h>         /* the system calls 			(init) */
 #include <proc/tasking.h>         /* tasking 						(init) */
-#include <yanix/stack.h>          /* stack functions 				(kernel init) */
-#include <yanix/system.h>         /* System info initialisation (init) */
-#include <yanix/tty_dev.h>        /* TTY functionality 			(kernel init) */
-#include <yanix/user.h>           /* User system 					(init) */
+#include <kernel/stack.h>         /* stack functions 				(kernel init) */
+#include <kernel/system.h>        /* System info initialisation (init) */
+#include <kernel/tty_dev.h>       /* TTY functionality 			(kernel init) */
+#include <kernel/user.h>          /* User system 					(init) */
 
 #include <kernel.h>
 

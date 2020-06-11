@@ -17,8 +17,9 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/times.h>
-#include <yanix/exec.h>
+#include <kernel/exec.h>
 #include <yanix/system.h>
+#include <yanix/ioctl.h>
 
 void sys_exit(int status)
 {
@@ -233,8 +234,6 @@ pid_t sys_fork()
 {
 	return fork();
 }
-
-#include <yanix/tty_dev.h>
 
 ssize_t sys_write(int fd, const void *buf, size_t amount)
 {

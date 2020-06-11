@@ -1,7 +1,7 @@
 #include <libk/string.h>
 #include <mm/heap.h>
 #include <stddef.h>
-#include <yanix/ds/circularbuffer.h>
+#include <kernel/ds/circularbuffer.h>
 
 #include <const.h>
 #include <errno.h>
@@ -30,7 +30,7 @@ struct circular_buffer_s *create_circular_buffer(size_t size, cb_flags_t flags)
 	circbuf->size         = size;
 
 	circbuf->virtual_begin = 0;
-	circbuf->virtual_end = 0;
+	circbuf->virtual_end   = 0;
 
 	return circbuf;
 }
@@ -140,7 +140,8 @@ ssize_t circular_buffer_write_index(char *buffer, size_t size,
 		{
 			if (buffer[i] == '\n')
 			{
-				circbuf->lock = circbuf->virtual_end - circbuf->virtual_begin + i + 1;
+				circbuf->lock =
+					circbuf->virtual_end - circbuf->virtual_begin + i + 1;
 			}
 
 			circbuf->buffer_start[ind++] = buffer[i];
@@ -176,7 +177,8 @@ ssize_t circular_buffer_write(char *buffer, size_t size,
 
 void circular_buffer_block(struct circular_buffer_s *circbuf)
 {
-	while (!circbuf->lock);
+	while (!circbuf->lock)
+		;
 }
 
 void circbuf_buffer_flush(struct circular_buffer_s *circbuf)

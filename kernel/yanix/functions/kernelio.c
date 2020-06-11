@@ -3,7 +3,7 @@
 #include <libk/string.h>
 #include <proc/tasking.h>
 #include <stdarg.h>
-#include <yanix/tty_dev.h>
+#include <kernel/tty_dev.h>
 
 unsigned int g_kernel_log_level;
 

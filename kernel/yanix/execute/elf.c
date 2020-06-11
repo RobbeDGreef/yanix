@@ -16,7 +16,7 @@
 #include <proc/tasking.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <yanix/elf.h>
+#include <kernel/elf.h>
 
 #define ELF_PHDR_NULL    0
 #define ELF_PHDR_LOAD    1
@@ -169,7 +169,7 @@ static int _elf_loop_over_program_table(struct file * fp,
 			pstrt = (elf_program_table[i].vaddr);
 	}
 
-	//if (pbrk & 0xFFF)
+	// if (pbrk & 0xFFF)
 	//	pbrk = (pbrk & 0xFFFFF000) + 0x1000;
 	get_current_task()->program_break = pbrk;
 	get_current_task()->program_start = pstrt;
