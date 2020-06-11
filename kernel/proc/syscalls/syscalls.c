@@ -491,7 +491,10 @@ unsigned int sys_alarm(unsigned int seconds)
 
 int sys_nanosleep(const struct timespec *req, struct timespec *rem)
 {
-	return -1;
+	int time = req->tv_sec * 1000;
+	time += (uint32_t) req->tv_nsec / 1000;
+	sleep(time);
+	return 0;
 }
 
 int sys_fchmod(int fd, mode_t mode)
