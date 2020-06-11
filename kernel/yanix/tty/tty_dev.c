@@ -4,7 +4,7 @@
 #include <libk/string.h>
 #include <mm/heap.h>
 #include <proc/tasking.h>
-#include <yanix/tty_dev.h>
+#include <kernel/tty_dev.h>
 
 /**
  * A tty device is going to be a file that can be written to
@@ -94,10 +94,11 @@ int init_tty_devices()
 	/* initialize each tty device */
 	for (size_t i = 0; i < TTY_DEVICE_AMOUNT; i++)
 	{
-		tty_control_struct->tty_devices[i].buffer = kmalloc(tty_buf_size);
-		tty_control_struct->tty_devices[i].id     = i;
-		tty_control_struct->tty_devices[i].c_col  = 0;
-		tty_control_struct->tty_devices[i].c_row  = 0;
+		tty_control_struct->tty_devices[i].buffer   = kmalloc(tty_buf_size);
+		tty_control_struct->tty_devices[i].id       = i;
+		tty_control_struct->tty_devices[i].c_col    = 0;
+		tty_control_struct->tty_devices[i].c_row    = 0;
+		tty_control_struct->tty_devices[i].disabled = 0;
 	}
 
 	/* Kernel will get tty 0 for now, i haven't completely tought this tty
@@ -114,7 +115,17 @@ int init_tty_devices()
 	return 0;
 }
 
-#include <debug.h>
+void tty_disable()
+{
+	tty_dev_t *tty = tty_get_device(get_current_task()->tty);
+	tty->disabled  = 1;
+}
+
+void tty_enable()
+{
+	tty_dev_t *tty = tty_get_device(get_current_task()->tty);
+	tty->disabled  = 0;
+}
 
 void tty_update_display(tty_dev_t *tty_dev, int startcol, int startrow,
                         int endcol, int endrow)
@@ -371,8 +382,6 @@ static void parse_escape_control_sequence(struct escape_seq *es, char *seq)
 			tty_set_color(escape_to_tty_color(param1), -1);
 			tty_set_color(escape_to_tty_color(param2), -1);
 		}
-		else
-			debug_printk("Unknown escape sequence %c %i\n", *seq, *seq);
 	}
 	es->iter += (unsigned int) seq - start_seq + 1;
 }
@@ -414,6 +423,9 @@ ssize_t tty_write(tty_dev_t *tty_dev, const char *text_to_write,
 	 */
 	if (tty_dev == 0)
 		return -1;
+
+	if (tty_dev->disabled)
+		return 0;
 
 	/**
 	 * If the column or row specified equals -1, we should write to the cursor
