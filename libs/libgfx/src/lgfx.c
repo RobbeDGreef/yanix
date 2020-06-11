@@ -38,6 +38,7 @@ int lgfx_init()
 	g_gfx->w     = finfo.xres;
 	g_gfx->h     = finfo.yres;
 	g_gfx->fb_fd = fb;
+	printf("bpp: %i\n", g_gfx->bpp);
 
 	g_gfx->dbuf_line = g_gfx->bpp * g_gfx->w;
 	g_gfx->dbuf_size = g_gfx->bpp * g_gfx->w * g_gfx->h;
@@ -95,19 +96,24 @@ void lgfx_draw_frame_32(unsigned long fp, int xres, int yres)
 	int       fbline = g_gfx->dbuf_line;
 	uint32_t *frame  = (uint32_t *) fp;
 
-	int linelen = xres * 3;
+	int linelen = xres * 4;
 
 	int intptr = 0;
 	for (int y = 0; y < yres; y++)
 	{
+		MEMCPY(offset, fp, linelen);
+		fp += linelen;
+		offset += fbline;
+
+		/*
+
 		for (int i = 0; i < linelen; i += 3)
 		{
-			uint32_t pixel = frame[intptr++];
-			offset[i + 0]  = pixel & 0xFF;
-			offset[i + 1]  = (pixel >> 8) & 0xFF;
-			offset[i + 2]  = (pixel >> 16) & 0xFF;
+		    uint32_t pixel = frame[intptr++];
+		    offset[i + 0]  = pixel & 0xFF;
+		    offset[i + 1]  = (pixel >> 8) & 0xFF;
+		    offset[i + 2]  = (pixel >> 16) & 0xFF;
 		}
-
-		offset += fbline;
+		*/
 	}
 }

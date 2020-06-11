@@ -43,7 +43,7 @@ void bootsequence(uint32_t stack)
 
 	/* Initialize the video driver and clearing the screen */
 	video_clear_screen();
-	init_vesa((void *) 0xfd000000, 1024, 768, 3);
+	init_vesa((void *) 0xfd000000, 1024, 768, 4);
 	init_video(VIDEO_MODE_VESA);
 
 	arch_init();

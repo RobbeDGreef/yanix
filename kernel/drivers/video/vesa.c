@@ -6,11 +6,25 @@
 #include <libk/string.h>
 #include <mm/heap.h>
 #include <mm/paging.h>
+#include <cpu/io.h>
 
 #include <stddef.h>
 #include <stdint.h>
 
-extern page_directory_t *g_kernel_directory;
+#define VESA_DISP_INDEX 0x01ce
+#define VESA_DISP_DATA  0x01cf
+
+#define VESA_DISP_W      1
+#define VESA_DISP_H      2
+#define VESA_DISP_BPP    3
+#define VESA_DISP_ENABLE 4
+#define VESA_DISP_BANK   5
+#define VESA_DISP_W_VIRT 6
+#define VESA_DISP_H_VIRT 7
+
+#define VESA_DISP_DISABLED    0
+#define VESA_DISP_ENABLED     1
+#define VESA_DISP_LFB_ENABLED 0x40
 
 /**
  * This array is just a way to convert the known vga terminal colors to full
@@ -29,83 +43,67 @@ char *VESA_CARD_NAME   = "vesa_card";
 
 vesa_ctrl_t *g_display; // @todo: multiple monitor support
 
-#include <debug.h>
-#include <mm/paging.h>
-/**
- * @brief      This is an inline function for drawing a pixel in videomemory
- *
- * @param      videomem  The videomem
- * @param[in]  offset    The offset
- * @param[in]  color     The color
- */
-inline static void vesa_draw_pixel_inline(char *videomem, unsigned int offset,
-                                          int color)
+inline static void vesa_draw_pixel_inline(uint32_t *   videomem,
+                                          unsigned int offset, uint32_t color)
 {
+	/*
 	videomem[offset]     = color & 0xFF;
 	videomem[offset + 1] = (color >> 8) & 0xFF;
 	videomem[offset + 2] = (color >> 16) & 0xFF;
+	*/
+
+	videomem[offset] = color;
 }
 
-/**
- * @brief      Initializes all the data that vesa needs to startup
- *
- * @param      physicallfb  The physicallfb
- * @param[in]  width        The width
- * @param[in]  height       The height
- * @param[in]  bpp          The bits per pixel
- */
+void set_reg(int port, int data)
+{
+	port_word_out(VESA_DISP_INDEX, port);
+	port_word_out(VESA_DISP_DATA, data);
+}
+
 void init_vesa(void *physicallfb, unsigned int width, unsigned int height,
                unsigned int bpp)
 {
 	g_display = kmalloc(sizeof(vesa_ctrl_t));
+
 	// Save all our variables in an handy struct
 	g_display->physicalLFB = (void *) physicallfb;
 	g_display->s_width     = width;
 	g_display->s_height    = height;
 	g_display->bpp         = bpp;
 
-	// unsigned int buffer_size = width * height * bpp;
+	// port_word_out(0x01CE, 3);
+	// port_word_out(0x01CF, bpp * 8);
 
-	// allocate the VESA physical frame buffer bus
-	// identity_map_memory_block((unsigned int) physicallfb, (unsigned
-	// int)physicallfb + buffer_size, 0, 1, g_kernel_directory);
+	/**
+	 * @todo: we here asume there is a video mode available that supports these
+	 *        we should check this at runtime and load the video modes from
+	 *        real mode
+	 */
+
+	/* A lot of these are already set but we set them again to be sure */
+	set_reg(VESA_DISP_ENABLE, VESA_DISP_DISABLED);
+	set_reg(VESA_DISP_BPP, bpp * 8);
+	set_reg(VESA_DISP_W, width);
+	set_reg(VESA_DISP_H, height);
+	set_reg(VESA_DISP_W_VIRT, width);
+	set_reg(VESA_DISP_H_VIRT, height * 2);
+	set_reg(VESA_DISP_ENABLE, VESA_DISP_ENABLED | VESA_DISP_LFB_ENABLED);
+	set_reg(VESA_DISP_BANK, 0);
 }
 
-/**
- * @brief      Draws a pixel at offset without calculating offset
- *
- * @param[in]  offset  The offset
- * @param[in]  color   The color
- */
 void vesa_draw_pixel_at_offset(unsigned int offset, int color)
 {
 	void *videomem = ((void *) (g_display->physicalLFB));
 	vesa_draw_pixel_inline(videomem, offset, color);
 }
 
-/**
- * @brief      Draws a pixel at a location given by x and y
- *
- * @param[in]  x      The x axis location
- * @param[in]  y      The y axis location
- * @param[in]  color  The color
- */
 void vesa_draw_pixel(int x, int y, int color)
 {
-	unsigned int location = (y * g_display->s_width + x) * g_display->bpp;
+	unsigned int location = (y * g_display->s_width + x) /** g_display->bpp*/;
 	vesa_draw_pixel_at_offset(location, color);
 }
 
-/**
- * @brief      Returns the appropriate rgb colorcode for a corresponding vga
- * color
- *
- * @param[in]  color  The color
- *
- * @return     The rgb color
- *
- * @note       This color has to have a value less than 16
- */
 int vesa_vga_to_full(int color)
 {
 	// This check prevents memory bugs
@@ -116,17 +114,6 @@ int vesa_vga_to_full(int color)
 	return 0;
 }
 
-/**
- * @brief      Draws a character on desired location on screen
- *
- * @param[in]  character  The character
- * @param[in]  x          The x axis location
- * @param[in]  y          The y axis location
- * @param[in]  frgcolor   The frgcolor
- * @param[in]  bgcolor    The bgcolor
- *
- * @return     Success
- */
 void vesa_draw_char(char character, int x, int y, int frgcolor, int bgcolor)
 {
 	/**
@@ -183,12 +170,6 @@ void vesa_clear_cell(int x, int y)
 	}
 }
 
-/**
- * @brief      This function hooks the vesa driver to the current video driver
- * in use
- *
- * @param      driver  The driver
- */
 void hook_vesa_to_video(video_driver_t *driver)
 {
 	/* First clear the driver settings */
@@ -210,6 +191,6 @@ void hook_vesa_to_video(video_driver_t *driver)
 	driver->screen_bpp        = g_display->bpp;
 	driver->screen_fb         = (unsigned int) g_display->physicalLFB;
 	driver->video_driver_name = VESA_DRIVER_NAME;
-	driver->video_card_name =
-		VESA_CARD_NAME; /* This should actually be done by the PCI driver */
+	driver->video_card_name   = VESA_CARD_NAME; /* This should probably be
+	                                             * done by the PCI driver */
 }
