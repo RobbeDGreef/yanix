@@ -49,13 +49,15 @@ typedef uword_t id_t;
 
 typedef uword_t phys_addr_t;
 
-typedef long           time_t;
-typedef long           clock_t;
+typedef uint64_t       time_t;
+typedef unsigned long  clock_t;
 typedef unsigned char  nlink_t;
 typedef unsigned short mode_t;
 typedef unsigned int   flags_t;
 
 typedef uint32_t     reg_t;
 typedef unsigned int uint;
+
+typedef unsigned long suseconds_t;
 
 #endif

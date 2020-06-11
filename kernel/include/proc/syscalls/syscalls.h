@@ -31,6 +31,19 @@ struct timespec
 	time_t tv_sec;
 	time_t tv_nsec;
 };
+
+struct timeval
+{
+	time_t      tv_sec;
+	suseconds_t tv_usec;
+};
+
+struct timezone
+{
+	int tz_minuteswest;
+	int tz_dsttime;
+};
+
 struct rusage;
 struct group;
 struct timeval;
@@ -111,5 +124,6 @@ void          sys_endgrent();
 void          sys_setgrent();
 struct group *sys_getgrent();
 int           sys_uname(struct utsname *buf);
+int           sys_gettimeofday(struct timeval *tv, struct timezone *tz);
 
 #endif /* _SYSCALLS_H */
