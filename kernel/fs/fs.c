@@ -11,7 +11,8 @@
 #include <libk/stdio.h>
 #include <libk/string.h>
 #include <mm/heap.h>
-#include <yanix/tty_dev.h>
+#include <kernel/tty_dev.h>
+#include <yanix/fb.h>
 
 #include <drivers/serial.h>
 
@@ -224,7 +225,7 @@ int init_char_specials()
 	                                   0, 0, 0, 0, tty_stderrwrite, 0, 0, 0);
 	vfs_link_node_vfs("/dev/stderr", stderr);
 
-	//vfs_node_t *tmp = vfs_setupnode("tmp", VFS_DIRECTORY, 0, 0, 0, 0, )
+	// vfs_node_t *tmp = vfs_setupnode("tmp", VFS_DIRECTORY, 0, 0, 0, 0, )
 
 	vfs_open_fd("/dev/stdin", 0, 0);
 	vfs_open_fd("/dev/stdout", 0, 0);
@@ -275,7 +276,7 @@ ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 	unsigned int blockiter = seek / blocksize; /* the startblock*/
 
 	unsigned int s_rest = seek % blocksize;
-	unsigned int e_rest = (amount + (blocksize  - s_rest)) % blocksize;
+	unsigned int e_rest = (amount + (blocksize - s_rest)) % blocksize;
 
 	if (s_rest && blocksize - s_rest > amount)
 		e_rest = 0;
@@ -285,8 +286,8 @@ ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 	if (s_rest)
 	{
 		char *tmp = kmalloc(blocksize);
-		ret = node->fs_info->block_read(node->offset, blockiter++, tmp, 1,
-		                          node->fs_info);
+		ret       = node->fs_info->block_read(node->offset, blockiter++, tmp, 1,
+                                        node->fs_info);
 
 		if (ret == 0)
 			return 0;
@@ -314,12 +315,12 @@ ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 	if (e_rest)
 	{
 		char *tmp = kmalloc(blocksize);
-		int r = node->fs_info->block_read(node->offset, blockiter, tmp, 1,
-		                          node->fs_info);
-		
+		int   r   = node->fs_info->block_read(node->offset, blockiter, tmp, 1,
+                                          node->fs_info);
+
 		if (r == 0)
 			return ret;
-		
+
 		memcpy(buf, tmp, e_rest);
 		kfree(tmp);
 		ret += e_rest;
@@ -340,7 +341,7 @@ ssize_t fs_write(vfs_node_t *node, int seek, const void *_buf, size_t amount)
 	unsigned int blockiter = seek / blocksize; /* the startblock*/
 
 	unsigned int s_rest = seek % blocksize;
-	unsigned int e_rest = (amount + (blocksize  - s_rest)) % blocksize;
+	unsigned int e_rest = (amount + (blocksize - s_rest)) % blocksize;
 
 	if (s_rest && blocksize - s_rest > amount)
 		e_rest = 0;
@@ -366,7 +367,7 @@ ssize_t fs_write(vfs_node_t *node, int seek, const void *_buf, size_t amount)
 		buf += size;
 		kfree(tmp);
 
-		//if (blkcnt)
+		// if (blkcnt)
 		//	blkcnt--;
 	}
 	if (blkcnt)

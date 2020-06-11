@@ -15,7 +15,7 @@
 #include <mm/linkedlist.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <yanix/kfunctions.h>
+#include <kernel/kfunctions.h>
 
 #define DEFAULT_STACKTRACE_DEPTH 8
 

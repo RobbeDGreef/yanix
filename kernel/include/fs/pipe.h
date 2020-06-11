@@ -2,7 +2,7 @@
 #define PIPE_H
 
 #include <sys/types.h>
-#include <yanix/ds/circularbuffer.h>
+#include <kernel/ds/circularbuffer.h>
 
 #define NON_BLOCK (1 << 0)
 #define BUFFERED  (1 << 1)

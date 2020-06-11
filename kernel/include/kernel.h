@@ -2,7 +2,7 @@
 #define KERNEL_H
 
 #include <proc/tasking.h>
-#include <yanix/kfunctions.h>
+#include <kernel/kfunctions.h>
 
 #define KERN_EMERG   "<0>"
 #define KERN_ALERT   "<1>"

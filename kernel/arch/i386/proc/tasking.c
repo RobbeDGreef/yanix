@@ -1,7 +1,7 @@
 #include <cpu/gdt.h>
 #include <debug.h>
 #include <proc/tasking.h>
-#include <yanix/stack.h>
+#include <kernel/stack.h>
 /* Asm jump to userspace function */
 extern void jmp_userspace(uint32_t eip, uint32_t stack, uint32_t argc,
                           uint32_t argv);

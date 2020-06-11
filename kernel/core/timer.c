@@ -4,6 +4,7 @@
 #include <mm/heap.h>
 #include <proc/tasking.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 #define TIMER_FREQ 250
 

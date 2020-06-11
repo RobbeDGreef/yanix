@@ -8,6 +8,7 @@
 #include <sys/times.h>
 #include <sys/types.h>
 #include <yanix/system.h>
+#include <kernel/system.h>
 
 typedef void (*sighandler_t)(int);
 

@@ -15,7 +15,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
-#include <yanix/kfunctions.h>
+#include <kernel/kfunctions.h>
 
 #include <debug.h>
 

@@ -4,7 +4,7 @@
 #include <mm/paging.h>
 #include <signal.h>
 #include <sys/types.h>
-#include <yanix/ds/fd_vector.h>
+#include <kernel/ds/fd_vector.h>
 
 #include <stddef.h>
 #include <stdint.h>
@@ -147,7 +147,7 @@ void *sbrk(intptr_t incr);
  */
 void kill_proc(task_t *task);
 
-int task_wait(int *status);
+int           task_wait(int *status);
 unsigned long get_proccount();
 
 #endif // TASKING_H_

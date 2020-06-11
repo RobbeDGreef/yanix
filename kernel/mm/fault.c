@@ -3,7 +3,7 @@
 #include <mm/paging.h>
 #include <signal.h>
 #include <sys/types.h>
-#include <yanix/stack.h>
+#include <kernel/stack.h>
 
 #include <debug.h>
 #include <errno.h>

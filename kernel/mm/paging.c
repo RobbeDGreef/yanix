@@ -20,8 +20,8 @@
 #include <proc/tasking.h>
 #include <signal.h>
 #include <sys/types.h>
-#include <yanix/kfunctions.h>
-#include <yanix/stack.h>
+#include <kernel/kfunctions.h>
+#include <kernel/stack.h>
 #include <libk/bit.h>
 
 /**
@@ -721,7 +721,7 @@ void debug_paging_buf(page_directory_t *dir)
 unsigned long phys_freeram_amount()
 {
 	unsigned long freeram = 0;
-	unsigned long ints = g_nframes / 32;
+	unsigned long ints    = g_nframes / 32;
 	for (unsigned long i = 0; i < ints; i++)
 	{
 		if (g_frames[i] == 0)

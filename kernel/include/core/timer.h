@@ -1,6 +1,8 @@
 #ifndef TIMER_H
 #define TIMER_H
 
+#include <sys/types.h>
+
 /**
  * @brief      Get the timer frequency
  *

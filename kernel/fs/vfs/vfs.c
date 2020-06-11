@@ -491,7 +491,7 @@ int vfs_link_node_vfs(const char *path, vfs_node_t *node)
 		pathlen--;
 	}
 
-	vfs_node_t *dir;
+	vfs_node_t *dir = NULL;
 
 	for (int i = pathlen; i != 0; i--)
 	{
