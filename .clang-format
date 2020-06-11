@@ -31,7 +31,7 @@ IndentGotoLabels: false
 IndentPPDirectives: BeforeHash
 PointerAlignment: Right
 ReflowComments: true
-SortIncludes: true
+SortIncludes: false
 SpaceAfterCStyleCast: true
 SpaceAfterLogicalNot: false
 SpaceBeforeAssignmentOperators: true
