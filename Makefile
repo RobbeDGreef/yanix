@@ -33,7 +33,7 @@ QEMU_FLAGS += -netdev user,id=u1,hostfwd=tcp::5555-:5454 -device rtl8139,netdev=
 QEMU_FLAGS += -object filter-dump,id=f1,netdev=u1,file=networkdump.dat 
 QEMU_FLAGS += -serial pipe:/serial_output.out 
 QEMU_FLAGS += -no-reboot #-enable-kvm
-QEMU_FLAGS += -d int,cpu_reset
+QEMU_FLAGS += -d int,cpu_reset -vga vmware
 # Kvm actually slow the os down on some parts (like the ata driver)
 
 all:
