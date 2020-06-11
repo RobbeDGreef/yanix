@@ -4,6 +4,7 @@
 
 [global enable_interrupts]
 [global disable_interrupts]
+[global are_interrupts_enabled]
 
 enable_interrupts:
     sti
@@ -11,6 +12,13 @@ enable_interrupts:
 
 disable_interrupts:
     cli
+    ret
+
+are_interrupts_enabled:
+    pushfd
+    mov eax, [esp]
+    add esp, 4
+    and eax, 0x200
     ret
 
 isr_common_stub:

@@ -169,8 +169,7 @@ void isr_handler(registers_t *r)
 	if (interrupt_handlers[num] == 0)
 	{
 		printk(":(\nReceived unhandled interrupt: %i (%x) and with error code: "
-		       "%x\n",
-		       num, num, r->err_code);
+		       "%x\n", num, num, r->err_code);
 
 		if (num > (sizeof(exception_messages) / sizeof(exception_messages[0])))
 		{
@@ -198,8 +197,8 @@ void arch_register_interrupt_handler(uint8_t n, isr_callback_t handler)
 
 void irq_handler(registers_t *r)
 {
-	// if (r->int_no >= 40)
-	//    port_byte_out(0xA0, 0x20);
+	if (r->int_no >= 40)
+		port_byte_out(0xA0, 0x20);
 
 	if (interrupt_handlers[r->int_no] != 0)
 	{
