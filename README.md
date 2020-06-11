@@ -4,6 +4,7 @@ sleep deprivation. I call it yanix (**Y**et **A**nother u**NIX** clone) The goal
 compliant as possible and self sustaining.
 
 ![yanix-screenshot](yanix-screenshot.png)
+Now able to run **doom**!
 
 This project is a hobby os so this is not perfect,
 I am currently trying to make the codebase as clean as possible
@@ -17,6 +18,7 @@ further.
 If you are starting out I really recommend the osdev.org wiki 
 as a lot of the code here is build on the information found
 on that wiki. For more helpfull links check the bottom of this page
+
 
 ## Currently supported features:
 ### CPU-based Features:
