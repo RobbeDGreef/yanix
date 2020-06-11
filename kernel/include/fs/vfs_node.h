@@ -42,6 +42,7 @@ typedef int (*creat_fpointer)(vfs_node_t *, char *name, flags_t flags);
 typedef struct dirent *(*read_dir_fpointer)(DIR *dirstream);
 typedef DIR *(*open_dir_fpointer)(vfs_node_t *);
 typedef int (*close_dir_fpointer)(DIR *dirstream);
+typedef int (*ioctl_fpointer)(int request, char *args);
 
 /**
  * @brief      A virtual filesystem node
@@ -58,17 +59,18 @@ struct vfs_node_s
 	filesystem_t
 		*    fs_info; // the information of the filesystem this inode points to
 	offset_t offset;  // this points to the offset of the file (this can also be
-	                 // something like an inode depending on implementation)
-	                 // basically any way to refrence a file
-	nlink_t nlink; /* Number of hard links */
+	                  // something like an inode depending on implementation)
+	                  // basically any way to refrence a file
+	nlink_t nlink;    /* Number of hard links */
 
 	/* These pointers are normally only used to override fs functions */
 	open_fpointer  open;  // open file descriptor
 	close_fpointer close; // close file descriptor
 
-	read_fpointer  read;  // read from file
-	write_fpointer write; // write to file
-	creat_fpointer creat; // create a file
+	read_fpointer  read;  /* read from file */
+	write_fpointer write; /* write to file */
+	creat_fpointer creat; /* create a file */
+	ioctl_fpointer cmd; /* Send a command to the filedescriptor / char device */
 
 	open_dir_fpointer  opendir;
 	close_dir_fpointer closedir;
