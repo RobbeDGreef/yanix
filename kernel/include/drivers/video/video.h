@@ -134,4 +134,7 @@ void video_clear_screen();
  */
 void video_clear_cell(int x, int y);
 
+struct fb_screeninfo;
+int video_get_screeninfo(struct fb_screeninfo *info);
+
 #endif
