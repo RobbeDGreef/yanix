@@ -3,6 +3,7 @@
 #include <drivers/video/video.h>
 #include <mm/heap.h>
 #include <stdint.h>
+#include <yanix/fb.h>
 
 unsigned int g_video_mode;
 
@@ -165,4 +166,14 @@ void video_clear_cell(int x, int y)
 {
 	if (g_video_driver && g_video_driver->clear_cell)
 		g_video_driver->clear_cell(x, y);
+}
+
+int video_get_screeninfo(struct fb_screeninfo *info)
+{
+	info->xres           = g_video_driver->screen_width;
+	info->yres           = g_video_driver->screen_height;
+	info->bits_per_pixel = g_video_driver->screen_bpp;
+	info->framebuffer    = (void *) g_video_driver->screen_fb;
+
+	return 0;
 }
