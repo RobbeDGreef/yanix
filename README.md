@@ -21,8 +21,9 @@ on that wiki. For more helpfull links check the bottom of this page
 ## Currently supported features:
 ### CPU-based Features:
 #### Supported Architectures:
-> - [x] x86
-> - [ ] x86-64
+- [x] x86
+- [ ] x86-64
+- [ ] arm
 
 - [x] Multitasking
 - [ ] Multiprocessing
