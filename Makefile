@@ -89,6 +89,14 @@ backup:
 
 #### Building ####
 
+rebuild_sysroot:
+	rm sysroot/usr -rf
+	sh tools/rebuild_sysroot.sh
+
+build_sysroot:
+	rm sysroot/usr -rf
+	sh tools/build_sysroot.sh
+
 kernel.bin:
 	$(info [INFO] Building kernel)
 	$(MAKE) -C ./kernel/ ARCH=$(ARCH) PREFIX=$(PWD) CC=$(CC) LD=$(LD) NASM=$(NASM) KERNEL_ENTRY_POINT=$(KERNEL_ENTRY_POINT)
