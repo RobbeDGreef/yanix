@@ -132,20 +132,8 @@ int sys_getdents(int fd, struct dirent *dirp, int count)
 
 int sys_chdir(const char *path)
 {
-	char *buf;
-	if (path[0] != '/')
-	{
-		char *cwd = get_current_task()->cwd;
-		buf       = kmalloc(strlen(cwd) + strlen(path) + 2);
-		strcpy_s(buf, cwd, strlen(cwd) + 1);
-		strcat(buf, "/");
-		strcat(buf, path);
-		// vfs_interpret_path(buf);
-	}
-	else
-		buf = strdup(path);
+	char *buf = vfs_fullpath((char *) path);
 
-	printk("buf: %s\n", buf);
 	if (vfs_find_path(buf))
 	{
 		kfree(get_current_task()->cwd);
