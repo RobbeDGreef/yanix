@@ -2,16 +2,16 @@
 #define PIPE_H
 
 #include <sys/types.h>
-#include <kernel/ds/circularbuffer.h>
+#include <kernel/ds/ringbuffer.h>
 
 #define NON_BLOCK (1 << 0)
 #define BUFFERED  (1 << 1)
 
 struct pipe
 {
-	struct circular_buffer_s *circbuf;
-	int                       pipefd[2];
-	flags_t                   flags;
+	struct ringbuffer *circbuf;
+	int                pipefd[2];
+	flags_t            flags;
 };
 
 int pipe_close(vfs_node_t *node);

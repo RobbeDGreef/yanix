@@ -1,7 +1,7 @@
 #include <libk/string.h>
 #include <mm/heap.h>
 #include <stddef.h>
-#include <kernel/ds/circularbuffer.h>
+#include <kernel/ds/ringbuffer.h>
 
 #include <const.h>
 #include <errno.h>
@@ -14,14 +14,13 @@
  *
  * @return     Reference to the buffer.
  */
-struct circular_buffer_s *create_circular_buffer(size_t size, cb_flags_t flags)
+struct ringbuffer *create_ringbuffer(size_t size, cb_flags_t flags)
 {
-	struct circular_buffer_s *circbuf =
-		kmalloc(sizeof(struct circular_buffer_s));
+	struct ringbuffer *circbuf = kmalloc(sizeof(struct ringbuffer));
 
-	memset(circbuf, 0, sizeof(struct circular_buffer_s));
+	memset(circbuf, 0, sizeof(struct ringbuffer));
 
-	if (flags & CIRCULAR_BUFFER_OPTIMIZE_USHORTINT)
+	if (flags & RINGBUFFER_OPTIMIZE_USHORTINT)
 		size = USHRT_MAX;
 
 	circbuf->buffer_start = kmalloc(size);
@@ -48,14 +47,13 @@ struct circular_buffer_s *create_circular_buffer(size_t size, cb_flags_t flags)
  * @return     On success, the amount of bytes written to the buffer. On
  * failure, -1 is returned and errno is set appropriately.
  */
-ssize_t circular_buffer_read_index(char *buffer, size_t size,
-                                   unsigned long             index,
-                                   struct circular_buffer_s *circbuf)
+ssize_t ringbuffer_read_index(char *buffer, size_t size, unsigned long index,
+                              struct ringbuffer *circbuf)
 {
 	if (circbuf->lock && circbuf->lock < size)
 		size = circbuf->lock;
 
-	if (circbuf->flags & CIRCULAR_BUFFER_OPTIMIZE_USHORTINT)
+	if (circbuf->flags & RINGBUFFER_OPTIMIZE_USHORTINT)
 	{
 		/**
 		 * This is an optimized version of the regular circular buffer
@@ -104,11 +102,9 @@ ssize_t circular_buffer_read_index(char *buffer, size_t size,
  * @return     On success, the amount of bytes read from the circular buffer. On
  * failure, -1 is returned and errno is set appropriately.
  */
-ssize_t circular_buffer_read(char *buffer, size_t size,
-                             struct circular_buffer_s *circbuf)
+ssize_t ringbuffer_read(char *buffer, size_t size, struct ringbuffer *circbuf)
 {
-	return circular_buffer_read_index(buffer, size, circbuf->virtual_begin,
-	                                  circbuf);
+	return ringbuffer_read_index(buffer, size, circbuf->virtual_begin, circbuf);
 }
 
 /**
@@ -122,11 +118,10 @@ ssize_t circular_buffer_read(char *buffer, size_t size,
  * @return     On success, the amount of bytes read from the buffer. On failure,
  * -1 is returned and errno is set appropriately.
  */
-ssize_t circular_buffer_write_index(char *buffer, size_t size,
-                                    unsigned long             index,
-                                    struct circular_buffer_s *circbuf)
+ssize_t ringbuffer_write_index(char *buffer, size_t size, unsigned long index,
+                               struct ringbuffer *circbuf)
 {
-	if (circbuf->flags & CIRCULAR_BUFFER_OPTIMIZE_USHORTINT)
+	if (circbuf->flags & RINGBUFFER_OPTIMIZE_USHORTINT)
 	/**
 	 * This is an optimized version of the regular circular buffer
 	 * implementation this implmementation uses a unsigned short int as a way to
@@ -168,31 +163,29 @@ ssize_t circular_buffer_write_index(char *buffer, size_t size,
  * @return     On success, the amount of bytes written to the circular buffer.
  * On failure, -1 is returned and errno is set appropriately.
  */
-ssize_t circular_buffer_write(char *buffer, size_t size,
-                              struct circular_buffer_s *circbuf)
+ssize_t ringbuffer_write(char *buffer, size_t size, struct ringbuffer *circbuf)
 {
-	return circular_buffer_write_index(buffer, size, circbuf->virtual_end,
-	                                   circbuf);
+	return ringbuffer_write_index(buffer, size, circbuf->virtual_end, circbuf);
 }
 
-void circular_buffer_block(struct circular_buffer_s *circbuf)
+void ringbuffer_block(struct ringbuffer *circbuf)
 {
 	while (!circbuf->lock)
 		;
 }
 
-void circbuf_buffer_flush(struct circular_buffer_s *circbuf)
+void ringbuffer_flush(struct ringbuffer *circbuf)
 {
 	circbuf->virtual_begin = circbuf->virtual_end;
 	circbuf->lock          = 0;
 }
 
-int circular_buffer_remove(int location, struct circular_buffer_s *circbuf)
+int ringbuffer_remove(int location, struct ringbuffer *circbuf)
 {
 	if (!(circbuf->virtual_end - circbuf->virtual_begin))
 		return -1;
 
-	if (circbuf->flags & CIRCULAR_BUFFER_OPTIMIZE_USHORTINT)
+	if (circbuf->flags & RINGBUFFER_OPTIMIZE_USHORTINT)
 	{
 		uint16_t base = (uint16_t) circbuf->virtual_end - location - 1;
 		/* shift the bytes */

@@ -1,4 +1,4 @@
-#include <kernel/ds/circularbuffer.h>
+#include <kernel/ds/ringbuffer.h>
 
 #include <fs/filedescriptor.h>
 #include <fs/pipe.h>
@@ -44,11 +44,11 @@ ssize_t pipe_read_raw(struct pipe *pipe, void *buffer, size_t size)
 	{ /* waiting for a process to write to the pipe */
 		enable_interrupts();
 		end_of_interrupt();
-		circular_buffer_block(pipe->circbuf);
+		ringbuffer_block(pipe->circbuf);
 		disable_interrupts();
 	}
 
-	return circular_buffer_read((char *) buffer, size, pipe->circbuf);
+	return ringbuffer_read((char *) buffer, size, pipe->circbuf);
 }
 
 ssize_t pipe_write(vfs_node_t *node, unsigned int offset, const void *buffer,
@@ -67,7 +67,7 @@ ssize_t pipe_write_raw(struct pipe *pipe, const void *buffer, size_t size)
 
 	// @todo: add blocking for when the pipe is full
 
-	return circular_buffer_write((char *) buffer, size, pipe->circbuf);
+	return ringbuffer_write((char *) buffer, size, pipe->circbuf);
 }
 
 ssize_t pipe_remove(vfs_node_t *node, unsigned int offset, int location)
@@ -81,7 +81,7 @@ ssize_t pipe_remove(vfs_node_t *node, unsigned int offset, int location)
 	}
 
 	struct pipe *pipe = (struct pipe *) offset;
-	return circular_buffer_remove(location, pipe->circbuf);
+	return ringbuffer_remove(location, pipe->circbuf);
 }
 
 struct pipe *pipe_create()
@@ -91,8 +91,8 @@ struct pipe *pipe_create()
 		return 0;
 
 	memset(pipe, 0, sizeof(struct pipe));
-	struct circular_buffer_s *circbuf =
-		create_circular_buffer(0, CIRCULAR_BUFFER_OPTIMIZE_USHORTINT);
+	struct ringbuffer *circbuf =
+		create_circular_buffer(0, ringbuffer_OPTIMIZE_USHORTINT);
 
 	if (!circbuf)
 		return 0;
