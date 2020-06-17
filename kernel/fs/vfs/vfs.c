@@ -457,7 +457,7 @@ struct file *vfs_open(const char *path, int flags, int mode)
 
 char *vfs_get_name(const char *path)
 {
-	int   pathlen = strlen(path);
+	int   pathlen = strlen(path) + 1;
 	char *tmp     = kmalloc(pathlen);
 	memcpy(tmp, path, pathlen);
 
