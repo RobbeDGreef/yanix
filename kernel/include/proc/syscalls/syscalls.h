@@ -7,8 +7,8 @@
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/types.h>
-#include <yanix/system.h>
 #include <kernel/system.h>
+#include <net/socket.h>
 
 typedef void (*sighandler_t)(int);
 

@@ -1,6 +1,8 @@
 #ifndef _SYSTEM_H
 #define _SYSTEM_H
 
+#include <yanix/sys/sysinfo.h>
+
 struct kern_sysinfo
 {
 	char *hostname;

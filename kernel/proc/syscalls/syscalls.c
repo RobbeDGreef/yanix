@@ -18,8 +18,8 @@
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <kernel/exec.h>
-#include <yanix/system.h>
-#include <yanix/ioctl.h>
+#include <kernel/system.h>
+#include <yanix/sys/ioctl.h>
 
 void sys_exit(int status)
 {

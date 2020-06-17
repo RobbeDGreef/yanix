@@ -1,4 +1,4 @@
-#include <yanix/ioctl.h>
+#include <yanix/sys/ioctl.h>
 #include <debug.h>
 #include <kernel/tty_dev.h>
 

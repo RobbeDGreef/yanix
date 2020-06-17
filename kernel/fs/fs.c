@@ -12,7 +12,7 @@
 #include <libk/string.h>
 #include <mm/heap.h>
 #include <kernel/tty_dev.h>
-#include <yanix/fb.h>
+#include <kernel/fb.h>
 
 #include <drivers/serial.h>
 

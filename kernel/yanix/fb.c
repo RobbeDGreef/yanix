@@ -1,8 +1,8 @@
-#include <yanix/fb.h>
+#include <kernel/fb.h>
 #include <drivers/video/video.h>
 #include <fs/vfs_node.h>
 #include <sys/types.h>
-#include <yanix/ioctl.h>
+#include <yanix/sys/ioctl.h>
 #include <libk/string.h>
 
 int fb_cmd(int request, char *args)

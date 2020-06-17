@@ -3,7 +3,7 @@
 #include <drivers/video/video.h>
 #include <mm/heap.h>
 #include <stdint.h>
-#include <yanix/fb.h>
+#include <yanix/yanix/fb.h>
 
 unsigned int g_video_mode;
 
