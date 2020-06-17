@@ -149,5 +149,7 @@ void kill_proc(task_t *task);
 
 int           task_wait(int *status);
 unsigned long get_proccount();
+uid_t         task_euid();
+gid_t         task_egid();
 
 #endif // TASKING_H_

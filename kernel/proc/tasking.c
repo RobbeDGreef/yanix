@@ -226,3 +226,13 @@ unsigned long get_proccount()
 {
 	return task_count_all();
 }
+
+uid_t task_euid()
+{
+	return get_current_task()->euid;
+}
+
+gid_t task_egid()
+{
+	return get_current_task()->egid;
+}
