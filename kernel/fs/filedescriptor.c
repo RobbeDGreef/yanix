@@ -49,6 +49,12 @@ int register_filedescriptor(vfs_node_t *node, int mode)
 
 struct file_descriptor *get_filedescriptor(int fd)
 {
+	if (fd < 0)
+	{
+		errno = EBADFD;
+		return NULL;
+	}
+
 	if (get_current_task())
 		return vector_get(get_current_task()->fds, fd);
 
