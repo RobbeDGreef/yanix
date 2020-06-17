@@ -21,33 +21,24 @@
 int pipe_close(vfs_node_t *node)
 {
 	return 0;
-	kfree((void *) ((struct pipe_s *) node->offset)->circbuf);
+	kfree((void *) ((struct pipe *) node->offset)->circbuf);
 	kfree((void *) node->offset);
 	return 0;
 }
 
-/**
- * @brief      Reads from a pipe
- *
- * @param      node    The vfs node of the pipe
- * @param[in]  offset  The pointer to the circular buffer structure
- * @param[in]  buffer  The buffer to write from
- * @param[in]  size    The amount of bytes to read from the pipe
- *
- * @return     On success, the amount of bytes read is returned. On failure, -1
- * is returned and errno is set appropriately.
- */
 ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer,
                   size_t size)
 {
-	offset = node->offset;
-	if (!offset)
+	return pipe_read_raw((struct pipe *) node->offset, buffer, size);
+}
+
+ssize_t pipe_read_raw(struct pipe *pipe, void *buffer, size_t size)
+{
+	if (!pipe)
 	{
 		errno = EPIPE;
 		return -1;
 	}
-
-	struct pipe_s *pipe = (struct pipe_s *) offset;
 
 	if (!(pipe->flags & NON_BLOCK))
 	{ /* waiting for a process to write to the pipe */
@@ -60,31 +51,21 @@ ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer,
 	return circular_buffer_read((char *) buffer, size, pipe->circbuf);
 }
 
-/**
- * @brief      Writes to a pipe
- *
- * @param      node    The vfs node of the pipe
- * @param[in]  offset  The pointer to the circular buffer structure
- * @param[in]  buffer  The buffer to read from
- * @param[in]  size    The amount of bytes to write to the pipe
- *
- * @return     On success, the amount of bytes written is returned. On failure,
- * -1 is returned and errno is set appropriately.
- */
 ssize_t pipe_write(vfs_node_t *node, unsigned int offset, const void *buffer,
                    size_t size)
 {
-	offset = node->offset;
+	return pipe_write_raw((struct pipe *) node->offset, buffer, size);
+}
 
-	if (!offset)
+ssize_t pipe_write_raw(struct pipe *pipe, const void *buffer, size_t size)
+{
+	if (!pipe)
 	{
 		errno = EPIPE;
 		return -1;
 	}
 
 	// @todo: add blocking for when the pipe is full
-
-	struct pipe_s *pipe = (struct pipe_s *) offset;
 
 	return circular_buffer_write((char *) buffer, size, pipe->circbuf);
 }
@@ -99,17 +80,17 @@ ssize_t pipe_remove(vfs_node_t *node, unsigned int offset, int location)
 		return -1;
 	}
 
-	struct pipe_s *pipe = (struct pipe_s *) offset;
+	struct pipe *pipe = (struct pipe *) offset;
 	return circular_buffer_remove(location, pipe->circbuf);
 }
 
-struct pipe_s *pipe_create()
+struct pipe *pipe_create()
 {
-	struct pipe_s *pipe = kmalloc(sizeof(struct pipe_s));
+	struct pipe *pipe = kmalloc(sizeof(struct pipe));
 	if (!pipe)
 		return 0;
 
-	memset(pipe, 0, sizeof(struct pipe_s));
+	memset(pipe, 0, sizeof(struct pipe));
 	struct circular_buffer_s *circbuf =
 		create_circular_buffer(0, CIRCULAR_BUFFER_OPTIMIZE_USHORTINT);
 
@@ -136,7 +117,7 @@ struct pipe_s *pipe_create()
  */
 int pipe(int pipefd[2])
 {
-	struct pipe_s *pipe = pipe_create();
+	struct pipe *pipe = pipe_create();
 
 	if (!pipe)
 		return -1;
@@ -156,8 +137,6 @@ int pipe(int pipefd[2])
 	pipe->pipefd[0] = pipefd[0];
 	pipe->pipefd[1] = pipefd[1];
 
-	printk("Pipe created %i %i\n", pipefd[0], pipefd[1]);
-
 	return 0;
 }
 
@@ -168,7 +147,7 @@ int mkfifo(const char *path)
 	 * into the vfs
 	 */
 
-	struct pipe_s *pipe = pipe_create();
+	struct pipe *pipe = pipe_create();
 
 	if (!pipe)
 		return -1;
