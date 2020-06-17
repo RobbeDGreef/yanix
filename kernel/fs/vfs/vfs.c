@@ -512,7 +512,10 @@ int vfs_link_node_vfs(const char *path, vfs_node_t *node)
 	while (ntmp->nextnode != 0)
 		ntmp = ntmp->nextnode;
 
-	ntmp->nextnode = node;
+	if (ntmp == 0)
+		dir->dirlist = node;
+	else
+		ntmp->nextnode = node;
 
 	kfree(tmp);
 
