@@ -474,9 +474,8 @@ char *vfs_get_name(const char *path)
 			return &tmp[i + 1];
 		}
 	}
-	kfree(tmp);
 
-	return 0;
+	return tmp;
 }
 
 int vfs_link_node_vfs(const char *path, vfs_node_t *node)
