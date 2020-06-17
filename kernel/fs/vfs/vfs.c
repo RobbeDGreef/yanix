@@ -301,12 +301,18 @@ static mode_t vfs_to_stat(int mode)
 {
 	switch (mode)
 	{
-	case VFS_FILE: 			return S_IFREG;
-	case VFS_DIRECTORY:		return S_IFDIR;
-	case VFS_CHARDEVICE:	return S_IFCHR;
-	case VFS_BLOCKDEVICE:	return S_IFBLK;
-	case VFS_PIPE:			return S_IFIFO;
-	case VFS_SYMLINK:		return S_IFLNK;
+	case VFS_FILE:
+		return S_IFREG;
+	case VFS_DIRECTORY:
+		return S_IFDIR;
+	case VFS_CHARDEVICE:
+		return S_IFCHR;
+	case VFS_BLOCKDEVICE:
+		return S_IFBLK;
+	case VFS_PIPE:
+		return S_IFIFO;
+	case VFS_SYMLINK:
+		return S_IFLNK;
 	}
 
 	return mode;
@@ -345,7 +351,7 @@ int vfs_fstat(int fd, struct stat *statbuf)
 
 int vfs_stat(const char *pathname, struct stat *statbuf)
 {
-	vfs_node_t 		       *node      = vfs_find_path(pathname);
+	vfs_node_t *            node      = vfs_find_path(pathname);
 	struct file_descriptor *fd_struct = get_filedescriptor_from_node(node);
 
 	if (fd_struct)
@@ -409,7 +415,7 @@ int vfs_open_fd(const char *path, int flags, int mode)
 
 	if (!node)
 		return -1;
-	
+
 	int fd = register_filedescriptor(node, mode);
 
 	if (flags & O_DIRECTORY)
