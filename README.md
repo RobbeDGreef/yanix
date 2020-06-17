@@ -96,6 +96,7 @@ The first port ever completed is FIGlet and it runs perfectly on yanix!
 - [x] nasm
 - [x] smlrcc
 - [x] doom (well, kind of. Who needs input or sound anyways)
+- [x] bitfetch
 - [ ] lua
 - [ ] GCC
 - [ ] Python
