@@ -1,4 +1,4 @@
-#include <yanix/ioctl.h>
+#include <yanix/sys/ioctl.h>
 #include <fs/filedescriptor.h>
 #include <debug.h>
 

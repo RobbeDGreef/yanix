@@ -1,5 +1,5 @@
-#ifndef _DIRENT_H
-#define _DIRENT_H
+#ifndef _SYS_DIRENT_H
+#define _SYS_DIRENT_H
 
 #include <sys/types.h>
 
@@ -31,4 +31,4 @@ typedef struct DIR_s
 	struct dirent dirent;
 } DIR;
 
-#endif
+#endif /* _SYS_DIRENT_H */
