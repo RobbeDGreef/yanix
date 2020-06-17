@@ -127,4 +127,12 @@ struct group *sys_getgrent();
 int           sys_uname(struct utsname *buf);
 int           sys_gettimeofday(struct timeval *tv, struct timezone *tz);
 
+int sys_socket(int domain, int type, int protocol);
+int sys_bind(int soc, const struct sockaddr *addr, socklen_t addrlen);
+int sys_listen(int soc, int backlog);
+int sys_accept(int soc, struct sockaddr *addr, socklen_t *addrlen);
+int sys_send(int soc, const void *buf, size_t len, int flags);
+int sys_recv(int soc, void *buf, size_t len, int flags);
+int sys_connect(int soc, const struct sockaddr *addr, socklen_t addrlen);
+
 #endif /* _SYSCALLS_H */

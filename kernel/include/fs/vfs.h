@@ -5,6 +5,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+struct socket;
+struct socket_conn;
+
 extern vfs_node_t *vfs_root;
 
 struct file
@@ -162,6 +165,10 @@ int vfs_fstat(int fd, struct stat *statbuf);
 int vfs_stat(const char *pathname, struct stat *statbuf);
 
 off_t vfs_lseek(int fd, off_t offset, int whence);
-void vfs_interpret_path(char *buf);
+void  vfs_interpret_path(char *buf);
+
+vfs_node_t *vfs_sock_create_conn(struct socket_conn *socket);
+int         vfs_sock_create(char *path, struct socket *socket);
+char *      vfs_fullpath(char *path);
 
 #endif

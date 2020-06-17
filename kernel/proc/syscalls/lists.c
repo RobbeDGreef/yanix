@@ -71,6 +71,14 @@ const void *syscalls_yanix[] = {
 	/* 67 */ &sys_select,
 	/* 68 */ &sys_uname,
 	/* 69 */ &sys_gettimeofday,
+	/* 70 */ &sys_socket,
+	/* 71 */ &sys_bind,
+	/* 72 */ &sys_listen,
+	/* 73 */ &sys_accept,
+	/* 74 */ &sys_send,
+	/* 75 */ &sys_recv,
+	/* 76 */ &sys_connect,
+	/* 77 */
 
 };
 

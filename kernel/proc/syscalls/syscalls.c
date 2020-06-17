@@ -581,3 +581,66 @@ int sys_gettimeofday(struct timeval *tv, struct timezone *tz)
 	time_since_boot((time_t *) &tv->tv_sec, (time_t *) &tv->tv_usec);
 	return 0;
 }
+
+int sys_socket(int domain, int type, int protocol)
+{
+	int ret = socket(domain, type, protocol);
+	if (ret == -1)
+		return -errno;
+
+	return ret;
+}
+
+int sys_bind(int soc, const struct sockaddr *addr, socklen_t addrlen)
+{
+	int ret = sock_bind(soc, addr, addrlen);
+	if (ret == -1)
+		return -errno;
+
+	return ret;
+}
+
+int sys_listen(int soc, int backlog)
+{
+	int ret = sock_listen(soc, backlog);
+	if (ret == -1)
+		return -errno;
+
+	return ret;
+}
+
+int sys_accept(int soc, struct sockaddr *addr, socklen_t *addrlen)
+{
+	int ret = sock_accept(soc, addr, addrlen);
+	if (ret == -1)
+		return -errno;
+
+	return ret;
+}
+
+int sys_send(int soc, const void *buf, size_t len, int flags)
+{
+	int ret = sock_send(soc, buf, len, flags);
+	if (ret == -1)
+		return -errno;
+
+	return ret;
+}
+
+int sys_recv(int soc, void *buf, size_t len, int flags)
+{
+	int ret = sock_recv(soc, buf, len, flags);
+	if (ret == -1)
+		return -errno;
+
+	return ret;
+}
+
+int sys_connect(int soc, const struct sockaddr *addr, socklen_t addrlen)
+{
+	int ret = sock_connect(soc, addr, addrlen);
+	if (ret == -1)
+		return -errno;
+
+	return ret;
+}

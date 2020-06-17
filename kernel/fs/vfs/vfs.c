@@ -15,6 +15,7 @@
 #include <mm/heap.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <net/socket.h>
 
 vfs_node_t *  g_vfs_root  = NULL;
 unsigned long g_nodecount = 0;
@@ -938,4 +939,26 @@ int init_vfs()
 
 	loop_over_filesystem(2, 1, g_vfs_root, g_current_fs);
 	return 0;
+}
+
+vfs_node_t *vfs_sock_create_conn(struct socket_conn *conn)
+{
+	vfs_node_t *node = vfs_setupnode("socket_conn", VFS_SOCKET, 0, 0, 0, 0,
+	                                 (offset_t) conn, 0, 0, 0, 0, 0, 0, 0, 0);
+
+	return node;
+}
+
+int default_permissions()
+{
+	return 0;
+}
+
+int vfs_sock_create(char *path, struct socket *socket)
+{
+	vfs_node_t *node = vfs_setupnode(
+		vfs_get_name(path), VFS_SOCKET, default_permissions(), task_euid(),
+		task_egid(), 0, (offset_t) socket, 0, sock_close, 0, 0, 0, 0, 0, 0);
+
+	return vfs_link_node_vfs(path, node);
 }
