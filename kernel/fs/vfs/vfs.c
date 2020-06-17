@@ -678,10 +678,27 @@ static void snippath(char *path, int len, int amount)
 	}
 }
 
+char *vfs_fullpath(char *path)
+{
+	char *buf;
+	if (path[0] != '/')
+	{
+		char *cwd = get_current_task()->cwd;
+		buf       = kmalloc(strlen(cwd) + strlen(path) + 2);
+		strcpy_s(buf, cwd, strlen(cwd) + 1);
+		strcat(buf, "/");
+		strcat(buf, path);
+	}
+	else
+		buf = strdup(path);
+
+	vfs_interpret_path(buf);
+	return buf;
+}
+
 void vfs_interpret_path(char *buf)
 {
 	int entryloc = 0;
-	printk("'%s'\n", buf);
 	/* @todo this is just a stub */
 	for (uint i = 0; i < strlen(buf); i++)
 	{
