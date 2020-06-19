@@ -12,6 +12,8 @@
  */
 isr_callback_t interrupt_handlers[256];
 
+int g_latest_irq;
+
 /* ISRs reserved for CPU exceptions */
 extern void isr0();
 extern void isr1();
@@ -197,8 +199,7 @@ void arch_register_interrupt_handler(uint8_t n, isr_callback_t handler)
 
 void irq_handler(registers_t *r)
 {
-	if (r->int_no >= 40)
-		port_byte_out(0xA0, 0x20);
+	g_latest_irq = r->int_no - 32;
 
 	if (interrupt_handlers[r->int_no] != 0)
 	{
