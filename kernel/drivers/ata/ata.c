@@ -112,6 +112,19 @@ int          selected_mode  = 0;
 ata_drive_t *selected_drive = 0;
 ata_drive_t  ata_drives[4];
 
+int g_ata_lock = 0;
+
+static void ata_lock()
+{
+	while (g_ata_lock || atomic_test_and_set(&g_ata_lock, 1))
+		;
+}
+
+static void ata_unlock()
+{
+	g_ata_lock = 0;
+}
+
 /**
  * @brief      DEBUG: ATA error code to string
  *
@@ -507,8 +520,10 @@ ssize_t _atapio_write(ata_drive_t *drive, unsigned long lba, const void *buffer,
 ssize_t atapio_read(unsigned long offset, void *buffer, size_t count,
                     disk_t *disk_info)
 {
+	ata_lock();
 	int ret = _atapio_read((ata_drive_t *) disk_info->drive_info, offset,
 	                       buffer, count);
+	ata_unlock();
 	if (ret == 0)
 		return count;
 	else
@@ -518,9 +533,10 @@ ssize_t atapio_read(unsigned long offset, void *buffer, size_t count,
 ssize_t atapio_write(unsigned long offset, const void *buffer, size_t count,
                      disk_t *disk_info)
 {
+	ata_lock();
 	int ret = _atapio_write((ata_drive_t *) disk_info->drive_info, offset,
 	                        buffer, count);
-
+	ata_unlock();
 	if (ret == 0)
 		return count;
 	else
