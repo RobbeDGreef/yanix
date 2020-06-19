@@ -28,6 +28,7 @@ struct ringbuffer
 };
 
 struct ringbuffer *create_ringbuffer(size_t size, cb_flags_t flags);
+void               ringbuffer_destroy(struct ringbuffer *rb);
 
 ssize_t ringbuffer_read_index(char *buffer, size_t size, unsigned long index,
                               struct ringbuffer *circbuf);

@@ -34,6 +34,12 @@ struct ringbuffer *create_ringbuffer(size_t size, cb_flags_t flags)
 	return circbuf;
 }
 
+void ringbuffer_destroy(struct ringbuffer *rb)
+{
+	kfree(rb->buffer_start);
+	kfree(rb);
+}
+
 #include <debug.h>
 
 /**
