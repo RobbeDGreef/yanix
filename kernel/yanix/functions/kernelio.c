@@ -17,6 +17,23 @@ static void putchark(char character)
 	vfs_write_fd(1, &character, 1);
 }
 
+char wbuffer[128];
+int  iter = 0;
+
+static void flushbuf()
+{
+	vfs_write_fd(1, wbuffer, iter);
+	iter = 0;
+}
+
+static void writebuf(char c)
+{
+	if (iter == 127)
+		flushbuf();
+
+	wbuffer[iter++] = c;
+}
+
 static size_t print(const char *txt, size_t len)
 {
 	return vfs_write_fd(1, txt, len);
@@ -56,9 +73,10 @@ int printk(const char *__restrict fmt, ...)
 
 	if (loglevel == 7)
 	{
-		tty_set_color(TTY_YELLOW, -1);
+		// tty_set_color(TTY_YELLOW, -1);
+
 		/* Debug loglevel */
-		printk("[ DEBUG ] ");
+		printk("\x1b[33;1m[ DEBUG ] ");
 	}
 	else if (loglevel == 6)
 	{
@@ -83,14 +101,14 @@ int printk(const char *__restrict fmt, ...)
 			if (fmt[i + 1] == '%')
 			{
 				/* %% means just print a procent sign */
-				putchark('%');
+				writebuf('%');
 				written_character++;
 			}
 			else if (fmt[i + 1] == 'c')
 			{
 				/* Print a character here */
 				char tmp_char = va_arg(args, int);
-				putchark(tmp_char);
+				writebuf(tmp_char);
 				written_character++;
 			}
 			else if (fmt[i + 1] == 's')
@@ -126,25 +144,25 @@ int printk(const char *__restrict fmt, ...)
 
 				/* If the integer is negative print a '-' sign before it */
 				if (isneg)
-					putchark('-');
+					writebuf('-');
 
 				/* @todo: 0's aren't printed, quick hack */
 				if (reversed_int == 0)
 				{
-					putchark('0');
+					writebuf('0');
 				}
 
 				/* This piece of code prints every character in the integer */
 				while (reversed_int > 0)
 				{
-					putchark('0' + (reversed_int % 10));
+					writebuf('0' + (reversed_int % 10));
 					reversed_int /= 10;
 				}
 
 				/* If there were any zero's before the integer print them now */
 				for (size_t i = 0; i < zeros_before; i++)
 				{
-					putchark('0');
+					writebuf('0');
 				}
 			}
 			else if (fmt[i + 1] == 'u')
@@ -166,20 +184,20 @@ int printk(const char *__restrict fmt, ...)
 				/* @todo: 0's aren't printed, quick hack */
 				if (reversed_int == 0)
 				{
-					putchark('0');
+					writebuf('0');
 				}
 
 				/* This piece of code prints every character in the integer */
 				while (reversed_int > 0)
 				{
-					putchark('0' + (reversed_int % 10));
+					writebuf('0' + (reversed_int % 10));
 					reversed_int /= 10;
 				}
 
 				/* If there were any zero's before the integer print them now */
 				for (size_t i = 0; i < zeros_before; i++)
 				{
-					putchark('0');
+					writebuf('0');
 				}
 			}
 			else if (fmt[i + 1] == 'x')
@@ -201,7 +219,7 @@ int printk(const char *__restrict fmt, ...)
 				/* @todo: 0's aren't printed, quick hack */
 				if (reversed_int == 0)
 				{
-					putchark('0');
+					writebuf('0');
 				}
 
 				/* This piece of code prints every character in the integer */
@@ -209,11 +227,11 @@ int printk(const char *__restrict fmt, ...)
 				{
 					if ((reversed_int % 0x10) >= 0xA)
 					{
-						putchark('A' + ((reversed_int % 0x10) - 10));
+						writebuf('A' + ((reversed_int % 0x10) - 10));
 					}
 					else
 					{
-						putchark('0' + (reversed_int % 0x10));
+						writebuf('0' + (reversed_int % 0x10));
 					}
 
 					reversed_int /= 0x10;
@@ -222,7 +240,7 @@ int printk(const char *__restrict fmt, ...)
 				/* If there were any zero's before the integer print them now */
 				for (size_t i = 0; i < zeros_before; i++)
 				{
-					putchark('0');
+					writebuf('0');
 				}
 			}
 			else if (fmt[i + 3] == 'x')
@@ -261,7 +279,7 @@ int printk(const char *__restrict fmt, ...)
 				/* Print amount of starting zero's */
 				for (int i = 0; i < (wanted_bits - intsize); i++)
 				{
-					putchark('0');
+					writebuf('0');
 				}
 
 				/* This piece of code prints every character in the integer */
@@ -269,11 +287,11 @@ int printk(const char *__restrict fmt, ...)
 				{
 					if ((reversed_int % 0x10) >= 0xA)
 					{
-						putchark('A' + ((reversed_int % 0x10) - 10));
+						writebuf('A' + ((reversed_int % 0x10) - 10));
 					}
 					else
 					{
-						putchark('0' + (reversed_int % 0x10));
+						writebuf('0' + (reversed_int % 0x10));
 					}
 
 					reversed_int /= 0x10;
@@ -282,7 +300,7 @@ int printk(const char *__restrict fmt, ...)
 				/* If there were any zero's before the integer print them now */
 				for (size_t i = 0; i < zeros_before; i++)
 				{
-					putchark('0');
+					writebuf('0');
 				}
 				i += 2;
 			}
@@ -293,15 +311,20 @@ int printk(const char *__restrict fmt, ...)
 		else
 		{
 			/* A regular character to print */
-			putchark(fmt[i]);
+			writebuf(fmt[i]);
 			written_character++;
 		}
 
 		i++;
 	}
 
+	flushbuf();
+
 	if (loglevel)
+	{
+		printk("\x1b[0m");
 		tty_reset_color();
+	}
 	va_end(args);
 	return written_character;
 }
