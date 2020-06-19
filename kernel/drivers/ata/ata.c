@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <kernel/kfunctions.h>
+#include <kernel/atomic.h>
 
 #include <debug.h>
 
