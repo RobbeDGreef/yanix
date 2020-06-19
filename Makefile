@@ -65,28 +65,6 @@ debug: kernel.bin maindisk.iso kernel.elf
 	$(QEMU) -s ${QEMU_FLAGS} -hda $(DISKNAME) > /tmp/qemu_dump.txt 2>&1 &
 	$(GDB) -ex "target remote localhost:1234" -ex "symbol-file kernel.elf" -ex "breakpoint DEBUGGER_ENTRY" -ex "directory /home/robbe/Projects/yanix/kernel" -ex "set disassembly-flavor intel"
 
-mount_ramdisk: ramdisk.iso
-	mount -o loop ./ramdisk.iso ./initrd	
-
-unmount_ramdisk: ramdisk.iso
-	umount ./initrd
-
-mount_disk: $(DISKNAME)
-	losetup $(LOOPD_DISK) $(DISKNAME) 
-	losetup $(LOOPD_ROOTFS) $(DISKNAME) -o 1048576
-
-	mount $(LOOPD_ROOTFS) $(ROOTFS)
-
-unmount_disk:
-	umount rootfs
-
-	losetup -d $(LOOPD_ROOTFS)
-	losetup -d $(LOOPD_DISK)
-
-backup:
-	make clean
-	python3 tools/backup_os.py
-
 #### Building ####
 
 rebuild_sysroot:
@@ -126,3 +104,30 @@ $(DISKNAME):
 
 	umount $(ROOTFS)
 	losetup -d $(LOOPD_ROOTFS)
+
+### misc
+
+mount_ramdisk: ramdisk.iso
+	mount -o loop ./ramdisk.iso ./initrd	
+
+unmount_ramdisk: ramdisk.iso
+	umount ./initrd
+
+mount_disk: $(DISKNAME)
+	losetup $(LOOPD_DISK) $(DISKNAME) 
+	losetup $(LOOPD_ROOTFS) $(DISKNAME) -o 1048576
+
+	mount $(LOOPD_ROOTFS) $(ROOTFS)
+
+unmount_disk:
+	umount rootfs
+
+	losetup -d $(LOOPD_ROOTFS)
+	losetup -d $(LOOPD_DISK)
+
+backup:
+	make clean
+	python3 tools/backup_os.py
+
+cloc:
+	$(shell cloc --exclude-dir=ports,rootfs,sysroot,sysroot_new,sysroot_old,toolchain,system,.vscode . )
