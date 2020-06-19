@@ -27,6 +27,7 @@ ssize_t pipe_remove(vfs_node_t *node, unsigned int offset, int location);
 
 int          pipe(int pipefd[2]);
 struct pipe *pipe_create();
+void         pipe_destroy(struct pipe *);
 int          mkfifo(const char *path);
 
 #endif /* PIPE_H */

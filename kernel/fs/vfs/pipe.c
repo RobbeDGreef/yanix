@@ -102,6 +102,12 @@ struct pipe *pipe_create()
 	return pipe;
 }
 
+void pipe_destroy(struct pipe *p)
+{
+	ringbuffer_destroy(p->circbuf);
+	kfree(p);
+}
+
 /**
  * @brief      Creates a pipe
  *
