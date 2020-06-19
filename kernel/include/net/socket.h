@@ -5,19 +5,31 @@
 #include <sys/types.h>
 #include <fs/vfs_node.h>
 #include <yanix/sys/socket.h>
+#include <kernel/ds/queue.h>
 
 struct socket;
+struct socket_conn;
 
 typedef int (*sb_fptr)(struct socket_conn *, const struct sockaddr *,
                        socklen_t);
 typedef int (*sl_fptr)(struct socket_conn *, int);
-typedef int (*sa_fptr)(struct socket_conn *, struct sockaddr *, socklen_t *);
 typedef int (*ss_fptr)(struct socket_conn *, const void *, size_t, int);
 typedef int (*sr_fptr)(struct socket_conn *, void *, size_t, int);
 typedef int (*sc_fptr)(struct socket_conn *, const struct sockaddr *,
                        socklen_t);
+
 typedef struct socket *(*cs_fptr)(struct socket_conn *, struct sockaddr *addr,
                                   socklen_t addrlength);
+
+typedef struct socket_conn *(*sa_fptr)(struct socket_conn *, struct sockaddr *,
+                                       socklen_t *);
+
+struct accept_conn
+{
+	int          lock;
+	struct pipe *client_pipe;
+	struct pipe *server_pipe;
+};
 
 struct socket_conn
 {
@@ -29,8 +41,8 @@ struct socket_conn
 
 	cs_fptr create_socket;
 
-	struct pipe *server_pipe;
-	struct pipe *client_pipe;
+	struct pipe *send_pipe;
+	struct pipe *recv_pipe;
 };
 
 struct socket
@@ -38,10 +50,10 @@ struct socket
 	int protocol;
 	int type;
 
-	int               socketfd;
-	int               server_lock;
-	int               server_backlog;
-	struct ringbuffer accept_queue;
+	int           socketfd;
+	int           server_lock;
+	int           server_backlog;
+	struct queue *accept_queue;
 
 	struct sockaddr *addr;
 	sa_fptr          accept;

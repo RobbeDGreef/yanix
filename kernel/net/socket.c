@@ -42,7 +42,8 @@ int sock_accept(int soc, struct sockaddr *addr, socklen_t *addrlen)
 		return -1;
 	}
 
-	return conn->soc->accept(conn, addr, addrlen);
+	struct socket_conn *accepted = conn->soc->accept(conn, addr, addrlen);
+	return register_filedescriptor(vfs_sock_create_conn(accepted), 0);
 }
 
 int sock_bind(int soc, const struct sockaddr *addr, socklen_t adrlen)
@@ -137,8 +138,8 @@ int sock_connect(int soc, const struct sockaddr *addr, socklen_t addrlen)
 	struct socket_conn *conn = (struct socket_conn *) socknode->offset;
 	if (!conn->soc)
 	{
-		errno = ENOTSOCK;
-		return -1;
+		if (sock_bind(soc, addr, addrlen) == -1)
+			return -1;
 	}
 
 	if (!conn->soc->connect)

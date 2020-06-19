@@ -7,8 +7,10 @@
 #include <libk/string.h>
 #include <fs/pipe.h>
 #include <debug.h>
+#include <kernel/ds/queue.h>
 
 struct socket *unix_socket_setup(int type, int protocol);
+int            unix_socket_tryconnect(struct socket_conn *conn);
 
 struct socket *socket_from_addr(const struct sockaddr *_addr)
 {
@@ -45,20 +47,22 @@ int unix_socket_listen(struct socket_conn *soc, int backlog)
 	}
 
 	soc->soc->server_backlog = backlog;
+	soc->soc->server_lock    = 1;
 	return 0;
 }
 
-int unix_socket_connect(struct socket_conn *soc, const struct sockaddr *addr,
+int unix_socket_connect(struct socket_conn *conn, const struct sockaddr *addr,
                         socklen_t addrlen)
 {
-	if (!soc->soc->server_lock)
+	if (!conn->soc->server_lock)
 	{
+		printk("Connection refused\n");
 		errno = ECONNREFUSED;
 		return -1;
 	}
 
-	soc->client = 1;
-	return unix_socket_bind(soc, addr, addrlen);
+	conn->client = 1;
+	return unix_socket_tryconnect(conn);
 }
 
 int unix_socket_send(struct socket_conn *conn, const void *buf, size_t size,
@@ -67,13 +71,7 @@ int unix_socket_send(struct socket_conn *conn, const void *buf, size_t size,
 	if (!conn || !conn->soc)
 		return -1;
 
-	struct pipe *pipe;
-	if (conn->client)
-		pipe = conn->client_pipe;
-	else
-		pipe = conn->server_pipe;
-
-	return pipe_write_raw(pipe, buf, size);
+	return pipe_write_raw(conn->send_pipe, buf, size);
 }
 
 int unix_socket_recv(struct socket_conn *conn, void *buf, size_t size,
@@ -82,34 +80,57 @@ int unix_socket_recv(struct socket_conn *conn, void *buf, size_t size,
 	if (!conn || !conn->soc)
 		return -1;
 
-	struct pipe *pipe;
-	if (conn->client)
-		pipe = conn->client_pipe;
-	else
-		pipe = conn->server_pipe;
-
-	return pipe_read_raw(pipe, buf, size);
+	return pipe_read_raw(conn->recv_pipe, buf, size);
 }
 
-int unix_socket_tryconnect(struct socket_conn *conn, )
+int unix_socket_tryconnect(struct socket_conn *conn)
 {
-	// Ask server nicely if it is possible to connect
-	// -> try to unblock server and see if it was blocked or not (if it wasnt
-	// fail) block for response ? but what abt fucking threads then UGH
+	struct accept_conn *accept_conn = kmalloc(sizeof(struct accept_conn));
+
+	accept_conn->lock        = 1;
+	accept_conn->client_pipe = pipe_create();
+	accept_conn->server_pipe = pipe_create();
+
+	/* Disable pipe read blocking */
+	accept_conn->client_pipe->flags ^= O_NONBLOCK;
+	accept_conn->server_pipe->flags ^= O_NONBLOCK;
+
+	if (queue_push(conn->soc->accept_queue, accept_conn) == -1)
+	{
+		pipe_destroy(accept_conn->client_pipe);
+		pipe_destroy(accept_conn->server_pipe);
+		kfree(accept_conn);
+		return -1;
+	}
+
+	while (accept_conn->lock)
+		;
+
+	conn->send_pipe = accept_conn->server_pipe;
+	conn->recv_pipe = accept_conn->client_pipe;
+	kfree(accept_conn);
+	return 0;
 }
 
-int unix_socket_accept(struct socket_conn *conn, struct sockaddr *addr,
-                       socklen_t *addrlen)
+struct socket_conn *unix_socket_accept(struct socket_conn *conn,
+                                       struct sockaddr *   addr,
+                                       socklen_t *         addrlen)
 {
-	/* Block until connect signal sent by unix_socket_tryconnect */
-	soc->soc->server_lock = getpid();
+	struct queue *q = conn->soc->accept_queue;
 
-	task_block(getpid());
+	/* Im just gonna spinlock this, to keep it simple */
+	while (!q->size)
+		;
 
-	// Unqueue latest socket connection request
-	// send the socket success or failure
-	// somehow both connections need enough data to be able to talk
-	// this means transfering server_pipe and client_pipe or smthn
+	struct accept_conn *ac       = queue_pop(q);
+	struct socket_conn *accepted = kmalloc(sizeof(struct socket_conn));
+	memcpy(accepted, conn, sizeof(struct socket_conn));
+
+	accepted->send_pipe = ac->client_pipe;
+	accepted->recv_pipe = ac->server_pipe;
+	ac->lock            = 0;
+
+	return accepted;
 }
 
 struct socket *unix_socket_setup(int type, int protocol)
@@ -119,6 +140,8 @@ struct socket *unix_socket_setup(int type, int protocol)
 
 	soc->type     = type;
 	soc->protocol = protocol;
+
+	soc->accept_queue = queue_create(-1);
 
 	soc->bind    = unix_socket_bind;
 	soc->listen  = unix_socket_listen;
