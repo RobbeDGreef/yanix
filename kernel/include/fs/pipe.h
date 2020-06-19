@@ -3,9 +3,9 @@
 
 #include <sys/types.h>
 #include <kernel/ds/ringbuffer.h>
+#include <fcntl.h>
 
-#define NON_BLOCK (1 << 0)
-#define BUFFERED  (1 << 1)
+#define BUFFERED (1 << 1)
 
 struct pipe
 {

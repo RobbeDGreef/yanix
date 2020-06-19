@@ -40,7 +40,7 @@ ssize_t pipe_read_raw(struct pipe *pipe, void *buffer, size_t size)
 		return -1;
 	}
 
-	if (!(pipe->flags & NON_BLOCK))
+	if (!(pipe->flags & O_NONBLOCK))
 	{ /* waiting for a process to write to the pipe */
 		enable_interrupts();
 		end_of_interrupt();
@@ -92,7 +92,7 @@ struct pipe *pipe_create()
 
 	memset(pipe, 0, sizeof(struct pipe));
 	struct ringbuffer *circbuf =
-		create_circular_buffer(0, ringbuffer_OPTIMIZE_USHORTINT);
+		create_ringbuffer(0, RINGBUFFER_OPTIMIZE_USHORTINT);
 
 	if (!circbuf)
 		return 0;
