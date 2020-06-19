@@ -60,7 +60,7 @@ struct file_descriptor *get_filedescriptor(int fd)
 
 	/* @XXX: I don't think this is the right errno? */
 	errno = EBADFD;
-	return 0;
+	return NULL;
 }
 
 struct file_descriptor *get_filedescriptor_from_node(vfs_node_t *node)

@@ -134,7 +134,6 @@ static ssize_t tty_stdinwrite(vfs_node_t *node, unsigned int offset,
 			tty_stdoutwrite(0, 0, buffer, size);
 		return 0;
 	}
-
 	pipe_write(node, offset, buffer, size);
 	tty_stdoutwrite(0, 0, buffer, size);
 

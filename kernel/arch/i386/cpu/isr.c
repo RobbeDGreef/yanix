@@ -171,7 +171,8 @@ void isr_handler(registers_t *r)
 	if (interrupt_handlers[num] == 0)
 	{
 		printk(":(\nReceived unhandled interrupt: %i (%x) and with error code: "
-		       "%x\n", num, num, r->err_code);
+		       "%x\n",
+		       num, num, r->err_code);
 
 		if (num > (sizeof(exception_messages) / sizeof(exception_messages[0])))
 		{

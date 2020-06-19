@@ -655,8 +655,6 @@ int init_ata(pci_device_t *pci_dev)
 			ata_info->command_set =
 				*(uint32_t *) (ident_buffer + ATA_IDENT_COMMANDSETS);
 
-			printk("ata info loc: %x\n", ata_info);
-
 			if (ata_info->command_set & ATA_COMMAND_SET_48)
 			{
 				ata_info->mode = ATA_MODE_LBA48;
@@ -693,8 +691,6 @@ int init_ata(pci_device_t *pci_dev)
 			ata_disk->next       = 0;
 
 			add_disk(ata_disk);
-
-			printk("ATA %i added\n", ata_info->id);
 		}
 	}
 	return 0;

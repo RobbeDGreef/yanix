@@ -109,13 +109,14 @@ int send_scancode(int scancode)
 		return 0;
 
 	char c = getkey(scancode);
-	
+
 	int interuptchar = '^';
 	if (combination(c))
 		vfs_write_fd(0, &interuptchar, 1);
 
 	if (c)
 		vfs_write_fd(0, &c, 1);
+
 	return 0;
 }
 
@@ -145,7 +146,7 @@ int init_keyboard()
 	struct file *fp     = vfs_open(KEYMAP_FILE, 0, 0);
 	vfs_read(fp, keymap, 32);
 	vfs_close(fp);
-	
+
 	char *file = kmalloc(256);
 	char *buf  = kmalloc(KEYMAP_FILE_SIZE);
 
