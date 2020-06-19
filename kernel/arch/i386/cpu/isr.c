@@ -214,5 +214,5 @@ void irq_handler(registers_t *r)
 
 void end_of_interrupt()
 {
-	pic_send_eio(0);
+	pic_send_eio(g_latest_irq);
 }
