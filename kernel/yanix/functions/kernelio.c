@@ -36,7 +36,27 @@ static void writebuf(char c)
 
 static size_t print(const char *txt, size_t len)
 {
-	return vfs_write_fd(1, txt, len);
+	// vfs_write_fd(1, txt, len);
+	for (uint i = 0; i < len; i++)
+		writebuf(txt[i]);
+	return len;
+}
+
+static int parse_uint(const char *str, int *len)
+{
+	int ret = 0;
+	while (*str)
+	{
+		if (*str > '9' || *str < '0')
+			return ret;
+
+		ret *= 10;
+		ret += *str - '0';
+		str++;
+		(*len)++;
+	}
+
+	return ret;
 }
 
 /**
@@ -110,6 +130,17 @@ int printk(const char *__restrict fmt, ...)
 				char tmp_char = va_arg(args, int);
 				writebuf(tmp_char);
 				written_character++;
+			}
+			else if (fmt[i + 1] == '.')
+			{
+				int len = 0;
+				int num = parse_uint(&fmt[i + 2], &len);
+				if (fmt[i + 2 + len] == 's')
+				{
+					const char *tmp_str = va_arg(args, const char *);
+					written_character += print(tmp_str, num);
+				}
+				i += len + 1;
 			}
 			else if (fmt[i + 1] == 's')
 			{
