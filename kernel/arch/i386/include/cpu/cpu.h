@@ -39,6 +39,14 @@ typedef struct
 	                                    * automatically */
 } __attribute__((packed)) registers_t;
 
+struct cpuid_reg
+{
+	uint32_t eax;
+	uint32_t ebx;
+	uint32_t ecx;
+	uint32_t edx;
+} __attribute__((packed));
+
 typedef void (*isr_callback_t)(registers_t *);
 void arch_register_interrupt_handler(uint8_t n, isr_callback_t handler);
 
@@ -46,5 +54,6 @@ void arch_register_interrupt_handler(uint8_t n, isr_callback_t handler);
  * @brief      Initializes the architecture
  */
 void arch_init();
+void arch_cpu_string();
 
 #endif
