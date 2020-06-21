@@ -23,6 +23,9 @@ void arch_init()
 	/* Init the GDT */
 	init_descriptor_tables();
 	isr_install();
+	init_ic();
+
+	return 0;
 }
 
 void arch_cpu_string()

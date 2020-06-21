@@ -6,6 +6,7 @@
 #include <debug.h>
 #include <kernel.h>
 #include <stdint.h>
+#include <cpu/ic.h>
 
 /**
  * The i386 architechture has 256 interrupts
@@ -198,6 +199,11 @@ void arch_register_interrupt_handler(uint8_t n, isr_callback_t handler)
 	interrupt_handlers[n] = handler;
 }
 
+void end_of_interrupt()
+{
+	ic_send_eio(g_latest_irq);
+}
+
 void irq_handler(registers_t *r)
 {
 	g_latest_irq = r->int_no - 32;
@@ -210,10 +216,5 @@ void irq_handler(registers_t *r)
 
 	/* We need to send an end of interrupt command to the pic at the end of each
 	 * interrupt */
-	pic_send_eio(r->int_no - 32);
-}
-
-void end_of_interrupt()
-{
-	pic_send_eio(g_latest_irq);
+	end_of_interrupt();
 }
