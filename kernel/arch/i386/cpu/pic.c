@@ -7,6 +7,7 @@
  * @date       2019
  */
 #include <cpu/io.h>
+#include <cpu/idt.h>
 #include <stdint.h>
 
 /* PIC io ports */
@@ -31,8 +32,6 @@
 
 #define PIC_CMD_SLAVE_AT_IRQ2 (1 << 2)
 #define PIC_CMD_CASCADE_ID    (1 << 1)
-
-#include <debug.h>
 
 /**
  * @brief      Remaps the PIC

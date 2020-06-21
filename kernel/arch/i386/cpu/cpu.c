@@ -12,13 +12,13 @@
 #include <kernel.h>
 #include <libk/string.h>
 #include <mm/heap.h>
-
-void cpuid_cmd(struct cpuid_reg *regs, int cmd);
+#include <cpu/cpuid.h>
+#include <cpu/ic.h>
 
 /**
  * @brief      Initializes the architecture
  */
-void arch_init()
+int arch_init()
 {
 	/* Init the GDT */
 	init_descriptor_tables();
@@ -28,7 +28,7 @@ void arch_init()
 	return 0;
 }
 
-void arch_cpu_string()
+char *arch_cpu_string()
 {
 	struct cpuid_reg regs;
 	cpuid_cmd(&regs, 0);
