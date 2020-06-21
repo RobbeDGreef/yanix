@@ -10,7 +10,7 @@
  * @param[in]  slave_offset   The slave offset
  */
 void pic_remap(uint8_t master_offset, uint8_t slave_offset);
-
 void pic_send_eio(unsigned int irq);
+int  init_pic();
 
 #endif

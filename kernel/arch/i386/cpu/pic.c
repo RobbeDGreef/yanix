@@ -81,3 +81,8 @@ void pic_send_eio(unsigned int irq)
 
 	port_byte_out(PIC_MASTER_CMD, PIC_CMD_EOI);
 }
+
+int init_pic()
+{
+	return 0;
+}
