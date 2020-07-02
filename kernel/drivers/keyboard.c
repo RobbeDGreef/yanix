@@ -89,7 +89,7 @@ static int getkey(int scancode)
 	if (keymap_normal)
 		return keymap_normal[scancode];
 
-	return '?';
+	return 0;
 }
 
 static int combination(int c)
