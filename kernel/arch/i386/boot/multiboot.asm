@@ -1,7 +1,13 @@
 MBALIGN equ 1 << 0
 MEMINFO equ 1 << 1
 VIDEOSET equ 1 << 2
-FLAGS  equ MBALIGN | MEMINFO | VIDEOSET
+
+; I can't enable this because my grub has a problem and I can't install
+; the biosdev module, i think i just need a different multiboot spec
+FBINFO equ 1 << 12
+
+
+FLAGS  equ MBALIGN | MEMINFO | VIDEOSET ;| FBINFO
 MAGIC equ 0x1badb002 			; Multiboot magic
 CHECKSUM equ -(MAGIC + FLAGS)   ; The checksum of above
 
