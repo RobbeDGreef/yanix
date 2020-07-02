@@ -30,29 +30,32 @@ void set_user_stack()
 
 	get_current_task()->stacktop = DISIRED_USER_STACK_LOC;
 }
-
+#include <debug.h>
 /**
  * @brief      Initializes the stack with paging and bind it to the disired
  * virtual address
  */
-void init_paging_stack()
+void init_paging_stack(reg_t stacktop)
 {
 	// this is just to make sure the page after our stack is present for a bug
 	// in copy_page
-	map_physical_to_virtual((phys_addr_t *) (STACK_LOCATION - STACK_SIZE),
-	                        (void *) (DISIRED_STACK_LOCATION - STACK_SIZE),
-	                        STACK_SIZE, 1, 0, g_current_directory);
+	map_physical_to_virtual((phys_addr_t *) (stacktop - INIT_STACK_SIZE),
+	                        (void *) (DISIRED_STACK_LOCATION - INIT_STACK_SIZE),
+	                        INIT_STACK_SIZE, 1, 0, g_current_directory);
 
 	uint32_t esp, ebp;
 	asm volatile("mov %%esp, %0" : "=r"(esp));
 	asm volatile("mov %%ebp, %0" : "=r"(ebp));
 
+	debug_printk("stack: %x %x %x %x %x %x\n", DISIRED_STACK_LOCATION,
+	             KERNEL_STACK_SIZE, stacktop, esp, stacktop - esp,
+	             DISIRED_STACK_LOCATION - ((stacktop - esp)));
 	asm volatile("mov %0, %%esp"
 	             :
-	             : "r"(DISIRED_STACK_LOCATION - (STACK_LOCATION - esp)));
+	             : "r"(DISIRED_STACK_LOCATION - (stacktop - esp)));
 	asm volatile("mov %0, %%ebp"
 	             :
-	             : "r"(DISIRED_STACK_LOCATION - (STACK_LOCATION - ebp)));
+	             : "r"(DISIRED_STACK_LOCATION - (stacktop - ebp)));
 
 	map_mem(DISIRED_STACK_LOCATION, DISIRED_STACK_LOCATION + KERNEL_STACK_SIZE,
 	        1, 0);

@@ -3,7 +3,7 @@
 
 global _start;
 [bits 32]
-_start:
+;_start:
 	[extern _enter]
 	;pop		eax		; data
 	;pop		ebx		; code

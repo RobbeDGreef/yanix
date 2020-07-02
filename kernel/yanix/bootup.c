@@ -32,7 +32,7 @@ void kernel_main();
  *
  * @param[in]  stack     The stack
  */
-void bootsequence(uint32_t stack)
+void bootsequence(reg_t stack, reg_t mb_mem_info)
 {
 	/* initialize the kernel stack */
 	init_stack(stack);
@@ -119,6 +119,7 @@ void bootsequence_after_paging()
 
 	/* cleanup */
 	clear_screenk();
+	debug_printk("finished actually\n");
 }
 
 void enter_foreverloop()
@@ -135,14 +136,15 @@ void enter_foreverloop()
  *
  * @param[in]  stack     The current stack pointer
  */
-void _enter(uint32_t stack)
+void _enter(reg_t stack, reg_t stacktop, reg_t multiboot_meminfo,
+            reg_t multibootinfo)
 {
 	/* Make sure interrupts are disabled */
 	disable_interrupts();
-	bootsequence(stack);
+	bootsequence(stack, multiboot_meminfo);
 
 	/* maps the stack to the wanted location */
-	init_paging_stack();
+	init_paging_stack(stacktop);
 
 	message("Successfully remapped kernel stack to desired location", 1);
 	bootsequence_after_paging();

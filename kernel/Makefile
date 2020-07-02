@@ -67,7 +67,7 @@ endif
 .PHONY = all clean
 
 
-all: $(PWD)/kernel/arch/$(ARCH)/boot/enter_kernel.o ${OBJECTS}
+all: $(PWD)/kernel/arch/$(ARCH)/boot/multiboot.o ${OBJECTS}
 	$(info [INFO] Linking kernel)
 	$(LD) -T linker.ld ${LD_FLAGS} -o $(PREFIX)/kernel.bin -Ttext $(KERNEL_ENTRY_POINT) $^ --oformat binary
 
