@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <fs/pipe.h>
 #include <fs/vfs.h>
+#include <fs/chardev.h>
 #include <fs/vfs_node.h>
 #include <kernel.h>
 #include <libk/stdio.h>
@@ -168,63 +169,13 @@ int termios_cmd(int request, char *argv);
 
 int init_char_specials()
 {
-	/* Create /dev/stdin */
-	mkfifo("/dev/stdin");
-	mkfifo("/dev/tty");
-	mkfifo("/dev/pts/0");
-	mkfifo("/dev/null");
-	mkfifo("/dev/fb0");
-
-	vfs_node_t *node = vfs_find_path("/dev/stdin");
-	if (node)
-	{
-		node->type  = VFS_CHARDEVICE;
-		node->write = &tty_stdinwrite;
-	}
-
-	node = vfs_find_path("/dev/tty");
-	if (node)
-	{
-		node->type  = VFS_CHARDEVICE;
-		node->read  = &tty_readtest;
-		node->write = &tty_stdoutwrite;
-		node->cmd   = &termios_cmd;
-	}
-
-	node = vfs_find_path("/dev/pts/0");
-	if (node)
-	{
-		node->type  = VFS_CHARDEVICE;
-		node->read  = &tty_readtest;
-		node->write = &tty_stdoutwrite;
-	}
-
-	node = vfs_find_path("/dev/null");
-	if (node)
-	{
-		node->read  = &read_null;
-		node->write = &write_null;
-	}
-
-	node = vfs_find_path("/dev/fb0");
-	if (node)
-	{
-		node->type  = VFS_CHARDEVICE;
-		node->write = &fb_write;
-		node->cmd   = &fb_cmd;
-	}
-
-	/* @todo: Should actually be a pipe that notifies the tty systems, because
-	 * we need to be able to read from stdout too */
-	vfs_node_t *stdout = vfs_setupnode("stdout", VFS_CHARDEVICE, 0, 0, 0, 0, 0,
-	                                   0, 0, 0, 0, tty_stdoutwrite, 0, 0, 0);
-	vfs_link_node_vfs("/dev/stdout", stdout);
-
-	vfs_node_t *stderr = vfs_setupnode("stderr", VFS_CHARDEVICE, 0, 0, 0, 0, 0,
-	                                   0, 0, 0, 0, tty_stderrwrite, 0, 0, 0);
-	vfs_link_node_vfs("/dev/stderr", stderr);
-
-	// vfs_node_t *tmp = vfs_setupnode("tmp", VFS_DIRECTORY, 0, 0, 0, 0, )
+	chardev_create("/dev/stdin", (void *) 1, tty_stdinwrite, 0);
+	chardev_create("/dev/stdout", 0, tty_stdoutwrite, 0);
+	chardev_create("/dev/stderr", 0, tty_stderrwrite, 0);
+	chardev_create("/dev/tty", tty_readtest, tty_stdoutwrite, termios_cmd);
+	chardev_create("/dev/pts/0", tty_readtest, tty_stdoutwrite, 0);
+	chardev_create("/dev/null", read_null, write_null, 0);
+	chardev_create("/dev/fb0", (void *) 1, fb_write, fb_cmd);
 
 	vfs_open_fd("/dev/stdin", 0, 0);
 	vfs_open_fd("/dev/stdout", 0, 0);
