@@ -41,11 +41,10 @@ _start:
 
 	; EBX holds all the multiboot info
 	push ebx
-	push mb_mem_info
 	push stack_top
 	push esp
 
-	; Call to C _enter(reg_t, reg_t, reg_t, reg_t) function (bootup.c)
+	; Call to C _enter(reg_t, reg_t, struct multiboot *) function (bootup.c)
 	call _enter
 	
 	; never ever fall of into nowhere after kernel_main
