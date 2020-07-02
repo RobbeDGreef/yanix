@@ -19,6 +19,7 @@
 #include <kernel/system.h>        /* System info initialisation (init) */
 #include <kernel/tty_dev.h>       /* TTY functionality 			(kernel init) */
 #include <kernel/user.h>          /* User system 					(init) */
+#include <boot/multiboot.h>
 
 #include <kernel.h>
 
@@ -32,7 +33,7 @@ void kernel_main();
  *
  * @param[in]  stack     The stack
  */
-void bootsequence(reg_t stack, reg_t mb_mem_info)
+void bootsequence(reg_t stack, struct multiboot *mbinfo)
 {
 	/* initialize the kernel stack */
 	init_stack(stack);
@@ -136,12 +137,11 @@ void enter_foreverloop()
  *
  * @param[in]  stack     The current stack pointer
  */
-void _enter(reg_t stack, reg_t stacktop, reg_t multiboot_meminfo,
-            reg_t multibootinfo)
+void _enter(reg_t stack, reg_t stacktop, struct multiboot *multibootinfo)
 {
 	/* Make sure interrupts are disabled */
 	disable_interrupts();
-	bootsequence(stack, multiboot_meminfo);
+	bootsequence(stack, multibootinfo);
 
 	/* maps the stack to the wanted location */
 	init_paging_stack(stacktop);
