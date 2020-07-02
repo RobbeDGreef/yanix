@@ -25,7 +25,7 @@ mb_gfx_info:
 	dd 0 	; mode_type
 	dd 1024 ; width
 	dd 768 	; height
-	dd 4 	; depth
+	dd 32 	; depth
 
 section .bss
 align 16
