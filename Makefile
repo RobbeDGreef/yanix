@@ -40,15 +40,24 @@ all:
 	rm -rf kernel.bin kernel.elf
 	$(MAKE) install
 
-install: kernel.bin
+install: kernel.bin kernel.elf
 	cp kernel.bin rootfs/kernel
+	cp kernel.elf rootfs/kernel.elf
 	# sync up the disks
 	sync
 	
-	$(MAKE) install_bootloader
+	#$(MAKE) install_bootloader
 
 install_bootloader:
 	$(MAKE) -C ./bootloader/ BOOTDISK=$(PWD)/$(DISKNAME) PREFIX=$(PWD)/bootloader KERNEL_ENTRY=$(KERNEL_ENTRY_POINT)
+
+bootloader:
+	# Building squat
+	$(MAKE) -C ./bootloader/ build BOOTDISK=$(PWD)/$(DISKNAME) PREFIX=$(PWD)/bootloader KERNEL_ENTRY=$(KERNEL_ENTRY_POINT)
+
+grub:
+	# Using grub for now, until i find the mental strength to rewrite the bootloader lol
+	sudo grub-install --root-directory=/home/robbe/Projects/yanix/rootfs --no-floppy --modules="normal part_msdos ext2 multiboot" /dev/loop5 --target=i386-pc
 
 clean:
 	rm -rf kernel.bin kernel.elf $(OUTPUT_NAME)
