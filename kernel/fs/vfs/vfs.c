@@ -400,7 +400,7 @@ DIR *_vfs_opendir(vfs_node_t *node)
 
 	return 0;
 }
-#include <libk/string.h>
+
 /**
  * @brief      Open a file descriptor
  *
