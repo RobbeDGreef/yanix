@@ -139,4 +139,4 @@ backup:
 	python3 tools/backup_os.py
 
 cloc:
-	$(shell cloc --exclude-dir=ports,rootfs,sysroot,sysroot_new,sysroot_old,toolchain,system,.vscode . )
+	cloc --exclude-dir=ports,rootfs,sysroot,sysroot_new,sysroot_old,toolchain,system,.vscode .
