@@ -137,8 +137,8 @@ int pipe(int pipefd[2])
 
 	// @todo: the mode of this register file descriptor should be set
 	// @todo: separate read and write in these pipe file descriptors
-	pipefd[0] = register_filedescriptor(pipe_node, 0);
-	pipefd[1] = register_filedescriptor(pipe_node, 1);
+	pipefd[0] = register_filedescriptor(pipe_node, 0, O_RDONLY);
+	pipefd[1] = register_filedescriptor(pipe_node, 0, O_WRONLY);
 
 	pipe->pipefd[0] = pipefd[0];
 	pipe->pipefd[1] = pipefd[1];

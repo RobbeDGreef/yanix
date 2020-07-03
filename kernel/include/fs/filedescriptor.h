@@ -2,6 +2,7 @@
 #define FILEDESCRIPTOR_H
 
 #include <fs/vfs_node.h>
+#include <fcntl.h>
 
 #define E_CLOEXEC 1
 
