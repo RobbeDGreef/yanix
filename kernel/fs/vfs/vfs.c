@@ -505,6 +505,7 @@ int vfs_link_node_vfs(const char *path, vfs_node_t *node)
 		{
 			tmp[i] = '\0';
 			dir    = vfs_find_path(tmp);
+			break;
 		}
 	}
 
