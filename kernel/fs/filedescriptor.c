@@ -36,13 +36,13 @@ int unlock_file(int index)
 	return 0;
 }
 
-int register_filedescriptor(vfs_node_t *node, int mode)
+int register_filedescriptor(vfs_node_t *node, int flags, int mode)
 {
 	struct file_descriptor fd_struct;
 	fd_struct.node  = node;
 	fd_struct.mode  = mode;
 	fd_struct.seek  = 0;
-	fd_struct.flags = 0;
+	fd_struct.flags = flags;
 
 	return vector_add(get_current_task()->fds, fd_struct);
 }

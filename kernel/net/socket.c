@@ -20,7 +20,7 @@ int socket(int domain, int type, int protocol)
 	if (soc == NULL)
 		return -1;
 
-	return register_filedescriptor(vfs_sock_create_conn(soc), 0);
+	return register_filedescriptor(vfs_sock_create_conn(soc), 0, 0);
 }
 
 int sock_accept(int soc, struct sockaddr *addr, socklen_t *addrlen)
@@ -43,7 +43,7 @@ int sock_accept(int soc, struct sockaddr *addr, socklen_t *addrlen)
 	}
 
 	struct socket_conn *accepted = conn->soc->accept(conn, addr, addrlen);
-	return register_filedescriptor(vfs_sock_create_conn(accepted), 0);
+	return register_filedescriptor(vfs_sock_create_conn(accepted), 0, 0);
 }
 
 int sock_bind(int soc, const struct sockaddr *addr, socklen_t adrlen)

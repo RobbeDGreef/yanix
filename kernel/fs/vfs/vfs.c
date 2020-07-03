@@ -417,7 +417,7 @@ int vfs_open_fd(const char *path, int flags, int mode)
 	if (!node)
 		return -1;
 
-	int fd = register_filedescriptor(node, mode);
+	int fd = register_filedescriptor(node, flags, mode);
 
 	if (flags & O_DIRECTORY)
 	{
@@ -444,7 +444,7 @@ struct file *vfs_open(const char *path, int flags, int mode)
 	if (node == 0)
 		return 0;
 
-	int fd = register_filedescriptor(node, mode);
+	int fd = register_filedescriptor(node, flags, mode);
 
 	if (fd == -1)
 	{
