@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdint.h>
+#include <libk/string.h>
 
 /*
 this library will hold a lot of functions with various purposes
@@ -23,4 +24,20 @@ int atoi(const char *str)
 	}
 
 	return num;
+}
+
+char *itoa(int num, char *str, int max)
+{
+	int i = 0;
+	do
+	{
+		str[i++] = '0' + num % 10;
+		num /= 10;
+	} while (num > 0 && i < max);
+
+	str[i] = '\0';
+
+	reverse(str);
+
+	return str;
 }
