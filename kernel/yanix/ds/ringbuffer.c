@@ -2,6 +2,7 @@
 #include <mm/heap.h>
 #include <stddef.h>
 #include <kernel/ds/ringbuffer.h>
+#include <kernel/atomic.h>
 
 #include <const.h>
 #include <errno.h>
@@ -110,7 +111,10 @@ ssize_t ringbuffer_read_index(char *buffer, size_t size, unsigned long index,
  */
 ssize_t ringbuffer_read(char *buffer, size_t size, struct ringbuffer *circbuf)
 {
-	return ringbuffer_read_index(buffer, size, circbuf->virtual_begin, circbuf);
+	spinlock_lock(&circbuf->spinlock);
+	ssize_t ret =  ringbuffer_read_index(buffer, size, circbuf->virtual_begin, circbuf);
+	spinlock_unlock(&circbuf->spinlock);
+	return ret;
 }
 
 /**
@@ -171,7 +175,10 @@ ssize_t ringbuffer_write_index(char *buffer, size_t size, unsigned long index,
  */
 ssize_t ringbuffer_write(char *buffer, size_t size, struct ringbuffer *circbuf)
 {
-	return ringbuffer_write_index(buffer, size, circbuf->virtual_end, circbuf);
+	spinlock_lock(&circbuf->spinlock);
+	ssize_t ret =  ringbuffer_write_index(buffer, size, circbuf->virtual_end, circbuf);
+	spinlock_unlock(&circbuf->spinlock);
+	return ret;
 }
 
 void ringbuffer_block(struct ringbuffer *circbuf)
