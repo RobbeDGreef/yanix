@@ -18,7 +18,7 @@ struct mouse_press_pkt
 
 struct input_hid_pkt
 {
-	struct input_pkt;
+	struct input_pkt inp;
 
 	int hid_type;
 	union

@@ -4,12 +4,15 @@
 #include <libk/string.h>
 #include <mm/heap.h>
 #include <proc/tasking.h>
+#include <drivers/eventdev.h>
+#include <yanix/input.h>
 
 char *keymap_normal = NULL;
 char *keymap_shift  = NULL;
 char *keymap_altgr  = NULL;
 
 struct key_mod g_modifier;
+int            eventfd = 0;
 
 #define LSHIFT_D 0x2a
 #define LSHIFT_U 0xaa
@@ -110,6 +113,9 @@ int send_scancode(int scancode)
 
 	char c = getkey(scancode);
 
+	struct input_kb_pkt pkt = INP_KB_INIT(scancode, KEYMODE_PRESSED, c);
+	vfs_write_fd(eventfd, &pkt, sizeof(pkt));
+
 	int interuptchar = '^';
 	if (combination(c))
 		vfs_write_fd(0, &interuptchar, 1);
@@ -177,6 +183,8 @@ int init_keyboard()
 	kfree(keymap);
 	kfree(file);
 	kfree(buf);
+
+	eventfd = eventdev_create();
 
 	return 0;
 }
