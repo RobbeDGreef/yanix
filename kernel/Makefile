@@ -57,6 +57,7 @@ ifndef CC_FLAGS
 	CC_FLAGS += -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter
 	CC_FLAGS += -include $(PWD)/external/config.h -I $(PWD)/external/
 	CC_FLAGS += -include $(PWD)/kernel/config.h
+	CC_FLAGS += -I $(PWD)/kernel/include/yanix
 endif
 
 # Custom flags can be used otherwise this will be used
