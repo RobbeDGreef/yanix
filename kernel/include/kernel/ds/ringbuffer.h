@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <kernel/atomic.h>
 
 #define RINGBUFFER_OPTIMIZE_USHORTINT (1 << 0)
 
@@ -23,6 +24,7 @@ struct ringbuffer
 	char *buffer_end;
 
 	volatile unsigned int lock;
+	struct spinlock spinlock;
 
 	cb_flags_t flags;
 };
