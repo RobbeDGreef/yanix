@@ -23,7 +23,7 @@ AllowShortIfStatementsOnASingleLine: false
 BinPackArguments: true
 BreakBeforeBraces: Allman
 BreakStringLiterals: true
-ColumnLimit: 80
+ColumnLimit: 90
 IncludeBlocks: Preserve
 IndentCaseBlocks: true
 IndentCaseLabels: false
