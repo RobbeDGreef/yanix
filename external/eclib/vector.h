@@ -8,16 +8,16 @@
 #define VECTOR_GET(vec, ind, type) ((char *) vec->buffer + ind * sizeof(type))
 
 #define define_vector_functionprototypes(type, name)                       \
-	vec_##name vec_##name##_create();                                      \
-	type       vec_##name##_get(vec_##name vec, unsigned int index);       \
-	int        vec_##name##_destroy(vec_##name vec);                       \
-	int        vec_##name##_wipe(vec_##name vec, unsigned int index);      \
-	vec_##name vec_##name##_copy(vec_##name srcvec);                       \
-	int        vec_##name##_reserve(vec_##name vec, size_t amount);        \
-	int        vec_##name##_push(vec_##name vec, type object);             \
-	type       vec_##name##_pop(vec_##name vec);                           \
-	int vec_##name##_set(vec_##name vec, unsigned int index, type object); \
-	int vec_##name##_iter(vec_##name vec);
+	name name##_create();                                      \
+	type       name##_get(name vec, unsigned int index);       \
+	int        name##_destroy(name vec);                       \
+	int        name##_wipe(name vec, unsigned int index);      \
+	name name##_copy(name srcvec);                       \
+	int        name##_reserve(name vec, size_t amount);        \
+	int        name##_push(name vec, type object);             \
+	type       name##_pop(name vec);                           \
+	int name##_set(name vec, unsigned int index, type object); \
+	int name##_iter(name vec);
 /**
  * @brief      Defines a vector
  *
@@ -41,7 +41,7 @@
 		int    error;            \
 		int    iter;             \
 	};                           \
-	typedef struct vec_s_##name *vec_##name;
+	typedef struct vec_s_##name *name;
 
 /**
  * @brief      Defines all the vector functions
@@ -76,9 +76,9 @@
  *
  */
 #define _define_vector_create(type, name)                              \
-	vec_##name vec_##name##_create()                                   \
+	name name##_create()                                   \
 	{                                                                  \
-		vec_##name vec = eclib_malloc(sizeof(struct vec_s_##name));    \
+		name vec = eclib_malloc(sizeof(struct vec_s_##name));    \
 		vec->buffer    = eclib_malloc(sizeof(type) * VECTOR_STARTCAP); \
 		vec->capacity  = VECTOR_STARTCAP;                              \
 		vec->size      = 0;                                            \
@@ -89,7 +89,7 @@
 	}
 
 #define _define_vector_get(type, name)                        \
-	type vec_##name##_get(vec_##name vec, unsigned int index) \
+	type name##_get(name vec, unsigned int index) \
 	{                                                         \
 		vec->error = 0;                                       \
 		if (!CHECK_INDEX(vec, index))                         \
@@ -105,7 +105,7 @@
 	}
 
 #define _define_vector_destroy(type, name)   \
-	int vec_##name##_destroy(vec_##name vec) \
+	int name##_destroy(name vec) \
 	{                                        \
 		if (vec->destroyed)                  \
 			return -1;                       \
@@ -117,7 +117,7 @@
 	}
 
 #define _define_vector_wipe(type, name)                              \
-	int vec_##name##_wipe(vec_##name vec, unsigned int index)        \
+	int name##_wipe(name vec, unsigned int index)        \
 	{                                                                \
 		if (!CHECK_INDEX(vec, index))                                \
 			return -1;                                               \
@@ -127,9 +127,9 @@
 	}
 
 #define _define_vector_copy(type, name)                                 \
-	vec_##name vec_##name##_copy(vec_##name srcvec)                     \
+	name name##_copy(name srcvec)                     \
 	{                                                                   \
-		vec_##name newvec = eclib_malloc(sizeof(struct vec_s_##name));  \
+		name newvec = eclib_malloc(sizeof(struct vec_s_##name));  \
 		newvec->capacity  = srcvec->capacity;                           \
 		newvec->size      = srcvec->size;                               \
 		newvec->destroyed = srcvec->destroyed;                          \
@@ -142,7 +142,7 @@
 	}
 
 #define _define_vector_reserve(type, name)                      \
-	int vec_##name##_reserve(vec_##name vec, size_t amount)     \
+	int name##_reserve(name vec, size_t amount)     \
 	{                                                           \
 		if (amount < vec->capacity)                             \
 			return -1;                                          \
@@ -159,13 +159,13 @@
 	}
 
 #define _define_vector_push(type, name)                                        \
-	int vec_##name##_push(vec_##name vec, type object)                         \
+	int name##_push(name vec, type object)                         \
 	{                                                                          \
 		if (vec->destroyed)                                                    \
 			return -1;                                                         \
                                                                                \
 		if (vec->size == vec->capacity)                                        \
-			vec_##name##_reserve(vec, vec->capacity * 2);                      \
+			name##_reserve(vec, vec->capacity * 2);                      \
                                                                                \
 		eclib_memcpy(VECTOR_GET(vec, vec->size, type), &object, sizeof(type)); \
                                                                                \
@@ -173,7 +173,7 @@
 	}
 
 #define _define_vector_set(type, name)                                     \
-	int vec_##name##_set(vec_##name vec, unsigned int index, type object)  \
+	int name##_set(name vec, unsigned int index, type object)  \
 	{                                                                      \
 		if (vec->destroyed)                                                \
 			return -1;                                                     \
@@ -186,7 +186,7 @@
 	}
 
 #define _define_vector_pop(type, name)                         \
-	type vec_##name##_pop(vec_##name vec)                      \
+	type name##_pop(name vec)                      \
 	{                                                          \
 		vec->error = 0;                                        \
 		if (vec->destroyed)                                    \
@@ -202,8 +202,19 @@
 		return *(type *) VECTOR_GET(vec, vec->size - 1, type); \
 	}
 
+/**
+ * example:
+ * 
+ * int iter;
+ * vec_int vec;
+ * 
+ * while ((iter = vec_int_iter(vec)) != -1)
+ * {
+ *     printf("data %i\n", vec_int_get(vec, iter));
+ * }
+ */
 #define _define_vector_iter(type, name)   \
-	int vec_##name##_iter(vec_##name vec) \
+	int name##_iter(name vec) \
 	{                                     \
 		if (vec->iter == (int) vec->size) \
 		{                                 \
@@ -215,11 +226,11 @@
 	}
 
 #define _define_vector_find_int(type, name)                          \
-	int vec_##name##_find_int(vec_##name vec, int offset, int value) \
+	int name##_find_int(name vec, int offset, int value) \
 	{                                                                \
 		for (unsigned int i = 0; i < vec->size; i++)                 \
 		{                                                            \
-			type x = vec_##name##_get(vec, i);                       \
+			type x = name##_get(vec, i);                       \
 			if ((int) *(((char *) &x) + offset) == value)            \
 				return i;                                            \
 		}                                                            \
