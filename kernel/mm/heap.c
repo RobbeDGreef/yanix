@@ -16,6 +16,7 @@ volatile uint32_t placement_address = (uint32_t) &end_of_bin;
  */
 struct heap *kernel_heap = 0;
 struct heap *user_heap   = 0;
+struct heap *stack_heap  = 0;
 
 /* Simple pointer to the first heap ever created */
 struct heap *heaplist = 0;
@@ -68,6 +69,49 @@ int free(struct heap *heap, void *memory)
 	                 heap->linkedlist);
 }
 
+void *kmalloc_gen(struct heap *heap, size_t size)
+{
+	void *addr = alloc(heap, size, 1);
+
+	if (!addr)
+		printk(KERN_ERR "Kernel could not allocate: %i amount of memory\n",
+		       size);
+
+	return addr;
+}
+
+int kfree_gen(struct heap *heap, void *addr)
+{
+	return free(heap, addr);
+}
+
+void *kmalloc_gen_base(struct heap *heap, size_t size, int align, phys_addr_t *physical_address)
+{
+	void *addr = alloc(heap, size, align);
+
+	if (!addr)
+	{
+		printk(KERN_ERR "Kernel could not allocate: %i amount of memory\n",
+		       size);
+		return 0;
+	}
+
+	if (physical_address)
+	{
+		page_t *page = get_page((offset_t) addr, 1, get_current_dir());
+
+		/* Sometimes the page won't be initialised yet
+		 * so we'll do that here */
+		if (!page->frame)
+			alloc_frame(page, 0, 1);
+
+		*physical_address = page->frame * 0x1000 + ((offset_t) addr & 0xFFF);
+	}
+
+	return addr;
+}
+
+
 void *kmalloc_base(size_t size, int align, phys_addr_t *physical_address)
 {
 	if (kernel_heap)
@@ -107,28 +151,7 @@ void *kmalloc_base(size_t size, int align, phys_addr_t *physical_address)
 
 void *kmalloc_user_base(size_t size, int align, phys_addr_t *physical_address)
 {
-	void *addr = alloc(user_heap, size, align);
-
-	if (!addr)
-	{
-		printk(KERN_ERR "Kernel could not allocate: %i amount of memory\n",
-		       size);
-		return 0;
-	}
-
-	if (physical_address)
-	{
-		page_t *page = get_page((offset_t) addr, 1, get_kernel_dir());
-
-		/* Sometimes the page won't be initialised yet
-		 * so we'll do that here */
-		if (!page->frame)
-			alloc_frame(page, 0, 1);
-
-		*physical_address = page->frame * 0x1000 + ((offset_t) addr & 0xFFF);
-	}
-
-	return addr;
+	return kmalloc_gen_base(user_heap, size, align, physical_address);
 }
 
 void *kmalloc(size_t size)
@@ -244,6 +267,12 @@ int init_kheap()
 int init_uheap()
 {
 	user_heap = create_heap(UHEAP_START, UHEAP_MAXSIZE, 1);
+	return 0;
+}
+
+int init_sheap()
+{
+	stack_heap = create_heap(SHEAP_START, SHEAP_MAXSISE, 1);
 	return 0;
 }
 

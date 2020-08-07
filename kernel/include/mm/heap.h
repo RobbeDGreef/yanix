@@ -39,6 +39,10 @@ void *kmalloc_user(size_t size);
 int   kfree_user(void *addr);
 int   init_uheap();
 
+void *kmalloc_gen(struct heap *heap, size_t size);
+void *kmalloc_gen_base(struct heap *heap, size_t size, int align, phys_addr_t *phys);
+int kfree_gen(struct heap *heap, void *addr);
+
 offset_t     get_placement_addr();
 struct heap *is_addr_in_heap(offset_t addr);
 
