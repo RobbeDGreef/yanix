@@ -16,12 +16,12 @@ struct pipe
 
 int pipe_close(vfs_node_t *node);
 
-ssize_t pipe_read_raw(struct pipe *pipe, void *buffer, size_t size);
-ssize_t pipe_write_raw(struct pipe *pipe, const void *buffer, size_t size);
+ssize_t pipe_read_raw(struct pipe *pipe, void *buffer, size_t size, int flags);
+ssize_t pipe_write_raw(struct pipe *pipe, const void *buffer, size_t size, int flags);
 ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer,
-                  size_t size);
+                  size_t size, int flags);
 ssize_t pipe_write(vfs_node_t *node, unsigned int offset, const void *buffer,
-                   size_t size);
+                   size_t size, int flags);
 
 ssize_t pipe_remove(vfs_node_t *node, unsigned int offset, int location);
 

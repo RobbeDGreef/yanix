@@ -7,6 +7,6 @@
 
 int     fb_cmd(int request, char *args);
 ssize_t fb_write(vfs_node_t *node, unsigned int off, const void *buf,
-                 size_t size);
+                 size_t size, int flags);
 
 #endif /* _KERNEL_FB_H */

@@ -31,9 +31,9 @@ struct dirent;
 typedef struct vfs_node_s vfs_node_t;
 
 typedef ssize_t (*read_fpointer)(vfs_node_t *, unsigned int offset,
-                                 void *buffer, size_t size);
+                                 void *buffer, size_t size, int flags);
 typedef ssize_t (*write_fpointer)(vfs_node_t *, unsigned int offset,
-                                  const void *buffer, size_t size);
+                                  const void *buffer, size_t size, int flags);
 typedef int (*close_fpointer)(vfs_node_t *);
 typedef int (*open_fpointer)(vfs_node_t *, int already_exists, int flags,
                              int mode);

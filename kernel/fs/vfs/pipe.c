@@ -27,12 +27,12 @@ int pipe_close(vfs_node_t *node)
 }
 
 ssize_t pipe_read(vfs_node_t *node, unsigned int offset, void *buffer,
-                  size_t size)
+                  size_t size, int flags)
 {
-	return pipe_read_raw((struct pipe *) node->offset, buffer, size);
+	return pipe_read_raw((struct pipe *) node->offset, buffer, size, flags);
 }
 
-ssize_t pipe_read_raw(struct pipe *pipe, void *buffer, size_t size)
+ssize_t pipe_read_raw(struct pipe *pipe, void *buffer, size_t size, int flags)
 {
 	if (!pipe)
 	{
@@ -40,7 +40,7 @@ ssize_t pipe_read_raw(struct pipe *pipe, void *buffer, size_t size)
 		return -1;
 	}
 
-	if (!(pipe->flags & O_NONBLOCK))
+	if (!(flags & O_NONBLOCK))
 	{ /* waiting for a process to write to the pipe */
 		enable_interrupts();
 		end_of_interrupt();
@@ -52,12 +52,12 @@ ssize_t pipe_read_raw(struct pipe *pipe, void *buffer, size_t size)
 }
 
 ssize_t pipe_write(vfs_node_t *node, unsigned int offset, const void *buffer,
-                   size_t size)
+                   size_t size, int flags)
 {
-	return pipe_write_raw((struct pipe *) node->offset, buffer, size);
+	return pipe_write_raw((struct pipe *) node->offset, buffer, size, flags);
 }
 
-ssize_t pipe_write_raw(struct pipe *pipe, const void *buffer, size_t size)
+ssize_t pipe_write_raw(struct pipe *pipe, const void *buffer, size_t size, int flags)
 {
 	if (!pipe)
 	{
@@ -65,8 +65,10 @@ ssize_t pipe_write_raw(struct pipe *pipe, const void *buffer, size_t size)
 		return -1;
 	}
 
-	// @todo: add blocking for when the pipe is full
+	/* @hack: Passing the O_NONBLOCK flag */
+	pipe->circbuf->flags |= (flags & O_NONBLOCK);
 
+	// @todo: add blocking for when the pipe is full
 	return ringbuffer_write((char *) buffer, size, pipe->circbuf);
 }
 

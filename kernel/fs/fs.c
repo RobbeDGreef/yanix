@@ -97,7 +97,7 @@ int getdents(int fd, struct dirent *dir, int count)
  */
 #include <debug.h>
 static ssize_t tty_stdoutwrite(vfs_node_t *node, unsigned int offset,
-                               const void *buffer, size_t size)
+                               const void *buffer, size_t size, int flags)
 {
 	(void) (node);
 	(void) (offset);
@@ -110,7 +110,7 @@ static ssize_t tty_stdoutwrite(vfs_node_t *node, unsigned int offset,
 }
 
 static ssize_t tty_stderrwrite(vfs_node_t *node, unsigned int offset,
-                               const void *buffer, size_t size)
+                               const void *buffer, size_t size, int flags)
 {
 	(void) (node);
 	(void) (offset);
@@ -126,30 +126,30 @@ char *stdinbuffer;
 int   index;
 
 static ssize_t tty_stdinwrite(vfs_node_t *node, unsigned int offset,
-                              const void *buffer, size_t size)
+                              const void *buffer, size_t size, int flags)
 {
 	/* @todo: we need to properly parse the stdin */
 	if (*(char *) buffer == 0x8)
 	{
 		if (!pipe_remove(node, offset, 1))
-			tty_stdoutwrite(0, 0, buffer, size);
+			tty_stdoutwrite(0, 0, buffer, size, 0);
 		return 0;
 	}
-	pipe_write(node, offset, buffer, size);
-	tty_stdoutwrite(0, 0, buffer, size);
+	pipe_write(node, offset, buffer, size, 0);
+	tty_stdoutwrite(0, 0, buffer, size, 0);
 
 	return size;
 }
 
 static ssize_t tty_readtest(vfs_node_t *node, unsigned int offset, void *buffer,
-                            size_t size)
+                            size_t size, int flags)
 {
 	printk("He's trying to read and i don't know what to do\n");
 	return 0;
 }
 
 static ssize_t read_null(vfs_node_t *node, unsigned int offset, void *buffer,
-                         size_t size)
+                         size_t size, int flags)
 {
 	char *buf = (char *) buffer;
 	for (uint i = 0; i < size; i++)
@@ -159,7 +159,7 @@ static ssize_t read_null(vfs_node_t *node, unsigned int offset, void *buffer,
 }
 
 static ssize_t write_null(vfs_node_t *node, unsigned int offset,
-                          const void *buffer, size_t size)
+                          const void *buffer, size_t size, int flags)
 {
 	return size;
 }
@@ -215,7 +215,7 @@ void register_filesystem(char *name, int type, fs_read_file_fpointer readfile,
 	g_current_fs->fs_makenode = makenode;
 }
 
-ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
+ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount, int flags)
 {
 	/* @XXX: I am VERY unsure about this piece of code here */
 	char *buf = _buf;
@@ -279,7 +279,8 @@ ssize_t fs_read(vfs_node_t *node, int seek, void *_buf, size_t amount)
 	return ret;
 }
 
-ssize_t fs_write(vfs_node_t *node, int seek, const void *_buf, size_t amount)
+ssize_t fs_write(vfs_node_t *node, int seek, const void *_buf, size_t amount,
+			     int flags)
 {
 	const char *buf = _buf;
 

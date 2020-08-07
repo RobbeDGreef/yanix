@@ -83,8 +83,8 @@ void register_filesystem(char *name, int type, fs_read_file_fpointer readfile,
 int init_char_specials();
 int getdents(int fd, struct dirent *dir, int count);
 
-ssize_t fs_read(vfs_node_t *node, int seek, void *buf, size_t amount);
-ssize_t fs_write(vfs_node_t *node, int seek, const void *buf, size_t amount);
+ssize_t fs_read(vfs_node_t *node, int seek, void *buf, size_t amount, int f);
+ssize_t fs_write(vfs_node_t *node, int seek, const void *buf, size_t amount, int f);
 int     fs_creat(vfs_node_t *node, char *path, flags_t flags);
 
 #endif /* drivers/fs/fs.h */

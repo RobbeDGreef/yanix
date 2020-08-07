@@ -27,13 +27,13 @@ static ssize_t _vfs_read(struct file_descriptor *fd_struct, void *buf,
 	vfs_node_t *node = fd_struct->node;
 	if (node->read != 0)
 	{
-		ret = node->read(node, fd_struct->seek, buf, amount);
+		ret = node->read(node, fd_struct->seek, buf, amount, fd_struct->flags);
 		fd_struct->seek += ret;
 		return ret;
 	}
 	else if (node->fs_info->block_read)
 	{
-		ret = fs_read(node, fd_struct->seek, buf, amount);
+		ret = fs_read(node, fd_struct->seek, buf, amount, fd_struct->flags);
 		fd_struct->seek += ret;
 		return ret;
 	}
@@ -107,13 +107,13 @@ static ssize_t _vfs_write(struct file_descriptor *fd_struct, const void *buf,
 
 	if (node->write != 0)
 	{
-		ret = node->write(node, fd_struct->seek, buf, amount);
+		ret = node->write(node, fd_struct->seek, buf, amount, fd_struct->flags);
 		fd_struct->seek += ret;
 		return ret;
 	}
 	else if (node->fs_info->block_write)
 	{
-		ret = fs_write(node, fd_struct->seek, buf, amount);
+		ret = fs_write(node, fd_struct->seek, buf, amount, fd_struct->flags);
 		fd_struct->seek += ret;
 		return ret;
 	}
