@@ -21,8 +21,11 @@ ROOTFS 				= ./rootfs
 USER 				= robbe 
 
 # Easier in sublime
-CC = /usr/share/crosscompiler/bin/i386-elf-gcc
-LD = /usr/share/crosscompiler/bin/i386-elf-ld
+# CC = /usr/share/crosscompiler/bin/i386-elf-gcc
+# LD = /usr/share/crosscompiler/bin/i386-elf-ld
+CC = $(PWD)/toolchain/bin/bin/i686-yanix-gcc
+LD = $(PWD)/toolchain/bin/bin/i686-yanix-ld
+
 GDB = gdb
 NASM = nasm
 QEMU = qemu-system-x86_64
