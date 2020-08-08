@@ -71,7 +71,7 @@ int unix_socket_send(struct socket_conn *conn, const void *buf, size_t size,
 	if (!conn || !conn->soc)
 		return -1;
 
-	return pipe_write_raw(conn->send_pipe, buf, size);
+	return pipe_write_raw(conn->send_pipe, buf, size, 0);
 }
 
 int unix_socket_recv(struct socket_conn *conn, void *buf, size_t size,
@@ -80,7 +80,7 @@ int unix_socket_recv(struct socket_conn *conn, void *buf, size_t size,
 	if (!conn || !conn->soc)
 		return -1;
 
-	return pipe_read_raw(conn->recv_pipe, buf, size);
+	return pipe_read_raw(conn->recv_pipe, buf, size, 0);
 }
 
 int unix_socket_tryconnect(struct socket_conn *conn)

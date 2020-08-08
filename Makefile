@@ -143,3 +143,6 @@ backup:
 
 cloc:
 	cloc --exclude-dir=ports,rootfs,sysroot,sysroot_new,sysroot_old,toolchain,system,.vscode .
+
+check:
+	cppcheck --enable=all kernel -j 8 > /dev/null
