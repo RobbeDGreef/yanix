@@ -151,5 +151,8 @@ int           task_wait(int *status);
 unsigned long get_proccount();
 uid_t         task_euid();
 gid_t         task_egid();
+uintptr_t get_current_stacktop();
+struct thread *get_main_thrd(task_t *task);
+struct thread *get_current_thrd();
 
 #endif // TASKING_H_

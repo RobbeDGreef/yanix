@@ -8,12 +8,13 @@
 #include <proc/tasking.h>
 #include <sys/types.h>
 #include <kernel/stack.h>
+#include <proc/threads.h>
 
 #include <debug.h>
 static pid_t PIDS = 1;
 
 /* Define the vector functions for the sighandler vector */
-define_vector_functions(struct sighandler, sig);
+define_vector_functions(struct sighandler, vec_sig);
 
 sighandler_t signal(int sig, sighandler_t handler)
 {
