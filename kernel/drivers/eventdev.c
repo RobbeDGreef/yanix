@@ -25,5 +25,5 @@ int eventdev_create()
 
 	spinlock_unlock(&g_eventlock);
 
-	return register_filedescriptor(node, 0, O_RDWR);
+	return register_filedescriptor(node, O_NONBLOCK, O_RDWR);
 }

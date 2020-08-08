@@ -18,7 +18,7 @@ int fb_cmd(int request, char *args)
 }
 
 ssize_t fb_write(vfs_node_t *node, unsigned int off, const void *buf,
-                 size_t size)
+                 size_t size, int flags)
 {
 	void *addr = (void *) (video_get_screen_fb() + off);
 	memcpy(addr, buf, size);
