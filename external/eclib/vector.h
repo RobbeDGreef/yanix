@@ -66,6 +66,7 @@
 #define _ret_error(err, vec, type) \
 	vec->error = err;              \
 	type x;                        \
+	memset(&x, 0, sizeof(type));   \
 	return x;
 
 /**
