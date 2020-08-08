@@ -2,6 +2,7 @@
 #define TASKING_H_
 
 #include <mm/paging.h>
+#include <mm/heap.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <kernel/ds/fd_vector.h>
@@ -10,21 +11,18 @@
 #include <stdint.h>
 
 #include <eclib/vector.h>
-define_vector_type(sig);
 
-typedef struct task_control_block_s
+define_vector_type(vec_sig);
+define_vector_type(vec_thrds);
+define_vector_functionprototypes(struct thread *, vec_thrds);
+
+typedef struct task_s
 {
-	reg_t             esp;
 	page_directory_t *directory; /* Program page directory */
 
 	/* Program information */
-	offset_t program_start; /* The start of the program */
-	offset_t program_break; /* Program break */
-	offset_t stacktop;      /* Program's stack top */
-	offset_t stack_size;    /* Program's stack size */
-
-	offset_t kernel_stack; /* Kernel stack (same as stacktop if this is a kernel
-	                          task) */
+	uintptr_t program_start; /* The start of the program */
+	uintptr_t program_break; /* Program break */
 
 	/* Task information */
 	char *    name;
@@ -54,6 +52,8 @@ typedef struct task_control_block_s
 	                          * the task is using */
 	int priority;            /* The priority of the task */
 
+	/* Used for stack management */
+	struct heap stack_heap;
 	/* Linked list next identifier */
 	struct task_control_block_s *next;
 

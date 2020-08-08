@@ -16,7 +16,6 @@ volatile uint32_t placement_address = (uint32_t) &end_of_bin;
  */
 struct heap *kernel_heap = 0;
 struct heap *user_heap   = 0;
-struct heap *stack_heap  = 0;
 
 /* Simple pointer to the first heap ever created */
 struct heap *heaplist = 0;
@@ -267,12 +266,6 @@ int init_kheap()
 int init_uheap()
 {
 	user_heap = create_heap(UHEAP_START, UHEAP_MAXSIZE, 1);
-	return 0;
-}
-
-int init_sheap()
-{
-	stack_heap = create_heap(SHEAP_START, SHEAP_MAXSISE, 1);
 	return 0;
 }
 

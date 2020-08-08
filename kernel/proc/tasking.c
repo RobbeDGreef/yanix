@@ -101,25 +101,35 @@ void kill_proc(task_t *task)
 	}
 }
 
+static inline struct heap setup_stack_heap(int um)
+{
+	struct heap ret;
+	ret.start = USER_STACKHEAP_START;
+	ret.size = 0;
+	ret.maxsize = USER_STACKHEAP_MAXSIZE;
+	ret.usermode = um;
+
+	return ret;
+}
+
 static task_t *create_task(task_t *new_task, int kernel_task,
                            page_directory_t *dir)
 {
-	new_task->kernel_stack = DISIRED_KERNEL_STACK_LOC;
+	//new_task->kernel_stack = DISIRED_KERNEL_STACK_LOC;
 
 	/* create fresh normal stack */
 	if (!kernel_task)
 	{
-		new_task->stacktop   = DISIRED_USER_STACK_LOC;
-		new_task->stack_size = USER_STACK_SIZE;
+		//new_task->stacktop   = DISIRED_USER_STACK_LOC;
+		//new_task->stack_size = USER_STACK_SIZE;
 		new_task->ring       = 3;
 	}
 	else
 	{
-		new_task->stacktop   = DISIRED_STACK_LOCATION;
-		new_task->stack_size = STACK_SIZE;
+		//new_task->stacktop   = DISIRED_STACK_LOCATION;
+		//new_task->stack_size = STACK_SIZE;
 		new_task->ring       = 0;
 	}
-	new_task->esp = new_task->stacktop;
 
 	task_t *curtask = get_current_task();
 
@@ -184,10 +194,6 @@ int init_tasking()
 	mainloop->directory = get_current_dir();
 	// mainloop->state 		= TASK_RUNNING;
 	mainloop->timeslice = 100;
-
-	mainloop->kernel_stack = DISIRED_KERNEL_STACK_LOC;
-	mainloop->stacktop     = DISIRED_STACK_LOCATION;
-	mainloop->stack_size   = STACK_SIZE;
 
 	mainloop->uid      = 0;
 	mainloop->euid     = 0;

@@ -143,13 +143,13 @@ void _enter(reg_t stack, reg_t stacktop, struct multiboot *multibootinfo)
 	disable_interrupts();
 	bootsequence(stack, multibootinfo);
 
-	/* maps the stack to the wanted location */
-	init_paging_stack(stacktop);
-
+	/* Creates a new wanted stack (INLINE FUNCTION) */
+	init_main_stack();
 	message("Successfully remapped kernel stack to desired location", 1);
+	
+	/* paging bootsequence, with new stack */
 	bootsequence_after_paging();
 
 	kernel_main();
-
 	enter_foreverloop();
 }

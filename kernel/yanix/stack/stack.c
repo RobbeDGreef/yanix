@@ -2,20 +2,27 @@
 #include <proc/tasking.h>
 #include <stdint.h>
 #include <kernel/stack.h>
+#include <mm/heap.h>
 
-uint32_t                 g_inital_esp = 0;
-extern page_directory_t *g_current_directory;
+uintptr_t g_inital_esp = 0;
+struct heap *g_kernel_stackheap = NULL;
 
 /**
  * @brief      Saves the stack location
  *
  * @param[in]  stack_location  The stack location
  */
-void init_stack(uint32_t stack_location)
+void init_stack(uintptr_t stack_location)
 {
 	g_inital_esp = stack_location;
 }
 
+void set_user_stack()
+{
+	//get_main_thrd(get_current_task())
+}
+
+#if 0
 void set_user_stack()
 {
 	/**
@@ -30,7 +37,7 @@ void set_user_stack()
 
 	get_current_task()->stacktop = DISIRED_USER_STACK_LOC;
 }
-#include <debug.h>
+
 /**
  * @brief      Initializes the stack with paging and bind it to the disired
  * virtual address
@@ -63,4 +70,44 @@ void init_paging_stack(reg_t stacktop)
 	for (uint i = 0; i < KERNEL_STACK_SIZE; i += 0x1000)
 		alloc_frame(get_page(DISIRED_STACK_LOCATION - i, 1, get_current_dir()),
 		            0, 1);
+}
+
+#endif
+
+uintptr_t stack_alloc(int kernel, struct heap *sheap)
+{
+	size_t sz;
+	struct heap *heap;
+
+	if (kernel)
+	{
+		sz = KERNEL_STACK_SIZE;
+		heap = g_kernel_stackheap;
+	}
+	else
+	{
+		/* User stack */
+		sz = USER_STACK_SIZE;
+		heap = &get_current_task()->stack_heap;
+	}
+
+	if (sheap)
+		heap = sheap;
+
+	return (uintptr_t) kmalloc_gen_base(heap, sz, 1, NULL) + sz;
+}
+
+void stack_free(int kernel, uintptr_t top)
+{
+	if (kernel)
+		kfree_gen(g_kernel_stackheap, (void*) (top - KERNEL_STACK_SIZE));
+	else
+		kfree_gen(&get_current_task()->stack_heap, (void*) (top - USER_STACK_SIZE));
+}
+
+inline void __attribute__((always_inline)) init_main_stack()
+{
+	g_kernel_stackheap = create_heap(KERNEL_STACKHEAP_START, KERNEL_STACKHEAP_MAXSIZE, 0);
+
+	asm volatile("mov %0, %%esp; mov %0, %%ebp" : : "r"(KERNEL_MAIN_STACK));
 }

@@ -2,16 +2,22 @@
 #define STACK_H
 
 #include <mm/paging.h>
+#include <mm/heap.h>
 #include <stdint.h>
 
-#define DISIRED_STACK_LOCATION   0x1000000
-#define DISIRED_USER_STACK_LOC   0x2000000
-#define DISIRED_KERNEL_STACK_LOC 0x3000000
-#define STACK_SIZE               0x1000
-#define STACK_LOCATION           0x9000
-#define KERNEL_STACK_SIZE        0x8000
-#define USER_STACK_SIZE          0x4000 // 16Kib
-#define INIT_STACK_SIZE          16 * 1024
+#define USER_STACK 0
+#define KERNEL_STACK 1
+
+#define KERNEL_MAIN_STACK 0xF00000
+#define KERNEL_STACKHEAP_START 0x1000000
+#define KERNEL_STACKHEAP_MAXSIZE 0x400000
+
+#define USER_STACKHEAP_START 0x1400000
+#define USER_STACKHEAP_MAXSIZE 0x400000
+
+#define KERNEL_STACK_SIZE 0x4000
+#define USER_STACK_SIZE 0x4000
+
 
 extern uint32_t g_initial_esp;
 
@@ -28,5 +34,10 @@ void init_stack(uint32_t stack_location);
  */
 void init_paging_stack(reg_t);
 void set_user_stack();
+
+void init_main_stack();
+uintptr_t stack_alloc(int kernel, struct heap *heap);
+void stack_free(int kernel, uintptr_t top);
+
 
 #endif /* stack.h */

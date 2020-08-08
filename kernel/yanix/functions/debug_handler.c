@@ -3,11 +3,14 @@
 #include <kernel.h>
 
 #include <mm/paging.h>
+#include <proc/threads.h>
+
 extern page_directory_t *g_current_directory;
 
 void debug_handler_task()
 {
 	task_t *curtask = get_current_task();
+	struct thread *curthrd = get_current_thrd();
 
 	if (!curtask)
 		return;
@@ -17,7 +20,7 @@ void debug_handler_task()
 	printk("Program start: %08x program break %08x\n", curtask->program_start,
 	       curtask->program_break);
 	printk("Stacktop %08x stacksize %08x kernel stack %08x\n",
-	       curtask->stacktop, curtask->stack_size, curtask->kernel_stack);
+	       curthrd->stack_top, curthrd->stack_size, curthrd->kernel_stack);
 }
 
 static void frame_print(char *string, unsigned long *location)
@@ -79,6 +82,7 @@ void debug_handler(registers_t *regs)
 taskinfo:;
 	printk("----------------  TASK INFO  -----------------\n");
 	task_t *curtask = get_current_task();
+	struct thread *curthrd = get_current_thrd();
 
 	if (!curtask)
 		goto end;
@@ -88,7 +92,7 @@ taskinfo:;
 	printk("Program start: %08x program break %08x\n", curtask->program_start,
 	       curtask->program_break);
 	printk("Stacktop %08x stacksize %08x kernel stack %08x\n",
-	       curtask->stacktop, curtask->stack_size, curtask->kernel_stack);
+	       curthrd->stack_top, curthrd->stack_size, curthrd->kernel_stack);
 
 	DEBUGGER_ENTRY();
 

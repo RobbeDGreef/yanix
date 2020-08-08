@@ -99,6 +99,8 @@ void page_fault(registers_t *regs)
 		         && faulting_address <= curtask->program_break)
 			zero_page(faulting_address, get_current_dir(), curtask->ring);
 
+/* I think this was dumb because we cannot get here if we have a stack page fault */
+#if 0
 		else if (faulting_address >= curtask->stacktop - curtask->stack_size
 		         && faulting_address <= curtask->stacktop)
 			zero_page(faulting_address, get_current_dir(), curtask->ring);
@@ -106,7 +108,7 @@ void page_fault(registers_t *regs)
 		else if (faulting_address >= curtask->kernel_stack - KERNEL_STACK_SIZE
 		         && faulting_address <= curtask->kernel_stack)
 			zero_page(faulting_address, get_current_dir(), curtask->ring);
-
+#endif
 		/* Otherwise call the error message */
 		else
 			error_message(faulting_address, regs, not_present, rw, us,
