@@ -34,7 +34,7 @@ QEMU_FLAGS = $(QEMU_DEBUG_FLAGS) -m 512M
 QEMU_FLAGS += -device isa-debug-exit,iobase=0xf4,iosize=0x04 
 QEMU_FLAGS += -netdev user,id=u1,hostfwd=tcp::5555-:5454 -device rtl8139,netdev=u1
 QEMU_FLAGS += -object filter-dump,id=f1,netdev=u1,file=networkdump.dat 
-QEMU_FLAGS += -serial pipe:/serial_output.out 
+QEMU_FLAGS += -serial pipe:serial_output.out 
 QEMU_FLAGS += -no-reboot #-enable-kvm
 QEMU_FLAGS += -d int,cpu_reset -vga vmware
 # Kvm actually slow the os down on some parts (like the ata driver)
@@ -70,7 +70,7 @@ clean:
 run: kernel.bin maindisk.iso
 	@echo "Serial output: "
 	cat /dev/null > /tmp/qemu_dump.txt
-	cat /serial_output.out &
+	cat serial_output.out &
 	$(QEMU) ${QEMU_FLAGS} -hda $(DISKNAME) > /tmp/qemu_dump.txt 2>&1
 
 debug: kernel.bin maindisk.iso kernel.elf
