@@ -35,7 +35,6 @@ on that wiki. For more helpfull links check the bottom of this page
 - [x] Monolithic kernel
 - [x] Preemptible kernel
 - [x] Virtual filesystem
-- [x] Execve system call (still in development)
 - [x] Elf exec driver
 - [x] Memory management
 - [x] Ramdisk support
@@ -55,7 +54,7 @@ on that wiki. For more helpfull links check the bottom of this page
 - [x] CMOS driver
 - [x] PCI driver
 - [x] ata
-- [-] networking
+- [ ] networking
 
 ### Supported Video Interfaces:
 - [x] VESA 3.0 graphics
@@ -65,20 +64,11 @@ on that wiki. For more helpfull links check the bottom of this page
 - [x] Home made bootloader
  
 ## Features/stuff coming in next updates:
-- Userspace shell
 - Time system
 - Networking
-- ata driver
 - Code cleaning because it is a mess at some places
-- Documenting all the functions 
+- Documenting the important stuff 
 - Redo the ext2 driver because it is very messy and incomplete
-
-## Latest commit includes:
-- Various bug fixes
-- A better execve system call.
-- A lot of new system calls (most of them are stubbed for now)
-- A libc, I ported newlib to yanix and I'm now working on a os specific toolchain to start userspace development and create a shell afterwards.
-- FIGlet port!
 
 ## Ported software
 Right now we are working hard on porting other unix software to this operating system.
