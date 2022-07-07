@@ -449,3 +449,15 @@ char *strcat(char *buf, const char *str)
 
 	return buf;
 }
+
+char *strrchr(const char *str, int chr)
+{
+	char *last = NULL;
+	for (unsigned int i = 0; i < strlen(str); i++)
+	{
+		if (str[i] == chr)
+			last = (char*) &str[i];
+	}
+
+	return last;
+}

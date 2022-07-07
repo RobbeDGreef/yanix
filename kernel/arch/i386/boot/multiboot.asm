@@ -42,6 +42,8 @@ section .text
 align 4
 global _start
 _start:
+	cli
+	
 	; Setup our own stack
 	mov esp, stack_top
 

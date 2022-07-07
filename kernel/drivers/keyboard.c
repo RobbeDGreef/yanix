@@ -113,7 +113,7 @@ int send_scancode(int scancode)
 
 	char c = getkey(scancode);
 
-	struct input_kb_pkt pkt = INP_KB_INIT(scancode, KEYMODE_PRESSED, c);
+	struct yinp_kb_pkt pkt = INP_KB_INIT(scancode, KEYMODE_PRESSED, c);
 	vfs_write_fd(eventfd, &pkt, sizeof(pkt));
 
 	int interuptchar = '^';

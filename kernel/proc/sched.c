@@ -167,7 +167,7 @@ void add_task_to_queue(task_t *new_task)
 {
 	add_to_list(&ready_list, new_task);
 }
-
+#include <proc/threads.h>
 void switch_task(task_t *next)
 {
 	task_t *previous = (task_t *) g_runningtask;
@@ -181,16 +181,18 @@ void switch_task(task_t *next)
 	 * oh yeah also i gotta fix that. */
 	if (!next)
 	{
-		printk(KERN_DEBUG "DUDES WHAT THE HELL MAN");
+		printk(KERN_DEBUG "??????????");
 		return;
 	}
+
+	//debug_printk("all good? %x %x\n", next, next->pid);
+	//debug_printk("Switching to '%s'(%i)(%x) from '%s'(%i)(%x)\n", next->name, next->pid, get_main_thrd(next)->stack, g_runningtask->name, g_runningtask->pid, get_main_thrd((task_t*) g_runningtask)->stack);
 
 	g_runningtask            = next;
 	g_runningtask->sliceused = 0;
 	/* @todo: maybe i need to set the task state here */
 
 	set_current_dir(g_runningtask->directory);
-	// debug_printk("Arch switch to %x\n", g_runningtask->esp);
 	arch_task_switch(next, previous);
 }
 

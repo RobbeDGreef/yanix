@@ -1,27 +1,45 @@
 # Regular
 
-- [ ] Make the kernel multiboot compliant
 - [ ] Make the bootloader multiboot compliant
-- [x] New memory manager since the old one is starting to show bugs?
-	- After writing the new mem manager i figured out where the bugs
-	  came from, it were just two memory overflow bugs in 
-	  the ext2 driver and in the tty system. Anyway the new memory
-	  manager is faster and better than the last one so this one will
-	  stay.
-- [ ] New memory manager freeing does not remerge blocks yet
-- [x] Paging system is tripping the f out, I need to figure out why
-	- Bug fixed, it was because kmalloc_base() didn't set the physical address.
-	  The reason was because of our new page_fault() system, it tried to find
-	  the physical address with the frame address of get_page but the pages
-	  didn't have any pages assigned yet.
-- [x] For some reason figlet can't run without previous input, i think it has to do
-	  with our vfs system and the stdin file
-- [ ] Another f-ing memory overflow bug, happens when i try to run /bin/fork
-	  See Current bug track for more info
-- [x] Implement a new multitasking system because it is just crap
+- [ ] Rename vector "copy" function to "duplicate"
 
 # Possible reasons for future bugs
 
 - Paging system does not necessairilly allocate continues blocks of real memory
   This can be a problem if the paging system allocates page tables,
   I am not sure though
+
+# well... todo
+
+threading is a terrible soup. We will have to change the whole multitasking 
+system because we used to switch on task and now will switch on thread
+this creates the problem of stacks. Each thread will have its own stack
+duplicated from the caller thread. now thats all fine and dandy but that means
+we need to create a system to reliably create stacks with a non-heap address
+but the data does need to be, like, a different page n stuff. Yea i know it's bad
+but once this is over we will have (nearly) no problem running SMP stuff.
+
+why do the stacks have to be non heap ??? I don't remember and it would make 
+everything a lot harder
+
+lets just create a new stack and copy it from its contents
+better yet, let's create a heap specifically for this
+that would not be secure or something but it would be simple and i care more
+about that currently
+
+we are going to give a timeslice to a task
+and then that task gives the individual threads CPU's ?
+that's simple and very inefficient, .... perfect
+
+okay so i was wrong wth
+
+THREADS ARE NEVER COPIED stupid me
+thread stacks can very well be in heap addresses because they start at an 
+arbitrary entry point in the program meaning the stack is fresh and without 
+ret calls. Whatever it's still complicated asf
+
+the problem is really the first thread but now that i think abt it i really don't 
+think we should've changed anything oml i could have just left the first thread as
+it was and just spawning new ones with fresh stacks
+
+HHHHHHHHHH

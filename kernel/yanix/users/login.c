@@ -15,6 +15,9 @@ char *getline()
 
 int login()
 {
+	user_login("root", "password");
+	return 1;
+	
 	while (1)
 	{
 		printk("Login: ");

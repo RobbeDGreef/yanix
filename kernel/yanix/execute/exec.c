@@ -58,7 +58,7 @@ noargs_debug:;
 	/* Cleanup */
 	vfs_close(file);
 
-	get_current_task()->name = (char *) filename;
+	get_current_task()->name = (char *) strdup(filename);
 	check_filedescriptors(get_current_task()->fds);
 
 	debug_printk(KERN_INFO "Executing execve\n");
@@ -99,8 +99,7 @@ noargs_debug:;
 		             : "r"(ret), "r"(get_current_task()->stacktop), "c"(amount),
 		               "d"((reg_t) argv));
 #endif
-
-		jump_userspace(ret, get_current_task()->stacktop, amount, (reg_t) argv);
+		jump_userspace(ret, get_current_stacktop(), amount, (reg_t) argv);
 
 		return 0;
 	}

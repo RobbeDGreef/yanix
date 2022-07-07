@@ -33,17 +33,14 @@ do_task_switch: ; void do_task_switch(reg_t *previous_esp, reg_t next_esp, reg_t
 	cli
 	pushad
 	
-	; pusha pushed 8 resigesters  
+	; pusha pushed 8 registers  
 	mov 	eax, [esp + (8 + 1) * 4]
 	mov 	[eax], esp
 
 	mov 	eax, [esp + (8 + 2) * 4]
 	mov 	ebx, [esp + (8 + 3) * 4]
-	mov 	ecx, [esp + (8 + 4) * 4]
 	mov 	esp, eax
 	mov 	cr3, ebx
-	;cmp 	ecx, 0xc002a000
-	;je 		$
 
 	popad
 	

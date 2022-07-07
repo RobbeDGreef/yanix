@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <kernel/ds/ringbuffer.h>
 #include <kernel/atomic.h>
+#include <cpu/interrupts.h>
 
 #include <const.h>
 #include <errno.h>
@@ -57,8 +58,8 @@ void ringbuffer_destroy(struct ringbuffer *rb)
 ssize_t ringbuffer_read_index(char *buffer, size_t size, unsigned long index,
                               struct ringbuffer *circbuf)
 {
-	if (circbuf->lock && circbuf->lock < size)
-		size = circbuf->lock;
+	if (circbuf->cursize && circbuf->cursize < size)
+		size = circbuf->cursize;
 
 	if (circbuf->flags & RINGBUFFER_OPTIMIZE_USHORTINT)
 	{
@@ -86,8 +87,8 @@ ssize_t ringbuffer_read_index(char *buffer, size_t size, unsigned long index,
 		 */
 		circbuf->virtual_begin = index + max;
 
-		if (circbuf->lock)
-			circbuf->lock -= max;
+		if (circbuf->cursize)
+			circbuf->cursize -= max;
 
 		return max;
 	}
@@ -112,7 +113,7 @@ ssize_t ringbuffer_read_index(char *buffer, size_t size, unsigned long index,
 ssize_t ringbuffer_read(char *buffer, size_t size, struct ringbuffer *circbuf)
 {
 	spinlock_lock(&circbuf->spinlock);
-	ssize_t ret =  ringbuffer_read_index(buffer, size, circbuf->virtual_begin, circbuf);
+	ssize_t ret = ringbuffer_read_index(buffer, size, circbuf->virtual_begin, circbuf);
 	spinlock_unlock(&circbuf->spinlock);
 	return ret;
 }
@@ -143,10 +144,9 @@ ssize_t ringbuffer_write_index(char *buffer, size_t size, unsigned long index,
 
 		for (size_t i = 0; i < size; i++)
 		{
-			if (buffer[i] == '\n')
+			if (circbuf->flags & O_NONBLOCK || buffer[i] == '\n')
 			{
-				circbuf->lock =
-					circbuf->virtual_end - circbuf->virtual_begin + i + 1;
+				circbuf->cursize = circbuf->virtual_end - circbuf->virtual_begin + i + 1;
 			}
 
 			circbuf->buffer_start[ind++] = buffer[i];
@@ -175,22 +175,30 @@ ssize_t ringbuffer_write_index(char *buffer, size_t size, unsigned long index,
  */
 ssize_t ringbuffer_write(char *buffer, size_t size, struct ringbuffer *circbuf)
 {
+	/**
+	 * We disable interrupts too because we don't want to be switching to
+	 * usermode when we only wrote a part of the message into a buffer
+	 */
+	disable_interrupts();
 	spinlock_lock(&circbuf->spinlock);
-	ssize_t ret =  ringbuffer_write_index(buffer, size, circbuf->virtual_end, circbuf);
+
+	ssize_t ret = ringbuffer_write_index(buffer, size, circbuf->virtual_end, circbuf);
+
 	spinlock_unlock(&circbuf->spinlock);
+	enable_interrupts();
 	return ret;
 }
 
 void ringbuffer_block(struct ringbuffer *circbuf)
 {
-	while (!circbuf->lock)
+	while (!circbuf->cursize)
 		;
 }
 
 void ringbuffer_flush(struct ringbuffer *circbuf)
 {
 	circbuf->virtual_begin = circbuf->virtual_end;
-	circbuf->lock          = 0;
+	circbuf->cursize          = 0;
 }
 
 int ringbuffer_remove(int location, struct ringbuffer *circbuf)
@@ -204,8 +212,7 @@ int ringbuffer_remove(int location, struct ringbuffer *circbuf)
 		/* shift the bytes */
 		for (int i = 0; i < location - 1; i++)
 		{
-			circbuf->buffer_start[base + i] =
-				circbuf->buffer_start[base + i + 1];
+			circbuf->buffer_start[base + i] = circbuf->buffer_start[base + i + 1];
 		}
 
 		circbuf->buffer_start[circbuf->virtual_end] = '\0';

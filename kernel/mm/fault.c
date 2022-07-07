@@ -91,7 +91,7 @@ void page_fault(registers_t *regs)
 	if (not_present)
 	{
 		if (heap)
-			zero_page(faulting_address, get_kernel_dir(), heap->usermode);
+			zero_page(faulting_address, get_current_dir(), heap->usermode);
 
 		/* Check wheter it was part of the user space program running
 		 * with the program break and zero it out */

@@ -1,0 +1,245 @@
+#ifndef __ECLIB_VECTOR_H
+#define __ECLIB_VECTOR_H
+
+#include "core.h"
+
+#define VECTOR_STARTCAP            8
+#define CHECK_INDEX(vec, ind)      (ind < vec->size && !vec->destroyed)
+#define VECTOR_GET(vec, ind, type) ((char *) vec->buffer + ind * sizeof(type))
+
+#define define_vector_functionprototypes(type, name)                       \
+	vec_##name vec_##name##_create();                                      \
+	type       vec_##name##_get(vec_##name vec, unsigned int index);       \
+	int        vec_##name##_destroy(vec_##name vec);                       \
+	int        vec_##name##_wipe(vec_##name vec, unsigned int index);      \
+	vec_##name vec_##name##_copy(vec_##name srcvec);                       \
+	int        vec_##name##_reserve(vec_##name vec, size_t amount);        \
+	int        vec_##name##_push(vec_##name vec, type object);             \
+	type       vec_##name##_pop(vec_##name vec);                           \
+	int vec_##name##_set(vec_##name vec, unsigned int index, type object); \
+	int vec_##name##_iter(vec_##name vec);
+/**
+ * @brief      Defines a vector
+ *
+ * @param      name  The suffix for the vector name. For example if the name
+ * 			   would be foo the vector name would be vec_foo
+ *
+ *
+ * This macro first defines a basic vector structure with prefix name
+ * "vec_s_" (and then after that your chosen suffix). After that it will
+ * create an alias for a pointer to the structure called "vec_". You should
+ * always use the "vec_" structure pointer and not the raw structure.
+ *
+ */
+#define define_vector_type(name) \
+	struct vec_s_##name          \
+	{                            \
+		void * buffer;           \
+		size_t size;             \
+		size_t capacity;         \
+		int    destroyed;        \
+		int    error;            \
+		int    iter;             \
+	};                           \
+	typedef struct vec_s_##name *vec_##name;
+
+/**
+ * @brief      Defines all the vector functions
+ *
+ * @param      type  The type of the vector
+ * @param      name  The name of the vector
+ *
+ */
+#define define_vector_functions(type, name) \
+	_define_vector_create(type, name);      \
+	_define_vector_get(type, name);         \
+	_define_vector_destroy(type, name);     \
+	_define_vector_wipe(type, name);        \
+	_define_vector_copy(type, name);        \
+	_define_vector_reserve(type, name);     \
+	_define_vector_push(type, name);        \
+	_define_vector_set(type, name);         \
+	_define_vector_pop(type, name);         \
+	_define_vector_iter(type, name);        \
+	_define_vector_find_int(type, name);
+
+#define _ret_error(err, vec, type) \
+	vec->error = err;              \
+	type x;                        \
+	return x;
+
+/**
+ * @brief      Defines the vector create function.
+ *
+ * @param      type  The type of the vector
+ * @param      name  The name of the vector
+ *
+ */
+#define _define_vector_create(type, name)                              \
+	vec_##name vec_##name##_create()                                   \
+	{                                                                  \
+		vec_##name vec = eclib_malloc(sizeof(struct vec_s_##name));    \
+		vec->buffer    = eclib_malloc(sizeof(type) * VECTOR_STARTCAP); \
+		vec->capacity  = VECTOR_STARTCAP;                              \
+		vec->size      = 0;                                            \
+		vec->destroyed = 0;                                            \
+		vec->iter      = 0;                                            \
+		vec->error     = 0;                                            \
+		return vec;                                                    \
+	}
+
+#define _define_vector_get(type, name)                        \
+	type vec_##name##_get(vec_##name vec, unsigned int index) \
+	{                                                         \
+		vec->error = 0;                                       \
+		if (!CHECK_INDEX(vec, index))                         \
+		{                                                     \
+			_ret_error(ECLIB_EIND, vec, type);                \
+		}                                                     \
+		if (vec->destroyed)                                   \
+		{                                                     \
+			_ret_error(ECLIB_EDESTR, vec, type);              \
+		}                                                     \
+                                                              \
+		return *(type *) VECTOR_GET(vec, index, type);        \
+	}
+
+#define _define_vector_destroy(type, name)   \
+	int vec_##name##_destroy(vec_##name vec) \
+	{                                        \
+		if (vec->destroyed)                  \
+			return -1;                       \
+                                             \
+		vec->destroyed = 1;                  \
+		eclib_free(vec->buffer);             \
+		eclib_free(vec);                     \
+		return 0;                            \
+	}
+
+#define _define_vector_wipe(type, name)                              \
+	int vec_##name##_wipe(vec_##name vec, unsigned int index)        \
+	{                                                                \
+		if (!CHECK_INDEX(vec, index))                                \
+			return -1;                                               \
+                                                                     \
+		eclib_memset(VECTOR_GET(vec, index, type), 0, sizeof(type)); \
+		return 0;                                                    \
+	}
+
+#define _define_vector_copy(type, name)                                 \
+	vec_##name vec_##name##_copy(vec_##name srcvec)                     \
+	{                                                                   \
+		vec_##name newvec = eclib_malloc(sizeof(struct vec_s_##name));  \
+		newvec->capacity  = srcvec->capacity;                           \
+		newvec->size      = srcvec->size;                               \
+		newvec->destroyed = srcvec->destroyed;                          \
+                                                                        \
+		newvec->buffer = eclib_malloc(sizeof(type) * srcvec->capacity); \
+		eclib_memcpy(newvec->buffer, srcvec->buffer,                    \
+		             sizeof(type) * srcvec->capacity);                  \
+                                                                        \
+		return newvec;                                                  \
+	}
+
+#define _define_vector_reserve(type, name)                      \
+	int vec_##name##_reserve(vec_##name vec, size_t amount)     \
+	{                                                           \
+		if (amount < vec->capacity)                             \
+			return -1;                                          \
+                                                                \
+		int prevcap   = vec->capacity;                          \
+		vec->capacity = amount;                                 \
+                                                                \
+		void *buf = eclib_malloc(sizeof(type) * vec->capacity); \
+		eclib_memcpy(buf, vec->buffer, prevcap * sizeof(type)); \
+		eclib_free(vec->buffer);                                \
+                                                                \
+		vec->buffer = buf;                                      \
+		return 0;                                               \
+	}
+
+#define _define_vector_push(type, name)                                        \
+	int vec_##name##_push(vec_##name vec, type object)                         \
+	{                                                                          \
+		if (vec->destroyed)                                                    \
+			return -1;                                                         \
+                                                                               \
+		if (vec->size == vec->capacity)                                        \
+			vec_##name##_reserve(vec, vec->capacity * 2);                      \
+                                                                               \
+		eclib_memcpy(VECTOR_GET(vec, vec->size, type), &object, sizeof(type)); \
+                                                                               \
+		return ++vec->size;                                                    \
+	}
+
+#define _define_vector_set(type, name)                                     \
+	int vec_##name##_set(vec_##name vec, unsigned int index, type object)  \
+	{                                                                      \
+		if (vec->destroyed)                                                \
+			return -1;                                                     \
+                                                                           \
+		if (!CHECK_INDEX(vec, index))                                      \
+			return -1;                                                     \
+                                                                           \
+		eclib_memcpy(VECTOR_GET(vec, index, type), &object, sizeof(type)); \
+		return 0;                                                          \
+	}
+
+#define _define_vector_pop(type, name)                         \
+	type vec_##name##_pop(vec_##name vec)                      \
+	{                                                          \
+		vec->error = 0;                                        \
+		if (vec->destroyed)                                    \
+		{                                                      \
+			_ret_error(ECLIB_EDESTR, vec, type);               \
+		}                                                      \
+                                                               \
+		if (vec->size == 0)                                    \
+		{                                                      \
+			_ret_error(ECLIB_EIND, vec, type);                 \
+		}                                                      \
+                                                               \
+		return *(type *) VECTOR_GET(vec, vec->size - 1, type); \
+	}
+
+/**
+ * example:
+ * 
+ * int iter;
+ * vec_int vec;
+ * 
+ * while ((iter = vec_int_iter(vec)) != -1)
+ * {
+ *     printf("data %i\n", vec_int_get(vec, iter));
+ * }
+ */
+#define _define_vector_iter(type, name)   \
+	int vec_##name##_iter(vec_##name vec) \
+	{                                     \
+		if (vec->iter == (int) vec->size) \
+		{                                 \
+			vec->iter = 0;                \
+			return -1;                    \
+		}                                 \
+                                          \
+		return vec->iter++;               \
+	}
+
+#define _define_vector_find_int(type, name)                          \
+	int vec_##name##_find_int(vec_##name vec, int offset, int value) \
+	{                                                                \
+		for (unsigned int i = 0; i < vec->size; i++)                 \
+		{                                                            \
+			type x = vec_##name##_get(vec, i);                       \
+			if ((int) *(((char *) &x) + offset) == value)            \
+				return i;                                            \
+		}                                                            \
+                                                                     \
+		return -1;                                                   \
+	}
+
+#define define_vector(type, name) \
+	define_vector_type(name);     \
+	define_vector_functions(type, name);
+
+#endif /* __ECLIB_VECTOR_H */

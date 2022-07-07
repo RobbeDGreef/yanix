@@ -146,7 +146,7 @@ void _enter(reg_t stack, reg_t stacktop, struct multiboot *multibootinfo)
 	/* Creates a new wanted stack (INLINE FUNCTION) */
 	init_main_stack();
 	message("Successfully remapped kernel stack to desired location", 1);
-	
+
 	/* paging bootsequence, with new stack */
 	bootsequence_after_paging();
 

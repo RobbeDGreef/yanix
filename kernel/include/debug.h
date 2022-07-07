@@ -31,7 +31,11 @@ void dump_stacktrace();
 void debug_print_m(char *str, ...);
 void debug_print(char *str);
 void debug_print_hex(unsigned int val);
-void debug_printk(const char *__restrict fmt, ...);
+
+#define NOTICEME	"\033[33;1mNOTICEME \033[0m"
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define debug_printk(...) do {_debug_printk("[ dbg %s:%i ] ", __FILENAME__, __LINE__); _debug_printk(__VA_ARGS__); } while (0)
+void _debug_printk(const char *__restrict fmt, ...);
 
 void hang();
 void print_return_address();

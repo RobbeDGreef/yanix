@@ -101,15 +101,10 @@ void kill_proc(task_t *task)
 	}
 }
 
-static inline struct heap setup_stack_heap(int um)
+/* @todo: Remove this function */
+static inline void setup_stack_heap(struct heap *ptr, int um)
 {
-	struct heap ret;
-	ret.start = USER_STACKHEAP_START;
-	ret.size = 0;
-	ret.maxsize = USER_STACKHEAP_MAXSIZE;
-	ret.usermode = um;
-
-	return ret;
+	create_heap(ptr, USER_STACKHEAP_START, USER_STACKHEAP_MAXSIZE, um);
 }
 
 static task_t *create_task(task_t *new_task, int kernel_task,
@@ -146,6 +141,11 @@ static task_t *create_task(task_t *new_task, int kernel_task,
 	new_task->tty         = curtask->tty;
 	new_task->state       = TASK_RUNNING;
 	new_task->sighandlers = vec_sig_copy(curtask->sighandlers);
+	new_task->threads     = vec_thrds_create();
+	setup_stack_heap(&new_task->stack_heap, !kernel_task);
+	threads_init_forked(new_task, curtask);
+
+	//init_thread_setup(new_task, stack_alloc(kernel_task, &new_task->stack_heap));
 
 	/* @todo: timeslices should be set in config file */
 	new_task->timeslice = 100;
@@ -157,6 +157,7 @@ static task_t *create_task(task_t *new_task, int kernel_task,
 
 pid_t fork()
 {
+	debug_printk("Forking\n");
 	disable_interrupts();
 
 	/* duplicate page directory */
@@ -168,7 +169,9 @@ pid_t fork()
 	create_task(new_task, parent_task->ring ? 0 : 1, 0);
 	add_task_to_queue(new_task);
 
-	arch_spawn_task(&new_task->esp, &new_task->directory);
+	printk("Current stacktop %x\n", get_current_stacktop());
+	printk("New stacktop: %x\n", vec_thrds_get(new_task->threads, 0)->stack_top);
+	arch_spawn_task(&(get_main_thrd(new_task)->stack), &new_task->directory);
 
 	if (parent_task == get_current_task())
 	{
@@ -205,10 +208,10 @@ int init_tasking()
 	mainloop->fds      = vector_create();
 
 	mainloop->sighandlers = vec_sig_create();
+	mainloop->threads = vec_thrds_create();
+	setup_stack_heap(&mainloop->stack_heap, 0); /* @todo: no magic values */
 
-	for (uint i = 0; i < KERNEL_STACK_SIZE; i += 0x1000)
-		alloc_frame(
-			get_page(mainloop->kernel_stack - i, 1, mainloop->directory), 1, 0);
+	init_thread_setup(mainloop, KERNEL_MAIN_STACK);
 
 	init_scheduler(mainloop);
 	return 0;
@@ -242,4 +245,21 @@ uid_t task_euid()
 gid_t task_egid()
 {
 	return get_current_task()->egid;
+}
+
+uintptr_t get_current_stacktop()
+{
+	struct thread *t = vec_thrds_get(get_current_task()->threads, 0);
+	return t->stack_top;
+}
+
+struct thread *get_main_thrd(task_t *task)
+{
+	return vec_thrds_get(task->threads, 0);
+}
+
+struct thread *get_current_thrd()
+{
+	/* @todo: */
+	return vec_thrds_get(get_current_task()->threads, 0);
 }

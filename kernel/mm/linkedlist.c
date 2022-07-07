@@ -177,7 +177,6 @@ static inline struct ll_node *expand_heap_align_split(size_t   nodesize,
 	newnode->prev = newnode->next = 0;
 
 	list->cursize += alignoffset + nodesize;
-
 	return newnode;
 }
 

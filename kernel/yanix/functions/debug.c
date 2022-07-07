@@ -123,7 +123,7 @@ static void print(char *str)
 /**
  * @brief      Literally just copied the printk function and changed it a bit
  */
-void debug_printk(const char *__restrict fmt, ...)
+void _debug_printk(const char *__restrict fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);

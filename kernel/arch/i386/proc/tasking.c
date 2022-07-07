@@ -37,7 +37,10 @@ void arch_task_switch(task_t *next, task_t *prev)
 
 	struct thread *nt = vec_thrds_get(next->threads, 0);
 	struct thread *pt = vec_thrds_get(prev->threads, 0);
+	//debug_printk("previous stack %x %x next stack %x %x\n", pt->stack, pt->kernel_stack, nt->stack, nt->kernel_stack);
+
 	tss_set_kernel_stack(nt->kernel_stack);
 	do_task_switch(&pt->stack, nt->stack, next->directory->physicalAddress,
 	               next->directory);
+
 }

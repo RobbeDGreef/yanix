@@ -1,6 +1,8 @@
 #ifndef _YANIX_SYS_SOCKET_H
 #define _YANIX_SYS_SOCKET_H
 
+#include <sys/types.h>
+
 #define AF_UNIX     1
 #define SOCK_STREAM 2
 #define SOCK_DGRAM  3

@@ -144,4 +144,6 @@ char *strchr_r(const char *str, char c);
 int   strcpy_s(char *dest, const char *str, int max);
 char *strcpy(char *dest, const char *src);
 char *strcat(char *buf, const char *str);
+char *strrchr(char *str, int c);
+
 #endif

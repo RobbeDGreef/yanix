@@ -90,6 +90,7 @@ void *kmalloc_gen_base(struct heap *heap, size_t size, int align, phys_addr_t *p
 
 	if (!addr)
 	{
+		printk("size: %x heap size %x max %x\n", size, heap->size, heap->maxsize);
 		printk(KERN_ERR "Kernel could not allocate: %i amount of memory\n",
 		       size);
 		return 0;
@@ -204,7 +205,7 @@ struct heap *is_addr_in_heap(offset_t addr)
 
 	while (tmp)
 	{
-		if (addr > tmp->start && addr < tmp->start + tmp->maxsize)
+		if (addr >= tmp->start && addr < tmp->start + tmp->maxsize)
 			return tmp;
 
 		tmp = tmp->nextheap;
@@ -231,15 +232,21 @@ static void add_heap(struct heap *heap)
 	tmp->nextheap = heap;
 }
 
-static struct heap *create_heap(offset_t start, size_t maxsize, int usermode)
+struct heap *allocate_heap()
 {
-	struct heap *heap = simple_alloc(sizeof(struct heap), 0);
+	struct heap *heap = simple_alloc(sizeof(struct heap), 0); 
+	return heap;
+}
+
+struct heap *create_heap(struct heap *heap, offset_t start, size_t maxsize, int usermode)
+{
+	if (!heap)
+		heap = allocate_heap();
 
 	heap->start    = start;
 	heap->size     = 0;
 	heap->maxsize  = maxsize;
 	heap->usermode = usermode;
-
 	heap->linkedlist = create_linkedlist(start, maxsize, usermode);
 
 	add_heap(heap);
@@ -254,7 +261,7 @@ static struct heap *create_heap(offset_t start, size_t maxsize, int usermode)
  */
 int init_kheap()
 {
-	kernel_heap = create_heap(KHEAP_START, KHEAP_MAXSIZE, 0);
+	kernel_heap = create_heap(NULL, KHEAP_START, KHEAP_MAXSIZE, 0);
 	return 0;
 }
 
@@ -265,7 +272,7 @@ int init_kheap()
  */
 int init_uheap()
 {
-	user_heap = create_heap(UHEAP_START, UHEAP_MAXSIZE, 1);
+	user_heap = create_heap(NULL, UHEAP_START, UHEAP_MAXSIZE, 1);
 	return 0;
 }
 
@@ -274,4 +281,10 @@ int debug_is_heapblock_free(void *addr)
 	return dbg_is_heapblock_free(
 		kernel_heap->linkedlist,
 		(struct ll_node *) (addr - sizeof(struct ll_node)));
+}
+
+void heap_setusermode(struct heap *heap)
+{
+	heap->usermode = 1;
+	/* @todo: reset all data on heap to usermode */
 }

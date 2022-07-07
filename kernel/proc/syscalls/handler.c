@@ -10,7 +10,7 @@ static void syscall_handler(registers_t *regs)
 {
 	if (regs->eax != 4)
 		debug_printk(KERN_DEBUG "syscall: %i '%i' '%i' '%i'\n", regs->eax,
-		             regs->ebx, regs->ecx, regs->edx);
+		          regs->ebx, regs->ecx, regs->edx);
 	if (regs->eax >= (uint) syscall_amount)
 		return;
 
@@ -35,8 +35,8 @@ static void syscall_handler(registers_t *regs)
      	add $20, %%esp; \
         "
 	             : "=a"(ret)
-	             : "r"(regs->edi), "r"(regs->esi), "r"(regs->edx),
-	               "r"(regs->ecx), "r"(regs->ebx), "r"(syscall));
+	             : "r"(regs->edi), "r"(regs->esi), "r"(regs->edx), "r"(regs->ecx),
+	               "r"(regs->ebx), "r"(syscall));
 
 	/* Return value is generally saved eax */
 	regs->eax = ret;

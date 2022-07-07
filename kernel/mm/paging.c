@@ -113,7 +113,7 @@ static ssize_t first_frame()
 		{
 			for (j = 0; j < 32; j++)
 			{
-				unsigned int toTest = 0x1 << j;
+				unsigned int toTest = (unsigned int) 0x1 << j;
 				if (!(g_frames[i] & toTest))
 				{
 					return (ssize_t) i * 4 * 8 + j;
@@ -696,6 +696,7 @@ int init_paging()
 	return 0;
 }
 
+#if 0
 void debug_paging_print(page_directory_t *dir)
 {
 	/* print important parts of this directory to check if it is corrupted or
@@ -709,6 +710,7 @@ void debug_paging_print(page_directory_t *dir)
 		       page ? get_frame(page->frame) : 0);
 	}
 }
+#endif
 
 void debug_paging_buf(page_directory_t *dir)
 {
@@ -751,5 +753,17 @@ unsigned long sharedram_amount()
 
 unsigned long bufferram_amount()
 {
+	return 0;
+}
+
+int initialize_mem(uint32_t start, uint32_t size, int um, page_directory_t *dir)
+{
+	if (!dir)
+		dir = get_current_dir();
+	
+	for (; start < start+size; start += 0x1000)
+		if (alloc_frame(get_page(start, 1, dir), !um, um))
+			return -1;
+
 	return 0;
 }

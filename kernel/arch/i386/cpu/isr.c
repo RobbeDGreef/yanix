@@ -208,6 +208,11 @@ void irq_handler(registers_t *r)
 {
 	g_latest_irq = r->int_no - 32;
 
+	if (r->int_no != 32)
+	{
+		debug_printk("Interrupt happened %i\n", g_latest_irq);
+	}
+
 	if (interrupt_handlers[r->int_no] != 0)
 	{
 		isr_callback_t handler = interrupt_handlers[r->int_no];

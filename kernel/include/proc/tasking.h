@@ -52,10 +52,13 @@ typedef struct task_s
 	                          * the task is using */
 	int priority;            /* The priority of the task */
 
+	vec_thrds threads;	/*  The threads the task has (at least 1) */
+
 	/* Used for stack management */
 	struct heap stack_heap;
+
 	/* Linked list next identifier */
-	struct task_control_block_s *next;
+	struct task_s *next;
 
 } __attribute__((packed)) task_t;
 

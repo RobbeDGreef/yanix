@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <kernel/stack.h>
 #include <mm/heap.h>
+#include <proc/threads.h>
+#include <debug.h>
 
 uintptr_t g_inital_esp = 0;
 struct heap *g_kernel_stackheap = NULL;
@@ -20,6 +22,15 @@ void init_stack(uintptr_t stack_location)
 void set_user_stack()
 {
 	//get_main_thrd(get_current_task())
+
+	/* First set the stack heap to usermode */
+	task_t *curtask = get_current_task();
+
+	heap_setusermode(&curtask->stack_heap);
+
+	/* Now allocate a new stack */
+	get_main_thrd(curtask)->stack_top = stack_alloc(0, &curtask->stack_heap);
+	get_main_thrd(curtask)->stack_size = USER_STACK_SIZE;		
 }
 
 #if 0
@@ -94,7 +105,9 @@ uintptr_t stack_alloc(int kernel, struct heap *sheap)
 	if (sheap)
 		heap = sheap;
 
-	return (uintptr_t) kmalloc_gen_base(heap, sz, 1, NULL) + sz;
+	uintptr_t addr = (uintptr_t) kmalloc_gen_base(heap, sz, 1, NULL) + sz;
+	initialize_mem(addr, sz, !kernel, NULL);
+	return addr + sz;
 }
 
 void stack_free(int kernel, uintptr_t top)
@@ -103,11 +116,4 @@ void stack_free(int kernel, uintptr_t top)
 		kfree_gen(g_kernel_stackheap, (void*) (top - KERNEL_STACK_SIZE));
 	else
 		kfree_gen(&get_current_task()->stack_heap, (void*) (top - USER_STACK_SIZE));
-}
-
-inline void __attribute__((always_inline)) init_main_stack()
-{
-	g_kernel_stackheap = create_heap(KERNEL_STACKHEAP_START, KERNEL_STACKHEAP_MAXSIZE, 0);
-
-	asm volatile("mov %0, %%esp; mov %0, %%ebp" : : "r"(KERNEL_MAIN_STACK));
 }

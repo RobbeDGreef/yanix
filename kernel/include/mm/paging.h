@@ -185,6 +185,8 @@ int identity_map_memory_block(uint32_t startaddr, uint32_t endaddr,
                               int is_kernel, int is_writable_from_userspace,
                               page_directory_t *dir);
 
+int initialize_mem(uint32_t start, uint32_t size, int um, page_directory_t *dir);
+
 void debug_paging_print(page_directory_t *dir);
 
 #endif

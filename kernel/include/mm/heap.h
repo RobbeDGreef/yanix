@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <sys/types.h>
+#include <mm/paging.h>
 
 struct heap
 {
@@ -45,5 +46,8 @@ int kfree_gen(struct heap *heap, void *addr);
 
 offset_t     get_placement_addr();
 struct heap *is_addr_in_heap(offset_t addr);
+
+struct heap *create_heap(struct heap *, offset_t start, size_t maxsize, int usermode);
+void heap_setusermode(struct heap *heap);
 
 #endif /* _MM_HEAP_H */

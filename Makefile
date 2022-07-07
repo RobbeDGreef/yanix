@@ -20,15 +20,12 @@ LOOPD_DISK			= /dev/loop5
 ROOTFS 				= ./rootfs
 USER 				= robbe 
 
-# Easier in sublime
-# CC = /usr/share/crosscompiler/bin/i386-elf-gcc
-# LD = /usr/share/crosscompiler/bin/i386-elf-ld
 CC = $(PWD)/toolchain/bin/bin/i686-yanix-gcc
 LD = $(PWD)/toolchain/bin/bin/i686-yanix-ld
 
 GDB = gdb
 NASM = nasm
-QEMU = qemu-system-x86_64
+QEMU = qemu-system-i386
 QEMU_DEBUG_FLAGS = -d guest_errors,cpu_reset
 QEMU_FLAGS = $(QEMU_DEBUG_FLAGS) -m 512M 
 QEMU_FLAGS += -device isa-debug-exit,iobase=0xf4,iosize=0x04 
@@ -75,7 +72,7 @@ run: kernel.bin maindisk.iso
 
 debug: kernel.bin maindisk.iso kernel.elf
 	$(QEMU) -s ${QEMU_FLAGS} -hda $(DISKNAME) > /tmp/qemu_dump.txt 2>&1 &
-	$(GDB) -ex "target remote localhost:1234" -ex "symbol-file kernel.elf" -ex "breakpoint DEBUGGER_ENTRY" -ex "directory /home/robbe/Projects/yanix/kernel" -ex "set disassembly-flavor intel"
+	$(GDB) -ex "target remote localhost:1234" -ex "symbol-file kernel.elf" -ex "watch *0xC00BF453" -ex "directory /home/robbe/Projects/yanix/kernel" -ex "set disassembly-flavor intel" -ex "c"
 
 #### Building ####
 
