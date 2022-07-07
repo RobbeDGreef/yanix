@@ -93,26 +93,25 @@ The first port ever completed is FIGlet and it runs perfectly on yanix!
 
 ## Getting it to work on your machine:
 
-In order to boot the kernel you will need qemu and a copy of our os-image.bin:
+In order to build and run yanix you will need the following items:
+- NASM assembler
+- the yanix toolchain
+- maindisk.iso
 
-#### to install qemu for ubuntu/debian users:
+The last two can be found [here](https://drive.google.com/drive/folders/1ChTpxsZRl50aM4hI0YoOpPqn3rwtLK2A?usp=sharing).
+Just put both files in the main yanix/ directory.
 
-run the following commands to install qemu
-- apt-get update
-- apt-get install qemu-system-i386
+### Building
+First mount maindisk.iso like so:
 
-#### running yanix:
+	sudo make mount_disk
 
-to just run yanix you could use this command
-- qemu-system-i386 -m 512M -hda os-image.bin
+Then to build yanix run 
 
-to run it with a ethernet card:
-- qemu-system-i386 -m 512M -device rtl8139 -hda os-image.bin
+	make clean && make run
 
-#### Building yanix
-to build yanix you will need a crosscompiler
-a way to easily build one will show here soon.
-
+### Running
+To start yanix in qemu run `make run` in terminal and it should start running in qemu.
 
 ## Links
 
